@@ -7,5 +7,5 @@ import org.springframework.boot.runApplication
 class WebInterfaceIpiSystemApplication
 
 fun main(args: Array<String>) {
-	runApplication<WebInterfaceIpiSystemApplication>(*args)
+    runApplication<WebInterfaceIpiSystemApplication>(*args)
 }
