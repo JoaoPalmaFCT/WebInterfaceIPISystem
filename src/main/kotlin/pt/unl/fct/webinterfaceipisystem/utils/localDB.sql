@@ -1,3 +1,4 @@
+
 CREATE TABLE Inclinometer (
     Id INT PRIMARY KEY,
     Name VARCHAR(255),
@@ -59,9 +60,9 @@ CREATE TABLE Layer (
     Symbol VARCHAR(5),
     Description TEXT,
     Color VARCHAR(10),
-    LayerThickness FLOAT
+    LayerThickness FLOAT,
     SoilAndWaterLayerId INT,
-    FOREIGN KEY (SoilAndWaterLayerId) REFERENCES SoilAndWaterLayer(Id)
+    FOREIGN KEY (SoilAndWaterLayerId) REFERENCES SoilAndWaterLayers(Id)
 );
 
 CREATE TABLE MonitoringProfile (
@@ -69,7 +70,7 @@ CREATE TABLE MonitoringProfile (
     Name VARCHAR(255),
     Code VARCHAR(10),
     Description TEXT,
-    Type VARCHAR(50)
+    Type VARCHAR(50),
     MonitoringGroupId INT,
     FOREIGN KEY (MonitoringGroupId) REFERENCES MonitoringGroup(Id)
 );
@@ -77,7 +78,7 @@ CREATE TABLE MonitoringProfile (
 CREATE TABLE ProfilePositionAdjustment (
     Id INT PRIMARY KEY,
     Type VARCHAR(15),
-    ImageURLPath VARCHAR(255)
+    ImageURLPath VARCHAR(255),
     MonitoringProfileId INT,
     FOREIGN KEY (MonitoringProfileId) REFERENCES MonitoringProfile(Id)
 );
@@ -97,7 +98,7 @@ CREATE TABLE ProfilePosAdjWithMonitProfile (
 CREATE TABLE Point (
     Id INT PRIMARY KEY,
     PositionX FLOAT,
-    PositionY FLOAT
+    PositionY FLOAT,
     ProfilePositionAdjustmentId INT,
     FOREIGN KEY (ProfilePositionAdjustmentId) REFERENCES ProfilePositionAdjustment(Id)
 );
@@ -109,9 +110,8 @@ CREATE TABLE ProfilePosAdjWithPoint (
 );
 
 CREATE TABLE User (
-    Id INT PRIMARY KEY,
+    Email VARCHAR(255) PRIMARY KEY,
     Name VARCHAR(255),
-    Email VARCHAR(255),
     Password VARCHAR(255),
     PhoneNumber VARCHAR(15),
     Company INT,

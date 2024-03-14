@@ -19,9 +19,9 @@ class CosmosDB(client: CosmosClient) {
     private val container: CosmosContainer? = null
 
     init{
-        this.KEY = ""
-        this.URL = "https://documents.azure.com:443/"
-        this.DB_NAME = "db"
+        this.KEY = "4d4qs7ZrWPjbWLICjm8WsE1J9UCVb3HQWqR5g06C8GmQe0PX4kHmfPh7CH9xTClnB0QDK1DqWMhdACDbGQ3dMA=="
+        this.URL = "https://ipisystemdb.documents.azure.com:443/"
+        this.DB_NAME = "ipisystemdb"
         this.client = getInstance()
         this.db = getDatabase(DB_NAME)
     }
