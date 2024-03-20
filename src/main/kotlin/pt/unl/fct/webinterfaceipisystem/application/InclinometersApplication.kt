@@ -1,8 +1,9 @@
 package pt.unl.fct.webinterfaceipisystem.application
 
-import pt.unl.fct.webinterfaceipisystem.data.InclinometerDAO
-import pt.unl.fct.webinterfaceipisystem.data.InclinometerRepository
+import org.springframework.stereotype.Service
+import pt.unl.fct.webinterfaceipisystem.data.*
 
+@Service
 class InclinometersApplication (val inclinometers : InclinometerRepository) {
 
     fun addInclinometer(newInclinometer: InclinometerDAO): InclinometerDAO {

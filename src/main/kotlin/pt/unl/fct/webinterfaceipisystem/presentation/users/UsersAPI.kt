@@ -7,7 +7,8 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.web.bind.annotation.*
 import pt.unl.fct.webinterfaceipisystem.data.*
 
-@RequestMapping("/user")
+@CrossOrigin
+@RequestMapping("/api/user")
 @Tag(name = "User", description = "Users API")
 interface UsersAPI {
 

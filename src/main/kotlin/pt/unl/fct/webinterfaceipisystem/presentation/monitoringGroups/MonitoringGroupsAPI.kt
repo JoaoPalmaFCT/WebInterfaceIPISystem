@@ -7,7 +7,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.web.bind.annotation.*
 import pt.unl.fct.webinterfaceipisystem.data.*
 
-@RequestMapping("/monitgroup")
+@RequestMapping("/api/monitgroup")
 @Tag(name = "MonitoringGroup", description = "Monitoring Groups API")
 interface MonitoringGroupsAPI {
 

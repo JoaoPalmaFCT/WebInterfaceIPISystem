@@ -7,7 +7,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.web.bind.annotation.*
 import pt.unl.fct.webinterfaceipisystem.data.*
 
-@RequestMapping("/inclinometer")
+@RequestMapping("/api/inclinometer")
 @Tag(name = "Inclinometer", description = "Inclinometers API")
 interface InclinometersAPI {
 

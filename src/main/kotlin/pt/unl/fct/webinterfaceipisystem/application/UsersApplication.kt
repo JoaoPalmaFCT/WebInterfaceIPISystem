@@ -1,7 +1,9 @@
 package pt.unl.fct.webinterfaceipisystem.application
 
+import org.springframework.stereotype.Service
 import pt.unl.fct.webinterfaceipisystem.data.*
 
+@Service
 class UsersApplication (val users : UserRepository) {
 
     fun registerUser(newUser: UserDAO): UserDAO{

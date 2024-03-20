@@ -12,7 +12,7 @@ enum class RolesDAO {
 }
 
 @Entity
-@Table(name = "User")
+@Table(name = "Users")
 data class UserDAO(
         @Id
         val email:String,
@@ -48,11 +48,11 @@ data class InclinometerDAO(
         val name:String,
         val length:Long,
         val currentFrequency:String,
-        val azimuth:Long,
-        val latitude:Long,
-        val longitude:Long,
+        val azimuth:Long? = 0,
+        val latitude:Long? = null,
+        val longitude:Long? = null,
         val heightTopSensor:Long,
-        val casingAngleToHorizontal:Long
+        val casingAngleToHorizontal:Long? = 0
 )
 
 @Entity
@@ -129,7 +129,7 @@ data class ProfilePositionAdjustmentDAO(
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         val id:Int = 0,
         val type:MonitoringProfDAO,
-        val imageURLPath:String,
+        val imageURLPath:String? = null,
         val monitoringProfileId:Int
 )
 

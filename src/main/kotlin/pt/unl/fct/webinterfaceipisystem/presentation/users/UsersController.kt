@@ -2,12 +2,17 @@ package pt.unl.fct.webinterfaceipisystem.presentation.users
 
 import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.http.HttpStatus
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 import pt.unl.fct.webinterfaceipisystem.application.UsersApplication
 import pt.unl.fct.webinterfaceipisystem.data.*
+import org.springframework.security.crypto.password.PasswordEncoder
 
-class UsersController(val app: UsersApplication) : UsersAPI {
+
+@RestController
+class UsersController(private val encoder: PasswordEncoder, val app: UsersApplication) : UsersAPI {
 
     private fun transformStringToEnumRole(role: String): RolesDAO{
         return when (role) {
@@ -34,7 +39,7 @@ class UsersController(val app: UsersApplication) : UsersAPI {
                 throw ResponseStatusException(HttpStatus.BAD_REQUEST, "\"Invalid user data")
 
             val newUser = UserDAO(
-                    email = user.email, password = user.password,
+                    email = user.email, password = encoder.encode(user.password),
                     name = user.name, phoneNumber = user.phoneNumber,
                     company = user.company, role = transformStringToEnumRole(user.role)
             )
@@ -46,11 +51,11 @@ class UsersController(val app: UsersApplication) : UsersAPI {
         }
     }
 
-    override fun login(user: LoginDTO): UserDTO {
+    override fun login(@RequestBody user: LoginDTO): UserDTO {
         TODO("Not yet implemented")
     }
 
-    override fun updateUserData(updatedUser: UpdatedUserDTO) {
+    override fun updateUserData(@RequestBody updatedUser: UpdatedUserDTO) {
         try {
             if(updatedUser.email.isBlank())
                 throw ResponseStatusException(HttpStatus.BAD_REQUEST, "\"Invalid user data")
@@ -69,7 +74,7 @@ class UsersController(val app: UsersApplication) : UsersAPI {
         }
     }
 
-    override fun updateUserPassword(updatedUserPassword: UpdatedUserPasswordDTO) {
+    override fun updateUserPassword(@RequestBody updatedUserPassword: UpdatedUserPasswordDTO) {
         try {
             if(updatedUserPassword.email.isBlank())
                 throw ResponseStatusException(HttpStatus.BAD_REQUEST, "\"Invalid user data")
@@ -88,7 +93,7 @@ class UsersController(val app: UsersApplication) : UsersAPI {
         }
     }
 
-    override fun getUserByEmail(email: String): UserDTO {
+    override fun getUserByEmail(@PathVariable email: String): UserDTO {
         try {
             val existingUser = app.getUserByEmail(email)
             return UserDTO(
@@ -101,7 +106,7 @@ class UsersController(val app: UsersApplication) : UsersAPI {
         }
     }
 
-    override fun delete(email: String) {
+    override fun delete(@PathVariable email: String) {
         try {
             val existingUser = app.getUserByEmail(email)
             val auxUser = UserDAO(

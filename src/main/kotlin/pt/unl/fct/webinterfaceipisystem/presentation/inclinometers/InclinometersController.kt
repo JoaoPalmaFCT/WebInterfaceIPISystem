@@ -1,14 +1,16 @@
 package pt.unl.fct.webinterfaceipisystem.presentation.inclinometers
 
+
 import org.springframework.http.HttpStatus
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 import pt.unl.fct.webinterfaceipisystem.application.InclinometersApplication
 import pt.unl.fct.webinterfaceipisystem.data.*
-import pt.unl.fct.webinterfaceipisystem.presentation.inclinometers.InclinometersAPI
-
+@RestController
 class InclinometersController(val app: InclinometersApplication) : InclinometersAPI {
 
-    override fun add(inclinometer: InclinometerDTO) {
+    override fun add(@RequestBody inclinometer: InclinometerDTO) {
         try {
             if(inclinometer.name.isBlank() || inclinometer.currentFrequency.isBlank())
                 throw ResponseStatusException(HttpStatus.BAD_REQUEST, "\"Invalid inclinometer data")
@@ -27,11 +29,19 @@ class InclinometersController(val app: InclinometersApplication) : Inclinometers
         }
     }
 
-    override fun update(inclinometer: InclinometerDTO) {
+    override fun update(@RequestBody inclinometer: InclinometerDTO) {
         TODO("Not yet implemented")
     }
 
-    override fun delete(inclinometer: InclinometerDTO) {
-        TODO("Not yet implemented")
+    override fun delete(@RequestBody inclinometer: InclinometerDTO) {
+        /*try {
+            val existingInclinometer = app.getInclinometerByName(inclinometer.name)
+            val auxInclinometer = InclinometerDAO(
+
+            )
+            app.deleteInclinometer(auxInclinometer)
+        } catch(e: EmptyResultDataAccessException) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Inclinometer not found")
+        }*/
     }
 }
