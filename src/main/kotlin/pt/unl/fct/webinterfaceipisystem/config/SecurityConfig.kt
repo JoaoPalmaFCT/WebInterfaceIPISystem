@@ -22,7 +22,7 @@ class SecurityConfig(private val authenticationProvider: AuthenticationProvider)
                     .csrf {it.disable()}
                     .authorizeHttpRequests{
                         it
-                                .requestMatchers("/api/auth", "/api/auth/refresh", "/error")
+                                .requestMatchers("/api/auth", "/api/auth/refresh", "/error", "/swagger-ui/index.html")
                                 .permitAll()
                                 .requestMatchers(HttpMethod.POST,"/api/user")
                                 .permitAll()

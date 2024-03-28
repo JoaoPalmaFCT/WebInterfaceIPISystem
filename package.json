@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@influxdata/influxdb-client": "^1.33.2",
+    "react-redux": "^9.1.0"
+  }
+}

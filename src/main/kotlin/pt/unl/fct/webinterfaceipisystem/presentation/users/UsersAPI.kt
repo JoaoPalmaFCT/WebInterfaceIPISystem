@@ -21,15 +21,6 @@ interface UsersAPI {
     ])
     fun register(@RequestBody user: UserDTO)
 
-    @PostMapping("/login")
-    @Operation(summary = "Login")
-    @ApiResponses(value = [
-        ApiResponse(responseCode = "200", description = "User login successfully"),
-        ApiResponse(responseCode = "400", description = "Invalid user data"),
-        ApiResponse(responseCode = "500", description = "Internal Server Error")
-    ])
-    fun login(@RequestBody user: LoginDTO): UserDTO
-
     @PutMapping("/")
     @Operation(summary = "Update user data")
     @ApiResponses(value = [

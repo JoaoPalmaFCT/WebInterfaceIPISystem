@@ -51,10 +51,6 @@ class UsersController(private val encoder: PasswordEncoder, val app: UsersApplic
         }
     }
 
-    override fun login(@RequestBody user: LoginDTO): UserDTO {
-        TODO("Not yet implemented")
-    }
-
     override fun updateUserData(@RequestBody updatedUser: UpdatedUserDTO) {
         try {
             if(updatedUser.email.isBlank())
