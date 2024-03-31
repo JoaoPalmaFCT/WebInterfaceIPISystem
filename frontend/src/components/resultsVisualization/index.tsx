@@ -1,7 +1,7 @@
 import { InfluxDB, Point, QueryApi } from '@influxdata/influxdb-client';
 import React, { PureComponent } from 'react';
 import { useEffect, useState } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Brush } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, TooltipProps } from 'recharts';
 
 interface InfluxDataAux {
     host: string;
@@ -27,15 +27,6 @@ interface InclinometerData {
     value: number;
 }
 
-/*
-interface ChartProps {
-    data: {
-        inc: string;
-        sensorID: string;
-        time: string;
-        value: number;
-    }[]
-}*/
 interface ChartProps {
     graphData: InclinometerData[];
 }
@@ -95,6 +86,17 @@ const getUniqueDates = (graphData: InclinometerData[]) => {
     return Array.from(uniqueDates);
 }
 
+const getUniqueInclinometers = (dataArray: InclinometerData[]) => {
+    let tempDateArray : string[] = []
+
+    dataArray.map(d => {
+        tempDateArray.push(d.inc)
+    })
+
+    const uniqueInc = new Set(tempDateArray);
+    return Array.from(uniqueInc);
+}
+
 const generateRandomHexColor = (): string => {
     const color = Math.floor(Math.random() * 16777215);
     const hexColor = color.toString(16).padStart(6, '0');
@@ -102,7 +104,73 @@ const generateRandomHexColor = (): string => {
     return `#${hexColor}`;
 };
 
+const CustomTooltip: React.FC<TooltipProps<any, any>> = ({ active, payload, label}) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="custom-tooltip">
+                <div style={{ backgroundColor: 'white', padding: '10px', borderRadius: '5px' }}>
+                    {payload.map((p, index) => (
+                        <div key={index}>
+                            {index === 0 &&
+                                <p className="label" style={{ margin: 0 }}>{`Sensor ${p.payload.sensorID}`}</p>
+                            }
+                            <div style={{ display: 'flex', alignItems: 'center', color: p.color }}>
+                                <p style={{ margin: 0, width: '10px', height: '10px', borderRadius: '50%', backgroundColor: p.color, marginRight: '10px' }}/>
+                                <p style={{ margin: 0 }}  className="label">{`${p.value}`}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+    return null;
+};
+
+
 const Chart: React.FC<ChartPropsInc> = ({ graphData }) => {
+    let data: InclinometerData[][] = [];
+    let colorArray: string[] = []
+
+    const uniqueDates = getUniqueDates(graphData)
+    const numberOfDates = uniqueDates.length;
+
+    for (let i = 0; i < numberOfDates; i++) {
+        let tempArray: InclinometerData[] = []
+        graphData.map(g => {
+            if (g.time === uniqueDates[i]) {
+                tempArray.push(g)
+            }
+        })
+        data[i] = tempArray
+        data[i].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
+
+        colorArray.push(generateRandomHexColor());
+    }
+
+    return (
+        <div className="wrapper">
+            {graphData.length > 0 && (
+                <ResponsiveContainer width="100%" height={400}>
+                    <LineChart margin={{top: 15, right: 20, left: 20, bottom: 15}}>
+                        <CartesianGrid strokeDasharray="3 3"/>
+                        <XAxis dataKey="sensorID" allowDuplicatedCategory={false}/>
+                        <YAxis dataKey="value"/>
+                        <Tooltip content={<CustomTooltip/>}/>
+                        <Legend/>
+                        {data.map((incData, i) => (
+                            <Line name={`${incData[i].time.split(" ")[0]}`} key={`${incData[i].time}`} type="monotone"
+                                  dataKey="value" data={incData} stroke={colorArray[i]} activeDot={{r: 8}}/>
+                        ))}
+                    </LineChart>
+                </ResponsiveContainer>
+            )}
+        </div>
+    );
+};
+
+
+const ChartTemp: React.FC<ChartProps> = ({ graphData }) => {
     let data : InclinometerData[][] = [];
     let colorArray : string[] = []
 
@@ -126,17 +194,14 @@ const Chart: React.FC<ChartPropsInc> = ({ graphData }) => {
         <div className="wrapper">
             {graphData.length > 0 && (
                 <ResponsiveContainer width="100%" height={400}>
-                    <LineChart
-                        //data={graphData.sort((a, b) => Number(a.sensorID) - Number(b.sensorID))}
-                        margin={{ top: 15, right: 20, left: 20, bottom: 15 }}
-                    >
+                    <LineChart margin={{ top: 15, right: 20, left: 20, bottom: 15 }}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="sensorID" allowDuplicatedCategory={false}/>
                         <YAxis dataKey="value" />
-                        <Tooltip />
+                        <Tooltip content={<CustomTooltip/>}/>
                         <Legend />
                         {data.map((incData, i) => (
-                            <Line key={`${incData[i].time}`} type="monotone" dataKey="value" data={incData} stroke={colorArray[i]} activeDot={{ r: 8 }}/>
+                            <Line name={`${incData[i].time.split(" ")[0]}`} key={`${incData[i].time}`}  type="monotone" dataKey="value" data={incData} stroke={colorArray[i]} activeDot={{ r: 8 }} />
                         ))}
                     </LineChart>
                 </ResponsiveContainer>
@@ -145,62 +210,96 @@ const Chart: React.FC<ChartPropsInc> = ({ graphData }) => {
     );
 };
 
+const calculateAX = (angle: number) => {
+    let angleRad = angle * (Math.PI / 180);
+    return 500 * Math.sin(angleRad);
+}
 
-const ChartTemp: React.FC<ChartProps> = ({ graphData }) => {
-    return (
-        <div className="wrapper">
-            {graphData.length > 0 && (
-                <ResponsiveContainer width="100%" height={400}>
-                    <LineChart
-                        data={graphData.sort((a, b) => Number(a.sensorID) - Number(b.sensorID))}
-                        margin={{ top: 15, right: 20, left: 20, bottom: 15 }}
-                    >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="sensorID" />
-                        <YAxis dataKey="value" />
-                        <Tooltip />
-                        <Legend />
-                        <Line type="monotone" dataKey="value" stroke="#8884d8" activeDot={{ r: 8 }} />
-                    </LineChart>
-                </ResponsiveContainer>
-            )}
-        </div>
-    );
-};
-
-function ResultsVisualization(){
-
-    const numberOfDates = 2;
-    const [dataArray, setDataArray] = useState<InclinometerData[]>([]);
-    const [selectedInclinometer, setSelectedInclinometer] = useState<Number | null>(1);
-    const [selectedTimestamp, setSelectedTimestamp] = useState<Date>(new Date("2005-05-20 00:00:00"));
-
-    // aX chart data
-
+const getDataArray = (selectedInc: number, array: InclinometerData[])  =>{
     const auxData: InclinometerData[] = [];
-    //const auxDate: Date = new Date("2023-10-25 00:00:00") && selectedTimestamp.getTime() === auxDate.getTime()
     const auxDate: String = "2009-09-22 00:00:00"
     const auxDate2: String = "1984-09-11 00:00:00"
 
-    for (const item of dataArray) {
-        if (Number(item.inc) === selectedInclinometer && item.field === "aX" && (item.time === auxDate2 || item.time === auxDate)) {
-            var angle = item.value;
-            var angleRad = angle * (Math.PI / 180);
-            item.value = 500 * Math.sin(angleRad);
-            auxData.push(item);
+    for (const item of array) {
+        if (Number(item.inc) === selectedInc && item.field === "aX" && (item.time === auxDate2 || item.time === auxDate)) {
+            const updatedItem: InclinometerData = {
+                inc: item.inc.split("I")[1],
+                sensorID: item.sensorID,
+                field: item.field,
+                measurement: item.measurement,
+                time: formatDate(item.time),
+                value: calculateAX(item.value)
+            };
+
+            auxData.push(updatedItem);
         }
     }
-    console.log(auxData)
+
+    return auxData;
+}
 
 
-    const [selectedChartData, setSelectedChartData] = useState<InclinometerData[]>(auxData);
+function ResultsVisualization(){
+
+    const [arrayInitialized, setArrayInitialized] = useState(false);
+    const [dataArray, setDataArray] = useState<InclinometerData[]>([]);
+
+    useEffect(() => {
+        if (!arrayInitialized) {
+            fetchData();
+        }
+    }, [arrayInitialized]);
+
+    useEffect(() => {
+        if (!arrayInitialized && dataArray.length > 0) {
+            setSelectedAXChartData(getDataArray(1, dataArray));
+            setArrayInitialized(true);
+        }
+    }, [dataArray, arrayInitialized]);
+
+    async function fetchData() {
+        try {
+            const response = await getData() as InfluxDataAux[];//getDataFromLastYear() as InfluxDataAux[];
+            const mappedData: InclinometerData[] = response.map(i => ({
+                inc: i.inc.split("I")[1],
+                sensorID: i.sensorID,
+                field: i._field,
+                measurement: i._measurement,
+                time: formatDate(i._time),
+                value: i._value
+            }));
+            setDataArray(mappedData);
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }
+    }
+
+    const numberOfInc: string[] = getUniqueInclinometers(dataArray).sort((a, b) => Number(a) - Number(b))
+
+    const [selectedInclinometer, setSelectedInclinometer] = useState<Number>(1);
+    //const [selectedTimestamp, setSelectedTimestamp] = useState<Date>(new Date("2005-05-20 00:00:00"));
+
+    const [selectedAXChartData, setSelectedAXChartData] = useState<InclinometerData[]>([]);
+
+    const handleSelectedAXChartData = (inc: number) => {
+        setSelectedAXChartData(getDataArray(inc, dataArray));
+    };
+
+    const handleSelectedInclinometer = (inc: number) => {
+        setSelectedInclinometer(inc);
+        handleSelectedAXChartData(inc);
+    };
+
+
 
     // temperature chart data
 
     const auxDataTemp: InclinometerData[] = [];
+    const auxDate: String = "2009-09-22 00:00:00"
+    const auxDate2: String = "1984-09-11 00:00:00"
 
     for (const item of dataArray) {
-        if (Number(item.inc) === selectedInclinometer && item.field === "temp" && item.time === auxDate2) {
+        if (Number(item.inc) === selectedInclinometer && item.field === "temp" && (item.time === auxDate2 || item.time === auxDate)) {
             auxDataTemp.push(item);
         }
     }
@@ -208,71 +307,21 @@ function ResultsVisualization(){
     const [selectedChartDataTemp, setSelectedChartDataTemp] = useState<InclinometerData[]>(auxDataTemp);
 
 
-    useEffect(() => {
-        async function fetchData() {
-            try {
-                const response = await getData() as InfluxDataAux[];//getDataFromLastYear() as InfluxDataAux[];
-                const mappedData: InclinometerData[] = response.map(i => ({
-                    inc: i.inc.split("I")[1],
-                    sensorID: i.sensorID,
-                    field: i._field,
-                    measurement: i._measurement,
-                    time: formatDate(i._time),
-                    value: i._value
-                }));
-                setDataArray(mappedData);
-            } catch (error) {
-                console.error('Error fetching data:', error);
-            }
-        }
-        fetchData();
-    }, []);
 
-    /*const handleSelectedInclinometer = (inc: number) => {
-        setSelectedInclinometer(inc);
-    };
-
-    const handleSelectedChartData = (data: InclinometerData) => {
-        const auxData: InclinometerData[] = [];
-        for (const item of dataArray) {
-            if (Number(item.inc) === selectedInclinometer) {
-                auxData.push(item);
-            }
-        }
-        setSelectedChartData(auxData)
-    }*/
-
-    /*useEffect(() => {
-        handleSelectedChartData();
-    }, [dataArray, selectedInclinometer]);*/
-
-
-
-    console.log(auxData);
 
     return (<div>
-            <Chart graphData={auxData} />
-            <ChartTemp graphData={auxDataTemp} />
-        </div>
-
-        /*<div className="grid-container">
-            <div className="grid-item header">Inc</div>
-            <div className="grid-item header">SensorID</div>
-            <div className="grid-item header">Field</div>
-            <div className="grid-item header">Measurement</div>
-            <div className="grid-item header">Time</div>
-            <div className="grid-item header">Value</div>
-            {dataArray.map(i => (
-                <React.Fragment key={i.inc}>
-                    <div className="grid-item">{i.inc}</div>
-                    <div className="grid-item">{i.sensorID}</div>
-                    <div className="grid-item">{i.field}</div>
-                    <div className="grid-item">{i.measurement}</div>
-                    <div className="grid-item">{i.time}</div>
-                    <div className="grid-item">{i.value}</div>
-                </React.Fragment>
-            ))}
-        </div>*/
+                <div>
+                    <label>Select an Inclinometer: </label>
+                    <select onChange={(e) => handleSelectedInclinometer(parseInt(e.target.value))}
+                            style={{ padding: '8px', fontSize: '16px', borderRadius: '5px', border: '1px solid #ccc' }}>
+                        {numberOfInc.map(inc => (
+                            <option key={inc} value={inc}>I{inc}</option>
+                        ))}
+                    </select>
+                </div>
+                <Chart graphData={selectedAXChartData} />
+                <ChartTemp graphData={auxDataTemp} />
+            </div>
     );
 }
 
