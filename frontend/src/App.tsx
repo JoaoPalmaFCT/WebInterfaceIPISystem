@@ -1,14 +1,11 @@
 import React, { useEffect }  from 'react';
 import logo from './logo.svg';
 import './App.css';
-import ResultsVisualization, { getData, getDataFromLastYear,  } from './components/resultsVisualization'
+import ResultsVisualization, {   } from './components/resultsVisualization'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { Provider } from 'react-redux'
 import { store } from './store'
-import {
-    Container,
-    Header
-} from "./components/layout";
+import { Container, Footer, Header } from "./components/layout";
 function App() {
   /*useEffect(() => {
     getData()//.catch(error => console.error('Error querying InfluxDB:', error));
@@ -29,6 +26,7 @@ function App() {
                   <Route path="/visualization" element={<ResultsVisualization/>} />
               </Routes>
           </Container>
+            <Footer/>
         </div>
       </Router>
   );
