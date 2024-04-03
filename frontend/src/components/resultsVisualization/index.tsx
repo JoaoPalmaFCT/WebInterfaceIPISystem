@@ -29,10 +29,12 @@ interface InclinometerData {
 
 interface ChartProps {
     graphData: InclinometerData[];
+    colorArray: string[];
 }
 
 interface ChartPropsInc {
     graphData: InclinometerData[];
+    colorArray: string[];
 }
 
 
@@ -127,10 +129,8 @@ const CustomTooltip: React.FC<TooltipProps<any, any>> = ({ active, payload, labe
     return null;
 };
 
-
-const Chart: React.FC<ChartPropsInc> = ({ graphData }) => {
+const ChartDataPrep = (graphData: InclinometerData[]): InclinometerData[][] => {
     let data: InclinometerData[][] = [];
-    let colorArray: string[] = []
 
     const uniqueDates = getUniqueDates(graphData)
     const numberOfDates = uniqueDates.length;
@@ -144,9 +144,13 @@ const Chart: React.FC<ChartPropsInc> = ({ graphData }) => {
         })
         data[i] = tempArray
         data[i].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
-
-        colorArray.push(generateRandomHexColor());
     }
+
+    return data;
+}
+
+const Chart: React.FC<ChartPropsInc> = ({ graphData, colorArray }) => {
+    let data: InclinometerData[][] = ChartDataPrep(graphData);
 
     return (
         <div className="wrapper">
@@ -170,25 +174,8 @@ const Chart: React.FC<ChartPropsInc> = ({ graphData }) => {
 };
 
 
-const ChartTemp: React.FC<ChartProps> = ({ graphData }) => {
-    let data : InclinometerData[][] = [];
-    let colorArray : string[] = []
-
-    const uniqueDates = getUniqueDates(graphData)
-    const numberOfDates = uniqueDates.length;
-
-    for(let i = 0; i < numberOfDates; i++) {
-        let tempArray : InclinometerData[] = []
-        graphData.map(g => {
-            if(g.time === uniqueDates[i]) {
-                tempArray.push(g)
-            }
-        })
-        data[i] = tempArray
-        data[i].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
-
-        colorArray.push(generateRandomHexColor());
-    }
+const ChartTemp: React.FC<ChartProps> = ({ graphData, colorArray }) => {
+    let data: InclinometerData[][] = ChartDataPrep(graphData);
 
     return (
         <div className="wrapper">
@@ -243,6 +230,8 @@ function ResultsVisualization(){
 
     const [arrayInitialized, setArrayInitialized] = useState(false);
     const [dataArray, setDataArray] = useState<InclinometerData[]>([]);
+    const [colorArray, setColorArray] = useState<string[]>([]);
+
 
     useEffect(() => {
         if (!arrayInitialized) {
@@ -253,6 +242,7 @@ function ResultsVisualization(){
     useEffect(() => {
         if (!arrayInitialized && dataArray.length > 0) {
             setSelectedAXChartData(getDataArray(1, dataArray));
+            setColorArray(generateColorArray(dataArray));
             setArrayInitialized(true);
         }
     }, [dataArray, arrayInitialized]);
@@ -283,6 +273,7 @@ function ResultsVisualization(){
 
     const handleSelectedAXChartData = (inc: number) => {
         setSelectedAXChartData(getDataArray(inc, dataArray));
+        setColorArray(generateColorArray(dataArray));
     };
 
     const handleSelectedInclinometer = (inc: number) => {
@@ -290,6 +281,10 @@ function ResultsVisualization(){
         handleSelectedAXChartData(inc);
     };
 
+    const generateColorArray = (dataArray: InclinometerData[]) => {
+        const uniqueDates = getUniqueDates(dataArray)
+        return uniqueDates.map(() => generateRandomHexColor());
+    };
 
 
     // temperature chart data
@@ -306,9 +301,6 @@ function ResultsVisualization(){
 
     const [selectedChartDataTemp, setSelectedChartDataTemp] = useState<InclinometerData[]>(auxDataTemp);
 
-
-
-
     return (<div>
                 <div>
                     <label>Select an Inclinometer: </label>
@@ -319,8 +311,8 @@ function ResultsVisualization(){
                         ))}
                     </select>
                 </div>
-                <Chart graphData={selectedAXChartData} />
-                <ChartTemp graphData={auxDataTemp} />
+                <Chart graphData={selectedAXChartData} colorArray={colorArray}/>
+                <ChartTemp graphData={auxDataTemp} colorArray={colorArray}/>
             </div>
     );
 }

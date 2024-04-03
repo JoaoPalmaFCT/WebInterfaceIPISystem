@@ -6,6 +6,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { Provider } from 'react-redux'
 import { store } from './store'
 import { Container, Footer, Header } from "./components/layout";
+import Profile from "./components/profile";
 function App() {
   /*useEffect(() => {
     getData()//.catch(error => console.error('Error querying InfluxDB:', error));
@@ -19,11 +20,11 @@ function App() {
       <Router>
         <div className="App">
           <Header title={""}>
-              
           </Header>
           <Container>
               <Routes>
                   <Route path="/visualization" element={<ResultsVisualization/>} />
+                  <Route path="/profile" element={<Profile/>} />
               </Routes>
           </Container>
             <Footer/>

@@ -20,8 +20,11 @@ export const slice = createSlice({
 
 export const { setUser } = slice.actions
 
-export const getUser = (email:string) => (dispatch: any) => {
-    fetch('http://localhost:8080/api/user/'+email, {method: "GET"})
+export const getUser = (email:string, token: string) => (dispatch: any) => {
+    fetch('http://localhost:8080/api/user/'+email, {
+        method: "GET",
+        headers: {'Authorization': `Bearer ${token}`}
+    })
         .then( response => response.json())
         .then( user => dispatch(setUser(user)))
 };
