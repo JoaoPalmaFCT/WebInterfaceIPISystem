@@ -18,17 +18,18 @@ function App() {
 
   return (
       <Router>
-        <div className="App">
-          <Header title={""}>
-          </Header>
-          <Container>
-              <Routes>
-                  <Route path="/visualization" element={<ResultsVisualization/>} />
-                  <Route path="/profile" element={<Profile/>} />
-              </Routes>
-          </Container>
-            <Footer/>
-        </div>
+          <div className="App">
+              <Header
+                  title={""}>
+              </Header>
+              <Container>
+                  <Routes>
+                      <Route path="/visualization" element={<ResultsVisualization/>}/>
+                      <Route path="/profile" element={<Profile/>}/>
+                  </Routes>
+              </Container>
+              <Footer/>
+          </div>
       </Router>
   );
 }

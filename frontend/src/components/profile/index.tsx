@@ -4,7 +4,7 @@ import {getUser} from "../../store/user";
 import jwt from 'jsonwebtoken';
 
 function Profile() {
-    const sessionToken: string = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJqb2FvQGdtYWlsLmNvbSIsImlhdCI6MTcxMjE3MTczOCwiZXhwIjoxNzEyMTc1MzM4fQ.kHqYTlRQlFXZqoqVG0-Bs7pY433sGOlLDaoeFLUKUBob0_SrjNB1vs_czB0DWCdsRGd-KbzgtcWirMaIx5W7aA";
+    const sessionToken: string = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJqb2FvQGdtYWlsLmNvbSIsImlhdCI6MTcxMjI0OTAwNywiZXhwIjoxNzEyMjUyNjA3fQ.V8pnB1U-3cxC1C9XwXg5E5RH01hgUQp3qbng_rRE81hXovygcYVVA0IH02_lnWqIiubYcGRllHqV7OxU7Tljnw";
     const email: string = "joao@gmail.com"
     /*const decodedToken = jwt.decode(sessionToken);
     if (decodedToken) {
@@ -23,10 +23,10 @@ function Profile() {
 
     const [editingData, setEditingData] = useState(false)
 
-    return (<div>
-                <h2>User Profile</h2>
-                {!editingData ? (
-                    <>
+                        return (<div>
+                        <h2>User Profile</h2>
+                        {!editingData ? (
+                            <>
                         <p>Name: {user?.name}</p>
                         <p>Email: {user?.email}</p>
                         <p>Phone Number: {user?.phoneNumber}</p>
