@@ -29,6 +29,14 @@ code {
   align-items: flex-start;
 }
 
+.column-container{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+
 .chart-wrapper{
   margin: 0 10px;
   width: 100%;

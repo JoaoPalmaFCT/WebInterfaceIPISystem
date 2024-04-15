@@ -15,7 +15,7 @@ import {
     Legend,
     ResponsiveContainer,
     TooltipProps,
-    Label
+    Label, BarChart, Bar, Brush
 } from 'recharts';
 import { DatePicker } from 'rsuite';
 import 'rsuite/DatePicker/styles/index.css';
@@ -59,6 +59,13 @@ interface InclinometerData {
     displacement: number;
 }
 
+interface SoilData {
+    id: string;
+    name: string;
+    depth: number;
+    color: string;
+}
+
 interface ChartProps {
     graphData: InclinometerData[];
     //colorArray: string[];
@@ -79,6 +86,10 @@ interface ChartPropsDetails {
     graphData: InclinometerData[];
     depth: number;
     //colorArray: string[];
+}
+
+interface ChartSoil {
+    graphData: SoilData[];
 }
 
 
@@ -164,6 +175,58 @@ const colorsArray: string[] = [
     "#FFBA33"
 ];
 
+const soilData: SoilData[] = [
+    {
+        id: "1",
+        name: "At",
+        //depth: 32,
+        depth: 3,
+        color: "#ffe48e",
+    },
+    {
+        id: "2",
+        name: "ZG2A",
+        //depth: 29,
+        depth: 17,
+        color: "#fdba74",
+    },
+    {
+        id: "3",
+        name: "ZG2B",
+        //depth: 12,
+        depth: 8,
+        color: "#92400e",
+    },
+    {
+        id: "4",
+        name: "Rock",
+        depth: 4,
+        color: "#6b7280",
+    }
+]
+
+const datesTypes = [
+    {
+        id: 1,
+        name: 'Interval',
+    },
+    {
+        id: 2,
+        name: 'Select dates',
+    }
+]
+
+const visualization = [
+    {
+        id: 1,
+        name: 'Inclinometer',
+    },
+    {
+        id: 2,
+        name: 'Profile',
+    }
+]
+
 const results = [
     {
         id: 1,
@@ -220,19 +283,29 @@ const getRefDate = (graphData: Inclinometer[]) => {
     return oldestDate
 }
 
-const getIntervalDates = (graphData: InclinometerData[], initialDate: string, lastDate: string) => {
-    let tempData:InclinometerData[] = [];
+const getMostRecentDate = (graphData: Inclinometer[]) => {
+    let oldestDate = graphData[0].time;
 
     graphData.map(g => {
-        if(lastDate <= g.time && initialDate >= g.time)
-            tempData.push(g)
+        if(oldestDate < g.time)
+            oldestDate = g.time
     })
 
+    return oldestDate
+}
+
+const getIntervalDates = (graphData: InclinometerData[], initialDate: string, lastDate: string) => {
+    let tempData:InclinometerData[] = [];
+    graphData.map(g => {
+        if(lastDate >= g.time && initialDate <= g.time)
+            tempData.push(g)
+    })
+    console.log(tempData)
     return tempData;
 }
 
 const getUniqueDates = (graphData: InclinometerData[]) => {
-    let tempDateArray : String[] = []
+    let tempDateArray : string[] = []
 
     graphData.map(g => {
             tempDateArray.push(g.time)
@@ -298,6 +371,42 @@ const CustomTooltip: React.FC<TooltipProps<any, any>> = ({ active, payload, labe
                             <div style={{ display: 'flex', alignItems: 'center', color: p.color }}>
                                 <p style={{ margin: 0, width: '10px', height: '10px', borderRadius: '50%', backgroundColor: p.color, marginRight: '10px' }}/>
                                 <p style={{ margin: 0 }}  className="label">{`${p.value}`}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+    return null;
+};
+
+const getSoilDepth = (depth: number) => {
+    switch(depth){
+        case 4:
+            return " 29 - 32";
+        case 8:
+            return " 12 - 29";
+        case 17:
+            return " 4 - 12";
+        case 3:
+            return " 0 - 4";
+        default:
+            return " 0 - 32";
+    }
+}
+
+
+const CustomTooltipSoil: React.FC<TooltipProps<any, any>> = ({ active, payload, label}) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="custom-tooltip">
+                <div style={{ backgroundColor: 'white', padding: '10px', borderRadius: '5px' }}>
+                    {payload.map((p, index) => (
+                        <div key={index}>
+                            <div style={{ display: 'flex', alignItems: 'center', color: p.color }}>
+                                <p style={{ margin: 0, width: '10px', height: '10px', borderRadius: '50%', backgroundColor: p.color, marginRight: '10px' }}/>
+                                <p style={{ margin: 0 }}  className="label">{`${p.name + getSoilDepth(p.value)}`}</p>
                             </div>
                         </div>
                     ))}
@@ -384,7 +493,7 @@ const Chart: React.FC<ChartPropsInc> = ({ graphData}) => {
     return (
         <div className="wrapper">
             {graphData.length > 0 && (
-                <ResponsiveContainer width="40%" height={600}>
+                <ResponsiveContainer width="120%" height={600}>
                     <LineChart layout="vertical" margin={{top: 25, right: 20, left: 20, bottom: 15}} >
                         <CartesianGrid strokeDasharray="3 3"/>
                         <XAxis type="number" dataKey="displacement" orientation="top">
@@ -395,6 +504,7 @@ const Chart: React.FC<ChartPropsInc> = ({ graphData}) => {
                         </YAxis>
                         <Tooltip content={<CustomTooltip/>}/>
                         <Legend/>
+
                         {data.map((incData, i) => (
                             <Line name={`${incData[i].time.split(" ")[0]}`} key={`${incData[i].time}`} type="monotone"
                                   dataKey="displacement" data={incData} stroke={colorsArray[i]} activeDot={{r: 8}}/>
@@ -412,7 +522,7 @@ const ChartTotal: React.FC<ChartPropsTotal> = ({ graphDataX, graphDataY}) => {
     return (
         <div className="wrapper">
             {graphDataX.length > 0 && (
-                <ResponsiveContainer width="40%" height={600}>
+                <ResponsiveContainer width="120%" height={600}>
                     <LineChart layout="vertical" margin={{top: 25, right: 20, left: 20, bottom: 15}} >
                         <CartesianGrid strokeDasharray="3 3"/>
                         <XAxis type="number" dataKey="displacement" orientation="top">
@@ -440,7 +550,7 @@ const ChartTemp: React.FC<ChartProps> = ({ graphData}) => {
     return (
         <div className="wrapper" >
             {graphData.length > 0 && (
-                <ResponsiveContainer width="40%" height={600}>
+                <ResponsiveContainer width="120%" height={600}>
                     <LineChart layout="vertical" margin={{ top: 25, right: 20, left: 20, bottom: 15 }}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis type="number" dataKey="value" orientation="top">
@@ -479,7 +589,7 @@ const ChartDetails: React.FC<ChartPropsDetails> = ({ graphData, depth}) => {
     return (
         <div className="wrapper" >
             {graphData.length > 0 && (
-                <ResponsiveContainer width="40%" height={300}>
+                <ResponsiveContainer width="60%" height={300}>
                     <LineChart margin={{ top: 25, right: 20, left: 20, bottom: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="time" allowDuplicatedCategory={false}>
@@ -499,6 +609,59 @@ const ChartDetails: React.FC<ChartPropsDetails> = ({ graphData, depth}) => {
         </div>
     );
 };
+
+const ChartSoil: React.FC<ChartSoil> = ({ graphData }) => {
+    const maxY = Math.max(...graphData.map(soil => soil.depth));
+    const data = [{ depth: maxY, ...graphData.reduce((acc, soil) => ({ ...acc, [soil.name]: soil.depth }), {})}];
+    const uniqueColors = Array.from(new Set(graphData.map(soil => soil.color)));
+
+    return (
+        <div className="wrapper" >
+            {graphData.length > 0 && (
+                <ResponsiveContainer width="50%" height={680}>
+                    <BarChart  data={data} margin={{ top: 50, right: 20, left: 20, bottom: 40 }}>
+                        <XAxis type="category" hide={true}/>
+                        <YAxis dataKey="depth" type="number" domain={[0, 32]} hide={true}/>
+                        <Tooltip content={<CustomTooltipSoil/>}/>
+                        <Legend />
+                        <Bar key={`$3`} dataKey="Rock" stackId="stack" fill={uniqueColors[3]} />
+                        <Bar key={`$2`} dataKey="ZG2B" stackId="stack" fill={uniqueColors[2]} />
+                        <Bar key={`$1`} dataKey="ZG2A" stackId="stack" fill={uniqueColors[1]} />
+                        <Bar key={`$0`} dataKey="At" stackId="stack" fill={uniqueColors[0]} />
+                    </BarChart>
+                </ResponsiveContainer>
+            )}
+        </div>
+    );
+};
+
+
+/*{data.map((d, i) => (
+))}
+
+const ChartSoil: React.FC<ChartSoil> = ({graphData}) => {
+    //let data: InclinometerData[][] = ChartDataPrep(graphData);
+    const uniqueColors = Array.from(new Set(graphData.map(soil => soil.color)));
+
+    return (
+        <div className="wrapper" >
+            {graphData.length > 0 && (
+                <ResponsiveContainer width="30%" height={300}>
+                    <BarChart data={graphData} stackOffset="sign" margin={{ top: 25, right: 20, left: 20, bottom: 20 }}>
+                        <XAxis dataKey="depth"/>
+                        <YAxis  />
+                        <Tooltip />
+                        <Legend />
+                        {graphData.map((soil, i) => (
+                            <Bar dataKey="depth"  key={`${soil.id}`} stackId="stack" fill={soil.color}/>
+                        ))}
+                    </BarChart>
+                </ResponsiveContainer>
+            )}
+        </div>
+    );
+};*/
+
 
 
 const calculateTotal = (A: number, B: number) => Math.sqrt(A ** 2 + B ** 2);
@@ -715,8 +878,14 @@ function ResultsVisualization(){
 
     const [toggleTotalChart, setToggleTotalChart] = useState(false);
     const [toggleTempChart, setToggleTempChart] = useState(false);
+    const [toggleSelectDates, setToggleSelectDates] = useState(false);
     const [selectedGraphExport, setSelectedGraphExport] = useState<string>("A");
     const [selectedResults, setSelectedResults] = useState(results[1])
+    const [selectedVisualization, setSelectedVisualization] = useState(visualization[0])
+    const [selectedDatesTypes, setSelectedDatesTypes] = useState(datesTypes[0])
+
+
+    const [toggleIntervalRef, setToggleIntervalRef] = useState(false);
 
     useEffect(() => {
         if (!arrayInitialized) {
@@ -771,6 +940,7 @@ function ResultsVisualization(){
     }, [filteredDataArrayX]);
 
     const numberOfInc: string[] = getUniqueInclinometers(filteredDataArrayX).sort((a, b) => Number(a) - Number(b))
+    const numberOfDates: string[] = getUniqueDates(dataArrayX)
 
     const [selectedInclinometer, setSelectedInclinometer] = useState<Number>(1);
     const [selectedDepth, setSelectedDepth] = useState<number>(0.5);
@@ -815,6 +985,26 @@ function ResultsVisualization(){
         handleSelectedAYChartData(Number(selectedInclinometer));
     };
 
+    const handleFirstDateInterval = (year: number | undefined, month: number | undefined, day: number | undefined) => {
+        if(year != undefined && month != undefined && day != undefined){
+            let date = year + "-" + month + "-" + day;
+            setFilteredDataArrayX(getIntervalDates(dataArrayX, date, getMostRecentDate(filteredDataArrayX)));
+            setFilteredDataArrayY(getIntervalDates(dataArrayY, date, getMostRecentDate(filteredDataArrayY)));
+            handleSelectedAXChartData(Number(selectedInclinometer));
+            handleSelectedAYChartData(Number(selectedInclinometer));
+        }
+    };
+
+    const handleLastDateInterval = (year: number | undefined, month: number | undefined, day: number | undefined) => {
+        if(year != undefined && month != undefined && day != undefined){
+            let date = year + "-" + month + "-" + day;
+            setFilteredDataArrayX(getIntervalDates(dataArrayX, getRefDate(filteredDataArrayX), date));
+            setFilteredDataArrayY(getIntervalDates(dataArrayY, getRefDate(filteredDataArrayY), date));
+            handleSelectedAXChartData(Number(selectedInclinometer));
+            handleSelectedAYChartData(Number(selectedInclinometer));
+        }
+    };
+
     /*const generateColorArray = (dataArray: InclinometerData[]) => {
         const uniqueDates = getUniqueDates(dataArray)
         return uniqueDates.map(() => generateRandomHexColor());
@@ -852,6 +1042,25 @@ function ResultsVisualization(){
             setToggleTempChart(true)
         }
     };
+
+    const handleEarliestDate = (type: number) => {
+        if(type === 1){
+            setToggleIntervalRef(false)
+            //set ref earliest date
+        }else{
+            setToggleIntervalRef(true)
+            //set interval for ref
+        }
+    };
+
+    const handleToogleSelectDates = () => {
+        if(toggleSelectDates){
+            setToggleSelectDates(false)
+        }else{
+            setToggleSelectDates(true)
+        }
+    };
+
 
 
 
@@ -903,12 +1112,235 @@ function ResultsVisualization(){
 
     return (
         <div>
-            <div>
+            <div className="charts-container">
+                <div className="column-container">
+                    <div>
+                        <Listbox value={selectedVisualization} onChange={setSelectedVisualization}>
+                            {({ open }) => (
+                                <>
+                                    <Listbox.Label className="block text-base font-medium leading-6 text-gray-900">Type of visualization</Listbox.Label>
+                                    <div className="relative mt-2">
+                                        <Listbox.Button className="relative w-45 cursor-default rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                      <span className="flex items-center">
+                                          <span className="ml-3 block truncate">{selectedVisualization.name}</span>
+                                      </span>
+                                            <span className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                      <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                                      </span>
+                                        </Listbox.Button>
+                                        <Transition
+                                            show={open}
+                                            as={Fragment}
+                                            leave="transition ease-in duration-100"
+                                            leaveFrom="opacity-100"
+                                            leaveTo="opacity-0"
+                                        >
+                                            <Listbox.Options className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm" >
+                                                {visualization.map((viz) => (
+                                                    <Listbox.Option
+                                                        key={viz.id}
+                                                        className={({ active }) =>
+                                                            classNames(
+                                                                active ? 'bg-yellow-500 text-white' : 'text-gray-900',
+                                                                'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                            )
+                                                        }
+                                                        value={viz}
+                                                    >
+                                                        {({ selected, active }) => (
+                                                            <>
+                                                                <div className="flex items-center">
+                                                                <span
+                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
+                                                                >
+                            {viz.name}
+                          </span>
+                                                                </div>
 
+                                                                {selected ? (
+                                                                    <span
+                                                                        className={classNames(
+                                                                            active ? 'text-white' : 'text-green-600',
+                                                                            'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                        )}
+                                                                    >
+                            <CheckIcon className="h-5 w-5" aria-hidden="true" />
+                          </span>
+                                                                ) : null}
+                                                            </>
+                                                        )}
+                                                    </Listbox.Option>
+                                                ))}
+                                            </Listbox.Options>
+                                        </Transition>
+                                    </div>
+                                </>
+                            )}
+                        </Listbox>
+                    </div>
                 <div>
-                    <label>Select
-                        an
-                        Inclinometer: </label>
+                    <Listbox value={selectedResults} onChange={setSelectedResults}>
+                        {({ open }) => (
+                            <>
+                                <Listbox.Label className="block text-base font-medium leading-6 text-gray-900">Type of result</Listbox.Label>
+                                <div className="relative mt-2">
+                                    <Listbox.Button className="relative w-45 cursor-default rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                      <span className="flex items-center">
+                                          <span className="ml-3 block truncate">{selectedResults.name}</span>
+                                      </span>
+                                        <span className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                      <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                                      </span>
+                                    </Listbox.Button>
+                                    <Transition
+                                        show={open}
+                                        as={Fragment}
+                                        leave="transition ease-in duration-100"
+                                        leaveFrom="opacity-100"
+                                        leaveTo="opacity-0"
+                                    >
+                                        <Listbox.Options className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm" >
+                                            {results.map((res) => (
+                                                <Listbox.Option
+                                                    key={res.id}
+                                                    className={({ active }) =>
+                                                        classNames(
+                                                            active ? 'bg-yellow-500 text-white' : 'text-gray-900',
+                                                            'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                        )
+                                                    }
+                                                    value={res}
+                                                >
+                                                    {({ selected, active }) => (
+                                                        <>
+                                                            <div className="flex items-center">
+                                                                <span
+                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
+                                                                >
+                            {res.name}
+                          </span>
+                                                            </div>
+
+                                                            {selected ? (
+                                                                <span
+                                                                    className={classNames(
+                                                                        active ? 'text-white' : 'text-green-600',
+                                                                        'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                    )}
+                                                                >
+                            <CheckIcon className="h-5 w-5" aria-hidden="true" />
+                          </span>
+                                                            ) : null}
+                                                        </>
+                                                    )}
+                                                </Listbox.Option>
+                                            ))}
+                                        </Listbox.Options>
+                                    </Transition>
+                                </div>
+                            </>
+                        )}
+                    </Listbox>
+                </div>
+                    <div>
+                        <Listbox value={selectedDatesTypes} onChange={(selectedOption) => {
+                            setSelectedDatesTypes(selectedOption);
+                            handleToogleSelectDates();
+                        }}>
+                            {({ open }) => (
+                                <>
+                                    <Listbox.Label className="block text-base font-medium leading-6 text-gray-900">Dates</Listbox.Label>
+                                    <div className="relative mt-2">
+                                        <Listbox.Button className="relative w-45 cursor-default rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                      <span className="flex items-center">
+                                          <span className="ml-3 block truncate">{selectedDatesTypes.name}</span>
+                                      </span>
+                                            <span className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                      <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                                      </span>
+                                        </Listbox.Button>
+                                        <Transition
+                                            show={open}
+                                            as={Fragment}
+                                            leave="transition ease-in duration-100"
+                                            leaveFrom="opacity-100"
+                                            leaveTo="opacity-0"
+                                        >
+                                            <Listbox.Options className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm" >
+                                                {datesTypes.map((dat) => (
+                                                    <Listbox.Option
+                                                        key={dat.id}
+                                                        className={({ active }) =>
+                                                            classNames(
+                                                                active ? 'bg-yellow-500 text-white' : 'text-gray-900',
+                                                                'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                            )
+                                                        }
+                                                        value={dat}
+                                                    >
+                                                        {({ selected, active }) => (
+                                                            <>
+                                                                <div className="flex items-center">
+                                                                <span
+                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
+                                                                >{dat.name}</span>
+                                                                </div>
+
+                                                                {selected ? (
+                                                                    <span
+                                                                        className={classNames(
+                                                                            active ? 'text-white' : 'text-green-600',
+                                                                            'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                        )}
+                                                                    >
+                            <CheckIcon className="h-5 w-5" aria-hidden="true" />
+                          </span>
+                                                                ) : null}
+                                                            </>
+                                                        )}
+                                                    </Listbox.Option>
+                                                ))}
+                                            </Listbox.Options>
+                                        </Transition>
+                                    </div>
+                                </>
+                            )}
+                        </Listbox>
+                    </div>
+                    {!toggleSelectDates && (<div className="column-container">
+                    <DatePicker
+                        oneTap
+                        placeholder="YYYY-MM-DD"
+                        style={{width: 200}}
+                        onChange={(e) => handleFirstDateInterval(e?.getFullYear(),e?.getMonth(), e?.getDay())}
+                    />
+                    <DatePicker
+                        oneTap
+                        placeholder="YYYY-MM-DD"
+                        style={{width: 200}}
+                        onChange={(e) => handleLastDateInterval(e?.getFullYear(),e?.getMonth(), e?.getDay())}
+                    />
+                    </div>)}
+                </div>
+                <div>
+                <div className="charts-container">
+                <div className="column-container">
+                    <label className="block text-base font-medium leading-6 text-gray-900">Measurement: </label>
+                    <select
+                        //onChange={(e) => handleSelectedInclinometer(parseInt(e.target.value))}
+                        style={{
+                            padding: '8px',
+                            fontSize: '16px',
+                            borderRadius: '5px',
+                            border: '1px solid #ccc'
+                        }}>
+
+                            <option
+                                key={"test"}
+                                value={"test"}>PK150_PK200</option>
+
+                    </select>
+                    <label className="block text-base font-medium leading-6 text-gray-900">Inclinometer: </label>
                     <select
                         onChange={(e) => handleSelectedInclinometer(parseInt(e.target.value))}
                         style={{
@@ -923,6 +1355,38 @@ function ResultsVisualization(){
                                 value={inc}>I{inc}</option>
                         ))}
                     </select>
+                </div>
+                    <div className="column-container">
+                    <label> Reference: </label>
+                    <ul className="items-center w-300 text-base font-medium text-gray-900 bg-white border border-gray-200 rounded-lg sm:flex dark:bg-green-500 dark:border-gray-700 dark:text-white">
+                        <li className="w-full border-b border-gray-200 sm:border-b-0 sm:border-r dark:border-gray-600">
+                            <div className="flex items-center ps-3">
+                                <input id="earliestDate" type="radio" value="" name="list-radio" checked onChange={(e) => handleEarliestDate(1)} className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"/>
+                                    <label htmlFor="earliestDate" className="w-full py-3 ms-2 text-sm font-medium text-gray-900 dark:text-gray-300" >Earliest date</label>
+                            </div>
+                        </li>
+                        <li className="w-full dark:border-gray-600">
+                            <div className="flex items-center ps-3">
+                                <input id="fromInterval" type="radio" value="" name="list-radio" onChange={(e) => handleEarliestDate(2)} className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"/>
+                                    <label htmlFor="fromInterval" className="w-full py-3 ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Interval</label>
+                            </div>
+                        </li>
+                    </ul>
+
+                    {toggleIntervalRef && (<select
+                        //onChange={(e) => handleSelectedInclinometer(parseInt(e.target.value))}
+                        style={{
+                            padding: '8px',
+                            fontSize: '16px',
+                            borderRadius: '5px',
+                            border: '1px solid #ccc'
+                        }}>
+                        {numberOfDates.map(date => (
+                            <option
+                                key={date}
+                                value={date}>{date.split(" ")[0]}</option>
+                        ))}
+                    </select>)}
                     <label> Show
                         total
                         displacement: </label>
@@ -950,15 +1414,6 @@ function ResultsVisualization(){
                             htmlFor="Green"
                             className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"/>
                     </div>
-                    <div>
-                        <DatePicker
-                            oneTap
-                            placeholder="YYYY-MM-DD"
-                            style={{width: 200}}/>
-                        <DatePicker
-                            oneTap
-                            placeholder="YYYY-MM-DD"
-                            style={{width: 200}}/>
                     </div>
                     <label>Select
                         the
@@ -1004,71 +1459,8 @@ function ResultsVisualization(){
                             SVG
                         </button>
                     </div>
-                </div>
-                <div>
-                    <Listbox value={selectedResults} onChange={setSelectedResults}>
-                        {({ open }) => (
-                            <>
-                                <Listbox.Label className="block text-sm font-medium leading-6 text-gray-900">Type of result</Listbox.Label>
-                                <div className="relative mt-2">
-                                    <Listbox.Button className="relative w-45 cursor-default rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
-                                      <span className="flex items-center">
-                                          <span className="ml-3 block truncate">{selectedResults.name}</span>
-                                      </span>
-                                      <span className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
-                                      <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                                      </span>
-                                    </Listbox.Button>
-                                    <Transition
-                                        show={open}
-                                        as={Fragment}
-                                        leave="transition ease-in duration-100"
-                                        leaveFrom="opacity-100"
-                                        leaveTo="opacity-0"
-                                    >
-                                        <Listbox.Options className="relative z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                            {results.map((res) => (
-                                                <Listbox.Option
-                                                    key={res.id}
-                                                    className={({ active }) =>
-                                                        classNames(
-                                                            active ? 'bg-yellow-500 text-white' : 'text-gray-900',
-                                                            'relative cursor-default select-none py-2 pl-3 pr-9'
-                                                        )
-                                                    }
-                                                    value={res}
-                                                >
-                                                    {({ selected, active }) => (
-                                                        <>
-                                                            <div className="flex items-center">
-                                                                <span
-                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
-                                                                >
-                            {res.name}
-                          </span>
-                                                            </div>
+            </div>
 
-                                                            {selected ? (
-                                                                <span
-                                                                    className={classNames(
-                                                                        active ? 'text-white' : 'text-green-600',
-                                                                        'absolute inset-y-0 right-0 flex items-center pr-4'
-                                                                    )}
-                                                                >
-                            <CheckIcon className="h-5 w-5" aria-hidden="true" />
-                          </span>
-                                                            ) : null}
-                                                        </>
-                                                    )}
-                                                </Listbox.Option>
-                                            ))}
-                                        </Listbox.Options>
-                                    </Transition>
-                                </div>
-                            </>
-                        )}
-                    </Listbox>
-                </div>
                 <div
                     className="charts-container">
                 {!toggleTotalChart ? (
@@ -1113,7 +1505,11 @@ function ResultsVisualization(){
                             </div>
                         </>
                     )}
+                    <div className="chart-wrapper">
+                        <ChartSoil graphData={soilData}/>
+                    </div>
                 </div>
+
                 <div>
                     <label>Select
                         the
@@ -1144,6 +1540,7 @@ function ResultsVisualization(){
                         graphData={selectedAYChartData}
                         depth={selectedDepth}/>
                 </div>
+            </div>
             </div>
         </div>
 
