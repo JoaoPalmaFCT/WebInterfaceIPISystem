@@ -5,24 +5,56 @@
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+  sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  monospace;
+}
+
+.main-wrapper{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
 }
 
 .wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin: 0;
+  padding: 0;
 }
 
 .charts-container{
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+  width: 1000px;
+}
+
+.left-container{
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.right-container{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.row-container{
+  width: 100%;
   display: flex;
   flex-direction: row;
   justify-content: center;
@@ -36,8 +68,48 @@ code {
   align-items: flex-start;
 }
 
+.left-column{
+  padding-right: 0%;
+}
+
+.middle-column{
+  padding-left: 5%;
+  padding-right: 5%;
+}
 
 .chart-wrapper{
   margin: 0 10px;
   width: 100%;
+}
+
+.filter-container{
+  padding: 10%;
+}
+
+.filter-container-typeViz{
+  padding: 10%;
+  width: 290px;
+}
+
+.filter-container-elevation{
+  padding: 10%;
+  padding-top: 0%;
+  width: 290px;
+}
+
+.filter-container-typeInputs1{
+  padding: 10%;
+  padding-left: 5%;
+  width: 290px;
+}
+
+.filter-container-typeInputs2{
+  padding: 10%;
+  padding-right: 0%;
+  width: 290px;
+}
+
+.filter-container-graphClock{
+  padding: 10%;
+  width: 290px;
 }
