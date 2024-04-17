@@ -64,6 +64,7 @@ interface InclinometerData {
     value: number;
     cumulative: number;
     displacement: number;
+    typeOfResult: string;
 }
 
 interface ABData {
@@ -652,8 +653,8 @@ const ChartClock: React.FC<ChartPropsClock> = ({ graphDataA, graphDataB}) => {
                 }}
             >
                 <circle
-                    cx="48.5%"
-                    cy="56%"
+                    cx="49.7%"
+                    cy="56.5%"
                     r="180"
                     stroke="black"
                     fill="none"
@@ -808,7 +809,10 @@ const ChartSoil: React.FC<ChartSoil> = ({graphData}) => {
     );
 };*/
 
-
+const casingDistortions = (angle: number) => {
+    let angleRad = angle * (Math.PI / 180);
+    return 100 * Math.sin(angleRad);
+}
 
 const calculateTotal = (A: number, B: number) => Math.sqrt(A ** 2 + B ** 2);
 
@@ -864,7 +868,8 @@ const getRefDateData = (refDate: string, array: InclinometerData[], field: strin
                    depth: getDepth(auxArray[i], Number(item.inc), item.depth),
                    value: val,
                    cumulative: cumulative,
-                   displacement: 0
+                   displacement: 0,
+                   typeOfResult: item.typeOfResult
                };
                newRefArray.push(updatedItem);
             }
@@ -874,7 +879,7 @@ const getRefDateData = (refDate: string, array: InclinometerData[], field: strin
     return newRefArray;
 }
 
-const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateData: InclinometerData[])  =>{
+const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateData: InclinometerData[], selectedResult: string)  =>{
 
     const auxDate: String = "2009-09-22 00:00:00"
     const auxDate2: String = "1984-09-11 00:00:00"
@@ -910,20 +915,68 @@ const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateDa
         let cumulative: number = 0;
         for (const item of data[i]) {
             if(Number(item.inc) === selectedInc && item.field === "aX"){
-                let val = Math.abs(calculateAngle(item.value));
-                cumulative += val;
-                const updatedItem: InclinometerData = {
-                    inc: item.inc,
-                    sensorID: item.sensorID,
-                    field: item.field,
-                    measurement: item.measurement,
-                    time: item.time,
-                    depth: getDepth(data[i], Number(item.inc), item.depth),
-                    value: val,
-                    cumulative: cumulative,
-                    displacement: calculateDisplacement(item.inc, item.sensorID, cumulative, refDateData)
-                };
-                returnData.push(updatedItem);
+                if(selectedResult === results[0].name) {
+                    let val = Math.abs(calculateAngle(item.value));
+                    cumulative += val;
+                    const updatedItem: InclinometerData = {
+                        inc: item.inc,
+                        sensorID: item.sensorID,
+                        field: item.field,
+                        measurement: item.measurement,
+                        time: item.time,
+                        depth: getDepth(data[i], Number(item.inc), item.depth),
+                        value: val,
+                        cumulative: cumulative,
+                        displacement: calculateDisplacement(item.inc, item.sensorID, cumulative, refDateData),
+                        typeOfResult: selectedResult
+                    };
+                    returnData.push(updatedItem);
+                }else if(selectedResult === results[1].name) {
+                    let val = Math.abs(calculateAngle(item.value));
+                    cumulative += val;
+                    const updatedItem: InclinometerData = {
+                        inc: item.inc,
+                        sensorID: item.sensorID,
+                        field: item.field,
+                        measurement: item.measurement,
+                        time: item.time,
+                        depth: getDepth(data[i], Number(item.inc), item.depth),
+                        value: val,
+                        cumulative: cumulative,
+                        displacement: cumulative,
+                        typeOfResult: selectedResult
+                    };
+                    returnData.push(updatedItem);
+                }else if(selectedResult === results[2].name) {
+                    const updatedItem: InclinometerData = {
+                        inc: item.inc,
+                        sensorID: item.sensorID,
+                        field: item.field,
+                        measurement: item.measurement,
+                        time: item.time,
+                        depth: getDepth(data[i], Number(item.inc), item.depth),
+                        value: item.value,
+                        cumulative: 0,
+                        displacement: item.value,
+                        typeOfResult: selectedResult
+                    };
+                    returnData.push(updatedItem);
+                }else if(selectedResult === results[3].name){
+                    const updatedItem: InclinometerData = {
+                        inc: item.inc,
+                        sensorID: item.sensorID,
+                        field: item.field,
+                        measurement: item.measurement,
+                        time: item.time,
+                        depth: getDepth(data[i], Number(item.inc), item.depth),
+                        value: casingDistortions(item.value),
+                        cumulative: 0,
+                        displacement: casingDistortions(item.value),
+                        typeOfResult: selectedResult
+                    };
+                    returnData.push(updatedItem);
+                }
+
             }
         }
     }
@@ -931,7 +984,7 @@ const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateDa
     return returnData;
 }
 
-const getDataArrayY = (selectedInc: number, array: InclinometerData[], refDateData: InclinometerData[])  =>{
+const getDataArrayY = (selectedInc: number, array: InclinometerData[], refDateData: InclinometerData[], selectedResult: string)  =>{
 
     const auxDate: String = "2009-09-22 00:00:00"
     const auxDate2: String = "1984-09-11 00:00:00"
@@ -969,20 +1022,67 @@ const getDataArrayY = (selectedInc: number, array: InclinometerData[], refDateDa
         let cumulative: number = 0;
         for (const item of data[i]) {
             if(Number(item.inc) === selectedInc && item.field === "aY"){
-                let val = Math.abs(calculateAngle(item.value));
-                cumulative += val;
-                const updatedItem: InclinometerData = {
-                    inc: item.inc,
-                    sensorID: item.sensorID,
-                    field: item.field,
-                    measurement: item.measurement,
-                    time: item.time,
-                    depth: getDepth(data[i], Number(item.inc), item.depth),
-                    value: val,
-                    cumulative: cumulative,
-                    displacement: calculateDisplacement(item.inc, item.sensorID, cumulative, refDateData)
-                };
-                returnData.push(updatedItem);
+                if(selectedResult === results[0].name) {
+                    let val = Math.abs(calculateAngle(item.value));
+                    cumulative += val;
+                    const updatedItem: InclinometerData = {
+                        inc: item.inc,
+                        sensorID: item.sensorID,
+                        field: item.field,
+                        measurement: item.measurement,
+                        time: item.time,
+                        depth: getDepth(data[i], Number(item.inc), item.depth),
+                        value: val,
+                        cumulative: cumulative,
+                        displacement: calculateDisplacement(item.inc, item.sensorID, cumulative, refDateData),
+                        typeOfResult: selectedResult
+                    };
+                    returnData.push(updatedItem);
+                }else if(selectedResult === results[1].name) {
+                    let val = Math.abs(calculateAngle(item.value));
+                    cumulative += val;
+                    const updatedItem: InclinometerData = {
+                        inc: item.inc,
+                        sensorID: item.sensorID,
+                        field: item.field,
+                        measurement: item.measurement,
+                        time: item.time,
+                        depth: getDepth(data[i], Number(item.inc), item.depth),
+                        value: val,
+                        cumulative: cumulative,
+                        displacement: cumulative,
+                        typeOfResult: selectedResult
+                    };
+                    returnData.push(updatedItem);
+                }else if(selectedResult === results[2].name) {
+                    const updatedItem: InclinometerData = {
+                        inc: item.inc,
+                        sensorID: item.sensorID,
+                        field: item.field,
+                        measurement: item.measurement,
+                        time: item.time,
+                        depth: getDepth(data[i], Number(item.inc), item.depth),
+                        value: item.value,
+                        cumulative: 0,
+                        displacement: item.value,
+                        typeOfResult: selectedResult
+                    };
+                    returnData.push(updatedItem);
+                }else if(selectedResult === results[3].name){
+                    const updatedItem: InclinometerData = {
+                        inc: item.inc,
+                        sensorID: item.sensorID,
+                        field: item.field,
+                        measurement: item.measurement,
+                        time: item.time,
+                        depth: getDepth(data[i], Number(item.inc), item.depth),
+                        value: casingDistortions(item.value),
+                        cumulative: 0,
+                        displacement: casingDistortions(item.value),
+                        typeOfResult: selectedResult
+                    };
+                    returnData.push(updatedItem);
+                }
             }
         }
     }
@@ -1017,6 +1117,9 @@ function ResultsVisualization(){
     const [filteredDataArrayY, setFilteredDataArrayY] = useState<InclinometerData[]>([]);
     const [filteredDataArrayTemp, setFilteredDataArrayTemp] = useState<InclinometerData[]>([]);
     //const [colorArray, setColorArray] = useState<string[]>([]);
+    const [earliestRefDate, setEarliestRefDate] = useState<string>("");
+    const [refEarliestDateDataX, setEarliestRefDateDataX] = useState<InclinometerData[]>([]);
+    const [refEarliestDateDataY, setEarliestRefDateDataY] = useState<InclinometerData[]>([]);
     const [refDate, setRefDate] = useState<string>("");
     const [refDateDataX, setRefDateDataX] = useState<InclinometerData[]>([]);
     const [refDateDataY, setRefDateDataY] = useState<InclinometerData[]>([]);
@@ -1026,7 +1129,7 @@ function ResultsVisualization(){
     const [toggleTempChart, setToggleTempChart] = useState(false);
     const [toggleSelectDates, setToggleSelectDates] = useState(false);
     const [selectedGraphExport, setSelectedGraphExport] = useState<string>("A");
-    const [selectedResults, setSelectedResults] = useState(results[1])
+    const [selectedResults, setSelectedResults] = useState(results[0])
     const [selectedVisualization, setSelectedVisualization] = useState(visualization[0])
     const [selectedDatesTypes, setSelectedDatesTypes] = useState(datesTypes[0])
     const [selectedElevation, setSelectedElevation] = useState(elevation[0])
@@ -1043,8 +1146,8 @@ function ResultsVisualization(){
 
     useEffect(() => {
         if (!arrayInitialized && (dataArrayX.length > 0 || dataArrayY.length > 0)) {
-            setSelectedAXChartData(getDataArrayX(1, dataArrayX, refDateDataX));
-            setSelectedAYChartData(getDataArrayY(1, dataArrayY, refDateDataY));
+            setSelectedAXChartData(getDataArrayX(1, dataArrayX, refDateDataX, selectedResults.name));
+            setSelectedAYChartData(getDataArrayY(1, dataArrayY, refDateDataY, selectedResults.name));
             //setColorArray(generateColorArray(dataArray));
             setArrayInitialized(true);
         }
@@ -1062,13 +1165,17 @@ function ResultsVisualization(){
                 depth: Number(i.sensorID) * 0.5,
                 value: i._value,
                 cumulative: 0,
-                displacement: 0
+                displacement: 0,
+                typeOfResult: results[0].name
             }));
 
             let auxRefDate = getRefDate(mappedData);
             setRefDate(auxRefDate);
             setRefDateDataX(getRefDateData(auxRefDate, mappedData, "aX"));
             setRefDateDataY(getRefDateData(auxRefDate, mappedData, "aY"));
+            setEarliestRefDate(auxRefDate);
+            setEarliestRefDateDataX(getRefDateData(auxRefDate, mappedData, "aX"));
+            setEarliestRefDateDataY(getRefDateData(auxRefDate, mappedData, "aY"));
 
             setDataArrayX(mappedData);
             setFilteredDataArrayX(mappedData);
@@ -1101,19 +1208,44 @@ function ResultsVisualization(){
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [filteredDates, setFilteredDates] = useState<string[]>([]);
 
+    const handleSelectedResults = (type: string) => {
+        let selectedType;
+        switch(type){
+            case results[0].name:
+                selectedType = results[0];
+                break;
+            case results[1].name:
+                selectedType = results[1];
+                break;
+            case results[2].name:
+                selectedType = results[2];
+                break;
+            case results[3].name:
+                selectedType = results[3];
+                break;
+            default:
+                selectedType = results[0];
+                break;
+        }
+        console.log(selectedType)
+        setSelectedResults(selectedType)
+        handleSelectedAXChartData(Number(selectedInclinometer), type);
+        handleSelectedAYChartData(Number(selectedInclinometer), type);
+    }
+
     const handleSearchChange = (value: string) => {
         setSearchTerm(value);
         const filtered = numberOfDates.filter(date => date.includes(value));
         setFilteredDates(filtered);
     };
 
-    const handleSelectedAXChartData = (inc: number) => {
-        setSelectedAXChartData(getDataArrayX(inc, filteredDataArrayX, refDateDataX));
+    const handleSelectedAXChartData = (inc: number, selectedType: string) => {
+        setSelectedAXChartData(getDataArrayX(inc, filteredDataArrayX, refDateDataX, selectedType));
         //setColorArray(generateColorArray(dataArray));
     };
 
-    const handleSelectedAYChartData = (inc: number) => {
-        setSelectedAYChartData(getDataArrayY(inc, filteredDataArrayY, refDateDataY));
+    const handleSelectedAYChartData = (inc: number, selectedType: string) => {
+        setSelectedAYChartData(getDataArrayY(inc, filteredDataArrayY, refDateDataY, selectedType));
     };
 
     const handleSelectedTotalChartData = (inc: number) => {
@@ -1123,8 +1255,8 @@ function ResultsVisualization(){
     const handleSelectedInclinometer = (inc: number) => {
         setSelectedInclinometer(inc);
         handleDepthArray(inc);
-        handleSelectedAXChartData(inc);
-        handleSelectedAYChartData(inc);
+        handleSelectedAXChartData(inc, selectedResults.name);
+        handleSelectedAYChartData(inc, selectedResults.name);
     };
 
     const handleDepthArray = (inc: number) => {
@@ -1138,8 +1270,8 @@ function ResultsVisualization(){
     const handleDatesIntervalChange = (initialDate: string, lastDate: string) => {
         setFilteredDataArrayX(getIntervalDates(dataArrayX, initialDate, lastDate));
         setFilteredDataArrayY(getIntervalDates(dataArrayY, initialDate, lastDate));
-        handleSelectedAXChartData(Number(selectedInclinometer));
-        handleSelectedAYChartData(Number(selectedInclinometer));
+        handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
+        handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
     };
 
     const handleFirstDateInterval = (year: number | undefined, month: number | undefined, day: number | undefined) => {
@@ -1147,8 +1279,8 @@ function ResultsVisualization(){
             let date = year + "-" + month + "-" + day;
             setFilteredDataArrayX(getIntervalDates(dataArrayX, date, getMostRecentDate(filteredDataArrayX)));
             setFilteredDataArrayY(getIntervalDates(dataArrayY, date, getMostRecentDate(filteredDataArrayY)));
-            handleSelectedAXChartData(Number(selectedInclinometer));
-            handleSelectedAYChartData(Number(selectedInclinometer));
+            handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
+            handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
         }
     };
 
@@ -1157,9 +1289,27 @@ function ResultsVisualization(){
             let date = year + "-" + month + "-" + day;
             setFilteredDataArrayX(getIntervalDates(dataArrayX, getRefDate(filteredDataArrayX), date));
             setFilteredDataArrayY(getIntervalDates(dataArrayY, getRefDate(filteredDataArrayY), date));
-            handleSelectedAXChartData(Number(selectedInclinometer));
-            handleSelectedAYChartData(Number(selectedInclinometer));
+            handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
+            handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
         }
+    };
+
+    const handleRefDate = (newRef: string) => {
+        setRefDate(newRef);
+        setRefDateDataX(getRefDateData(newRef, dataArrayX, "aX"));
+        setRefDateDataY(getRefDateData(newRef, dataArrayY, "aY"));
+
+        setFilteredDataArrayX(getIntervalDates(dataArrayX, newRef, getMostRecentDate(filteredDataArrayX)));
+        setFilteredDataArrayY(getIntervalDates(dataArrayY, newRef, getMostRecentDate(filteredDataArrayX)));
+        setFilteredDataArrayTemp(getIntervalDates(dataArrayTemp, newRef, getMostRecentDate(filteredDataArrayX)));
+
+        handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
+        handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
+        //handleTemp
+    };
+
+    const handleResetRefDate = () => {
+        handleRefDate(earliestRefDate)
     };
 
     /*const generateColorArray = (dataArray: InclinometerData[]) => {
@@ -1185,7 +1335,7 @@ function ResultsVisualization(){
 
     const handleToogleTotalChart = () => {
         if(toggleTotalChart){
-            handleSelectedAXChartData(Number(selectedInclinometer))
+            handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name)
             setToggleTotalChart(false)
         }else{
             setToggleTotalChart(true)
@@ -1215,11 +1365,12 @@ function ResultsVisualization(){
 
 
 
-
+    const chartClock = useRef<HTMLDivElement>(null);
     const chartAXRef = useRef<HTMLDivElement>(null);
     const chartAYRef = useRef<HTMLDivElement>(null);
     const chartTotalRef = useRef<HTMLDivElement>(null);
     const chartTempRef = useRef<HTMLDivElement>(null);
+    const chartSoil = useRef<HTMLDivElement>(null);
 
     const handleSelectedGraphExport = (graph: string) => {
         setSelectedGraphExport(graph);
@@ -1356,7 +1507,7 @@ function ResultsVisualization(){
                         className="filter-container-typeViz">
                         <Listbox
                             value={selectedResults}
-                            onChange={setSelectedResults}>
+                            onChange={(selectResultOption) => {handleSelectedResults(selectResultOption.name)}}>
                             {({open}) => (
                                 <>
                                     <Listbox.Label
@@ -1524,7 +1675,7 @@ function ResultsVisualization(){
                             className="filter-container-typeViz">
                         <div
                             className="column-container">
-                            <div className="pb-5 flex items-center">
+                            <div className="pb-8 flex items-center">
                                 <div className="pr-2">
                                 <Listbox>
                                     <Listbox.Label
@@ -1555,7 +1706,7 @@ function ResultsVisualization(){
                         </div>
                         </div>)}
                     {toggleSelectDates && (
-                        <div className="pl-6">
+                        <div className="pl-6 pt-5">
                             <div
                                 id="dropdownSearch"
                                 className="z-10 bg-white rounded-lg shadow w-60 dark:bg-green-500">
@@ -1800,6 +1951,7 @@ function ResultsVisualization(){
                             </div>
                             <div
                                 className="filter-container-graphClock chart-wrapper"
+                                ref={chartClock}
                             >
                                 <ChartClock
                                     graphDataA={selectedAXChartData}
@@ -1809,7 +1961,7 @@ function ResultsVisualization(){
 
                         </div>
                         <div
-                            className="column-container middle-column">
+                            className="column-container right-column">
                             <div
                                 className="filter-container-typeViz">
                                 <Listbox>
@@ -1827,7 +1979,7 @@ function ResultsVisualization(){
                                                 value="false"
                                                 name="list-radio"
                                                 checked={!toggleIntervalRef}
-                                                onChange={(e) => handleEarliestDate(false)}
+                                                onChange={(e) => {handleEarliestDate(false); handleResetRefDate()}}
                                                 className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 "/>
                                             <label
                                                 htmlFor="earliestDate"
@@ -1855,8 +2007,8 @@ function ResultsVisualization(){
                                 <div
                                     className="pt-3">
                                     {toggleIntervalRef ? (
-                                        <select
-                                            //onChange={(e) => handleSelectedInclinometer(parseInt(e.target.value))}
+                                        <select id="selectRefDateId"
+                                            onChange={(e) => handleRefDate(e.target.value)}
                                             style={{
                                                 padding: '8px',
                                                 fontSize: '16px',
@@ -1870,7 +2022,7 @@ function ResultsVisualization(){
                                             ))}
                                         </select>) : (
                                         <select
-                                            //onChange={(e) => handleSelectedInclinometer(parseInt(e.target.value))}
+                                            onChange={(e) => handleRefDate(e.target.value)}
                                             style={{
                                                 padding: '8px',
                                                 fontSize: '16px',
@@ -1878,11 +2030,10 @@ function ResultsVisualization(){
                                                 border: '1px solid #ccc'
                                             }}
                                             disabled>
-                                            {numberOfDates.map(date => (
                                                 <option
-                                                    key={date}
-                                                    value={date}>{date.split(" ")[0]}</option>
-                                            ))}
+                                                    key={earliestRefDate}
+                                                    value={earliestRefDate}>{earliestRefDate.split(" ")[0]}</option>
+
                                         </select>
                                     )}
                                 </div>
@@ -2104,7 +2255,8 @@ function ResultsVisualization(){
                             </>
                         )}
                         <div
-                            className="chart-wrapper">
+                            className="chart-wrapper"
+                            ref={chartSoil}>
                             <ChartSoil
                                 graphData={soilData}/>
                         </div>
