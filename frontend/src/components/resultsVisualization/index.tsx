@@ -502,7 +502,7 @@ const ChartDataPrepDetailsX = (graphData: InclinometerData[][], depth: number): 
         graphData.map(a =>{
             a.map(b =>{
                 if(b.depth === depth){
-                    tempArray.push(b)
+                    tempArray.push(b);
                 }
             })
         })
@@ -566,7 +566,7 @@ const Chart: React.FC<ChartPropsInc> = ({ graphData}) => {
                             <Label value="Depth (m)" position="left" angle={-90} />
                         </YAxis>
                         <Tooltip content={<CustomTooltip/>}/>
-                        <Legend/>
+                        {graphType === "A" && <Legend align="left" verticalAlign="top" layout="vertical" margin={{right: 50}}/>}
 
                         {data.map((incData, i) => (
                             <Line name={`${incData[i].time.split(" ")[0]}`} key={`${incData[i].time}`} type="monotone"
@@ -736,8 +736,8 @@ const ChartDetails: React.FC<ChartPropsDetails> = ({
     return (
         <div className="wrapper" >
             {graphData.length > 0 && (
-                <ResponsiveContainer width="60%" height={300}>
-                    <LineChart margin={{ top: 25, right: 20, left: 20, bottom: 20 }}>
+                <ResponsiveContainer width="100%" height={300}>
+                    <LineChart margin={{ top: 25, right: 100, left: 20, bottom: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="time" allowDuplicatedCategory={false}>
                             <Label value="Dates" position="bottom"/>
@@ -765,7 +765,7 @@ const ChartSoil: React.FC<ChartSoil> = ({ graphData }) => {
     return (
         <div className="wrapper" >
             {graphData.length > 0 && (
-                <ResponsiveContainer width="50%" height={650}>
+                <ResponsiveContainer width="50%" height={720}>
                     <BarChart  data={data} margin={{ top: 50, right: 20, left: 20, bottom: 40 }}>
                         <XAxis type="category" hide={true}/>
                         <YAxis dataKey="depth" type="number" domain={[0, 32]} hide={true}/>
@@ -808,6 +808,17 @@ const ChartSoil: React.FC<ChartSoil> = ({graphData}) => {
         </div>
     );
 };*/
+
+const isDateChecked = (date: string, dates: string[]) => {
+    let found: boolean = false;
+
+    dates.map(d =>{
+        if(d === date){
+            found = true;
+        }
+    })
+    return found
+}
 
 const casingDistortions = (angle: number) => {
     let angleRad = angle * (Math.PI / 180);
@@ -879,9 +890,88 @@ const getRefDateData = (refDate: string, array: InclinometerData[], field: strin
     return newRefArray;
 }
 
-const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateData: InclinometerData[], selectedResult: string)  =>{
 
-    const auxDate: String = "2009-09-22 00:00:00"
+
+const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateData: InclinometerData[], selectedResult: string)  =>{
+    let data: InclinometerData[][] = [];
+    let returnData: InclinometerData[] = [];
+
+    const uniqueDates = getUniqueDates(array)
+    const numberOfDates = uniqueDates.length;
+    array.sort((date1, date2) => {
+        if (date1.time < date2.time) {
+            return -1;
+        } else if (date1.time > date2.time) {
+            return 1;
+        } else {
+            return 0;
+        }
+    })//.sort((a, b) => Number(a.time) - Number(b.time))
+
+    let counter = 0;
+    let tempArray: InclinometerData[] = []
+
+
+    for(let i = 0; i < array.length; i++){
+    //array.map(g => {
+        if(array[i].field === "aX"){
+            if(array[i].time === uniqueDates[counter]){
+               tempArray.push(array[i]);
+               if(i + 1 === array.length){
+                   data[counter] = tempArray;
+                   data[counter].sort((a, b) => {
+                       if (Number(a.inc) !== Number(b.inc)) {
+                           return Number(a.inc) - Number(b.inc);
+                       }
+                       return Number(a.sensorID) - Number(b.sensorID);
+                   });
+               }
+            }else if(counter <= numberOfDates){
+                if(array[i].time === uniqueDates[counter+1]){
+                    data[counter] = tempArray;
+                    data[counter].sort((a, b) => {
+                        if (Number(a.inc) !== Number(b.inc)) {
+                            return Number(a.inc) - Number(b.inc);
+                        }
+                        return Number(a.sensorID) - Number(b.sensorID);
+                    });
+                    //.sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
+                    tempArray = [];
+                    tempArray.push(array[i])
+                    counter++;
+                }
+            }
+        }
+        if(i + 1 === array.length) {
+            data[counter] = tempArray;
+            data[counter].sort((a, b) => {
+                if (Number(a.inc) !== Number(b.inc)) {
+                    return Number(a.inc) - Number(b.inc);
+                }
+                return Number(a.sensorID) - Number(b.sensorID);
+            });
+        }
+    }
+
+    /*for (let i = 0; i < numberOfDates; i++) {//3
+        let tempArray: InclinometerData[] = []
+        array.map(g => {
+            if (!checkIfDateAlreadyAdded(g.time, data)) { // uniqueDates[i]
+                tempArray.push(g)
+            }
+        })
+        data[i] = tempArray;
+        data[i].sort((a, b) => Number(a.sensorID) - Number(b.sensorID));
+    }*/
+
+    //data[0] = tempArray//data[i] = tempArray
+    //data[1] = tempArray2
+    //data[2] = tempArray3
+    //data[0].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
+    //data[1].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
+    //data[2].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
+
+    /* const auxDate: String = "2009-09-22 00:00:00"
     const auxDate2: String = "1984-09-11 00:00:00"
     const auxDate3: String = "1986-10-01 00:00:00"
 
@@ -896,13 +986,14 @@ const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateDa
         let tempArray2: InclinometerData[] = []
         let tempArray3: InclinometerData[] = []
         array.map(g => {
+            if(g.field === "aX"){
             if (g.time === auxDate) { // uniqueDates[i]
                 tempArray.push(g)
             }else if(g.time === auxDate2){
                 tempArray2.push(g)
             }else if(g.time === auxDate3){
                 tempArray3.push(g)
-            }
+            }}
         })
     data[0] = tempArray//data[i] = tempArray
     data[1] = tempArray2
@@ -910,8 +1001,9 @@ const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateDa
     data[0].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
     data[1].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
     data[2].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
+*/
 
-    for (let i = 0; i < 3; i++) {//numberOfDates
+    for (let i = 0; i < numberOfDates; i++) {//3numberOfDates
         let cumulative: number = 0;
         for (const item of data[i]) {
             if(Number(item.inc) === selectedInc && item.field === "aX"){
@@ -981,12 +1073,13 @@ const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateDa
         }
     }
 
+
     return returnData;
 }
 
 const getDataArrayY = (selectedInc: number, array: InclinometerData[], refDateData: InclinometerData[], selectedResult: string)  =>{
 
-    const auxDate: String = "2009-09-22 00:00:00"
+    /*const auxDate: String = "2009-09-22 00:00:00"
     const auxDate2: String = "1984-09-11 00:00:00"
     const auxDate3: String = "1986-10-01 00:00:00"
 
@@ -1016,9 +1109,67 @@ const getDataArrayY = (selectedInc: number, array: InclinometerData[], refDateDa
     data[1].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
     data[2].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
     //}
+*/
+    let data: InclinometerData[][] = [];
+    let returnData: InclinometerData[] = [];
 
+    const uniqueDates = getUniqueDates(array)
+    const numberOfDates = uniqueDates.length;
+    array.sort((date1, date2) => {
+        if (date1.time < date2.time) {
+            return -1;
+        } else if (date1.time > date2.time) {
+            return 1;
+        } else {
+            return 0;
+        }
+    })//.sort((a, b) => Number(a.time) - Number(b.time))
 
-    for (let i = 0; i < 3; i++) {//numberOfDates
+    let counter = 0;
+    let tempArray: InclinometerData[] = []
+
+    for(let i = 0; i < array.length; i++){
+        //array.map(g => {
+        if(array[i].field === "aY"){
+            if(array[i].time === uniqueDates[counter]){
+                tempArray.push(array[i]);
+                if(i + 1 === array.length){
+                    data[counter] = tempArray;
+                    data[counter].sort((a, b) => {
+                        if (Number(a.inc) !== Number(b.inc)) {
+                            return Number(a.inc) - Number(b.inc);
+                        }
+                        return Number(a.sensorID) - Number(b.sensorID);
+                    });
+                }
+            }else if(counter <= numberOfDates){
+                if(array[i].time === uniqueDates[counter+1]){
+                    data[counter] = tempArray;
+                    data[counter].sort((a, b) => {
+                        if (Number(a.inc) !== Number(b.inc)) {
+                            return Number(a.inc) - Number(b.inc);
+                        }
+                        return Number(a.sensorID) - Number(b.sensorID);
+                    });
+                    //.sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
+                    tempArray = [];
+                    tempArray.push(array[i])
+                    counter++;
+                }
+            }
+        }
+        if(i + 1 === array.length) {
+            data[counter] = tempArray;
+            data[counter].sort((a, b) => {
+                if (Number(a.inc) !== Number(b.inc)) {
+                    return Number(a.inc) - Number(b.inc);
+                }
+                return Number(a.sensorID) - Number(b.sensorID);
+            });
+        }
+    }
+
+    for (let i = 0; i < numberOfDates; i++) {//numberOfDates
         let cumulative: number = 0;
         for (const item of data[i]) {
             if(Number(item.inc) === selectedInc && item.field === "aY"){
@@ -1133,7 +1284,7 @@ function ResultsVisualization(){
     const [selectedVisualization, setSelectedVisualization] = useState(visualization[0])
     const [selectedDatesTypes, setSelectedDatesTypes] = useState(datesTypes[0])
     const [selectedElevation, setSelectedElevation] = useState(elevation[0])
-    const [checkedDates, setCheckedDates] = useState<string[]>([])
+
 
     const [toggleIntervalRef, setToggleIntervalRef] = useState(false);
 
@@ -1207,6 +1358,7 @@ function ResultsVisualization(){
 
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [filteredDates, setFilteredDates] = useState<string[]>([]);
+    const [checkedDates, setCheckedDates] = useState<string[]>([])
 
     const handleSelectedResults = (type: string) => {
         let selectedType;
@@ -1237,6 +1389,35 @@ function ResultsVisualization(){
         setSearchTerm(value);
         const filtered = numberOfDates.filter(date => date.includes(value));
         setFilteredDates(filtered);
+    };
+
+    const handleDateCheck = (value: string) => {
+        const isChecked = isDateChecked(value, checkedDates);
+        console.log(isChecked)
+        const updatedDates = isChecked
+            ? checkedDates.filter(date => date !== value)
+            : [...checkedDates, value];
+
+        setCheckedDates(updatedDates);
+
+        if(isChecked){
+            const updatedFilteredDataArrayX = filteredDataArrayX.filter(data => data.time !== value);
+            const updatedFilteredDataArrayY = filteredDataArrayY.filter(data => data.time !== value);
+            setFilteredDataArrayX(updatedFilteredDataArrayX)
+            setFilteredDataArrayY(updatedFilteredDataArrayY)
+            handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name)
+            handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name)
+        }else if(!isChecked && !filteredDataArrayX.some(item => item.time === value)){
+            const oldValuesX = dataArrayX.filter(item => item.time === value);
+            const oldValuesY = dataArrayX.filter(item => item.time === value);
+            const updatedFilteredDataArrayX = filteredDataArrayX.concat(oldValuesX);
+            const updatedFilteredDataArrayY = filteredDataArrayY.concat(oldValuesY);
+            setFilteredDataArrayX(updatedFilteredDataArrayX)
+            setFilteredDataArrayY(updatedFilteredDataArrayY)
+            handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name)
+            handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name)
+        }
+
     };
 
     const handleSelectedAXChartData = (inc: number, selectedType: string) => {
@@ -1293,6 +1474,27 @@ function ResultsVisualization(){
             handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
         }
     };
+
+    const handleFirstDateIntervalReset = () => {
+        setFilteredDataArrayX(getIntervalDates(dataArrayX, earliestRefDate, getMostRecentDate(filteredDataArrayX)));
+        setFilteredDataArrayY(getIntervalDates(dataArrayY, earliestRefDate, getMostRecentDate(filteredDataArrayY)));
+        handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
+        handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
+    };
+
+    const handleLastDateIntervalReset = () => {
+        setFilteredDataArrayX(getIntervalDates(dataArrayX, getRefDate(filteredDataArrayX), getMostRecentDate(dataArrayX)));
+        setFilteredDataArrayY(getIntervalDates(dataArrayY, getRefDate(filteredDataArrayY), getMostRecentDate(dataArrayY)));
+        handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
+        handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
+    };
+
+    const handleResetDates = () => {
+        setFilteredDataArrayX(getIntervalDates(dataArrayX, earliestRefDate, getMostRecentDate(dataArrayX)));
+        setFilteredDataArrayY(getIntervalDates(dataArrayY, earliestRefDate, getMostRecentDate(dataArrayY)));
+        handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
+        handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
+    }
 
     const handleRefDate = (newRef: string) => {
         setRefDate(newRef);
@@ -1359,6 +1561,7 @@ function ResultsVisualization(){
         if(toggleSelectDates){
             setToggleSelectDates(false)
         }else{
+            setCheckedDates(numberOfDates)
             setToggleSelectDates(true)
         }
     };
@@ -1507,7 +1710,9 @@ function ResultsVisualization(){
                         className="filter-container-typeViz">
                         <Listbox
                             value={selectedResults}
-                            onChange={(selectResultOption) => {handleSelectedResults(selectResultOption.name)}}>
+                            onChange={(selectResultOption) => {
+                                handleSelectedResults(selectResultOption.name)
+                            }}>
                             {({open}) => (
                                 <>
                                     <Listbox.Label
@@ -1673,40 +1878,57 @@ function ResultsVisualization(){
                     {!toggleSelectDates && (
                         <div
                             className="filter-container-typeViz">
-                        <div
-                            className="column-container">
-                            <div className="pb-8 flex items-center">
-                                <div className="pr-2">
-                                <Listbox>
-                                    <Listbox.Label
-                                        className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">First</Listbox.Label>
-                                </Listbox>
+                            <div
+                                className="column-container">
+                                <div
+                                    className="pb-8 flex items-center">
+                                    <div
+                                        className="pr-2">
+                                        <Listbox>
+                                            <Listbox.Label
+                                                className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">First</Listbox.Label>
+                                        </Listbox>
+                                    </div>
+                                    <DatePicker
+                                        oneTap
+                                        placeholder="YYYY-MM-DD"
+                                        style={{width: 190}}
+                                        onChange={(e) => handleFirstDateInterval(e?.getFullYear(), e?.getMonth(), e?.getDay())}
+                                        onClean={(e) => handleFirstDateIntervalReset}
+                                    />
                                 </div>
-                            <DatePicker
-                                oneTap
-                                placeholder="YYYY-MM-DD"
-                                style={{width: 190}}
-                                onChange={(e) => handleFirstDateInterval(e?.getFullYear(), e?.getMonth(), e?.getDay())}
-                            />
-                            </div>
-                            <div className="flex items-center">
-                                <div className="pr-2">
-                                <Listbox>
-                                    <Listbox.Label
-                                        className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Last</Listbox.Label>
-                                </Listbox>
+                                <div
+                                    className="flex items-center">
+                                    <div
+                                        className="pr-2">
+                                        <Listbox>
+                                            <Listbox.Label
+                                                className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Last</Listbox.Label>
+                                        </Listbox>
+                                    </div>
+                                    <DatePicker
+                                        oneTap
+                                        placeholder="YYYY-MM-DD"
+                                        style={{width: 190}}
+                                        onChange={(e) => handleLastDateInterval(e?.getFullYear(), e?.getMonth(), e?.getDay())}
+                                        onClean={(e) => handleLastDateIntervalReset}
+                                    />
                                 </div>
-                            <DatePicker
-                                oneTap
-                                placeholder="YYYY-MM-DD"
-                                style={{width: 190}}
-                                onChange={(e) => handleLastDateInterval(e?.getFullYear(), e?.getMonth(), e?.getDay())}
-                            />
+                                    <div
+                                        className="relative inline-block pl-12 pt-5 w-30 mr-2 ml-2 align-middle select-none">
+                                        <button
+                                            type="button"
+                                            className="py-2 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                            onClick={handleResetDates}>Reset
+                                            dates
+                                        </button>
+                                    </div>
                             </div>
-                        </div>
+
                         </div>)}
                     {toggleSelectDates && (
-                        <div className="pl-6 pt-5">
+                        <div
+                            className="pl-6 pt-5">
                             <div
                                 id="dropdownSearch"
                                 className="z-10 bg-white rounded-lg shadow w-60 dark:bg-green-500">
@@ -1717,7 +1939,7 @@ function ResultsVisualization(){
                                         className="sr-only">Search</label>
                                     <div
                                         className="relative">
-                                        <div
+                                    <div
                                             className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
                                             <svg
                                                 className="w-4 h-4 text-gray-900"
@@ -1751,8 +1973,11 @@ function ResultsVisualization(){
                                                 <input
                                                     id={`checkbox-item-${index}`}
                                                     type="checkbox"
-                                                    value=""
-                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 "/>
+                                                    value={`${date}`}
+                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 "
+                                                    checked={isDateChecked(date, checkedDates)}
+                                                    onChange={(e) => handleDateCheck(e.target.value)}
+                                                />
                                                 <label
                                                     htmlFor={`checkbox-item-${index}`}
                                                     className="w-full ms-2 text-sm font-medium text-gray-900 rounded">{date.split(" ")[0]}</label>
@@ -1765,8 +1990,11 @@ function ResultsVisualization(){
                                                 <input
                                                     id={`checkbox-item-${index}`}
                                                     type="checkbox"
-                                                    value=""
-                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 "/>
+                                                    value={`${date}`}
+                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 "
+                                                    checked={isDateChecked(date, checkedDates)}
+                                                    onChange={(e) => handleDateCheck(e.target.value)}
+                                                />
                                                 <label
                                                     htmlFor={`checkbox-item-${index}`}
                                                     className="w-full ms-2 text-sm font-medium text-white rounded hover:text-black">{date.split(" ")[0]}</label>
@@ -1778,6 +2006,7 @@ function ResultsVisualization(){
                             </div>
                         </div>
                     )}
+
                 </div>
                 <div>
                     <div
@@ -2215,7 +2444,7 @@ function ResultsVisualization(){
                         {!toggleTotalChart ? (
                             <>
                                 <div
-                                    className="chart-wrapper"
+                                    className="chart-wrapper left-graph"
                                     ref={chartAXRef}>
                                     <Chart
                                         graphData={selectedAXChartData}
@@ -2263,9 +2492,7 @@ function ResultsVisualization(){
                     </div>
 
                     <div>
-                        <label>Select
-                            the
-                            desired
+                        <label>Desired
                             depth: </label>
                         <select
                             onChange={(e) => handleSelectedDepth(e.target.value)}
