@@ -19,15 +19,21 @@ import {
     BarChart,
     Bar,
     Brush,
-    ReferenceLine
+    ReferenceLine,
+    LabelList
 } from 'recharts';
 import {
     Checkbox,
-    DatePicker
+    DatePicker//,
+    //RangeSlider,
+    //Slider
 } from 'rsuite';
 import 'rsuite/DatePicker/styles/index.css';
+//import 'rsuite/RangeSlider/styles/index.css';
+//import 'rsuite/Slider/styles/index.css';
 import { Listbox, Transition } from '@headlessui/react'
 import { CheckIcon, ChevronUpDownIcon } from '@heroicons/react/20/solid'
+import Slider from '@mui/material/Slider';
 
 interface InfluxDataAux {
     host: string;
@@ -83,6 +89,32 @@ interface SoilData {
     color: string;
 }
 
+interface Payload {
+    inc: string;
+    sensorID: string;
+    field: string;
+    measurement: string;
+    time: string;
+    depth: number;
+    value: number;
+    cumulative: number;
+    displacement: number;
+    typeOfResult: string;
+}
+
+interface PointData {
+    index: number;
+    dataKey: string;
+    cx: number;
+    cy: number;
+    r: number;
+    fill: string;
+    strokeWidth: number;
+    stroke: string;
+    payload: Payload;
+    value: number;
+}
+
 interface ChartProps {
     graphData: InclinometerData[];
     //colorArray: string[];
@@ -90,6 +122,9 @@ interface ChartProps {
 
 interface ChartPropsInc {
     graphData: InclinometerData[];
+    initialMaxDepth: number;
+    minDepth: number;
+    maxDepth: number;
     //colorArray: string[];
 }
 
@@ -147,25 +182,25 @@ const colorsArray: string[] = [
     "#33A4FF",
     "#1e7226",
     "#33FFD1",
-    "#33FF77",
-    "#33FFEA",
+    "#52d980",
+    "#c5a932",
     "#FF5733",
-    "#FF6B33",
+    "#8e27a8",
     "#33FFFF",
-    "#FF1E33",
+    "#9b0e1c",
     "#FFD133",
-    "#33FFC1",
-    "#33FF8D",
-    "#33FF3A",
+    "#54419b",
+    "#bdb632",
+    "#31da36",
     "#FF8433",
-    "#33E9FF",
-    "#33FF67",
-    "#FF9933",
+    "#172793",
+    "#3b7a23",
+    "#796088",
     "#FF3833",
     "#FFB333",
-    "#33FF0D",
-    "#33FF33",
-    "#33FF94",
+    "#c067ec",
+    "#b94646",
+    "#1dc46a",
     "#33FCFF",
     "#33FFBA",
     "#FF5133",
@@ -186,7 +221,7 @@ const colorsArray: string[] = [
     "#2E33FF",
     "#33E9FF",
     "#FF1E33",
-    "#33FF4A",
+    "#338bff",
     "#33FF0D",
     "#33FF60",
     "#FFD133",
@@ -257,14 +292,18 @@ const results = [
     },
     {
         id: 2,
-        name: 'Relative displacements',
+        name: 'Relative cumulative displacements',
     },
     {
         id: 3,
-        name: 'Sensor angles',
+        name: 'Relative displacements',
     },
     {
         id: 4,
+        name: 'Sensor angles',
+    },
+    {
+        id: 5,
         name: 'Casing distortions',
     }
 ]
@@ -279,6 +318,9 @@ const elevation = [
         name: 'Level',
     }
 ]
+
+let desiredDepth = 0;
+
 function classNames(...classes: string[]) {
     return classes.filter(Boolean).join(' ')
 }
@@ -333,7 +375,6 @@ const getIntervalDates = (graphData: InclinometerData[], initialDate: string, la
         if(lastDate >= g.time && initialDate <= g.time)
             tempData.push(g)
     })
-    console.log(tempData)
     return tempData;
 }
 
@@ -381,7 +422,15 @@ const getUniqueDepth = (inc: number, dataArray: InclinometerData[]) => {
 
 const getDepth = (data: InclinometerData[], inc: number, depth: number) => {
     let numberOfSensors = getNumberOfSensors(data, inc);
-    return numberOfSensors/2 - depth + 0.5
+    let value;
+
+    if(depth === numberOfSensors/2){
+        value = 0;
+    }else{
+        value = numberOfSensors/2 - depth
+    }
+
+    return value;
 }
 
 /*const generateRandomHexColor = (): string => {
@@ -395,15 +444,38 @@ const CustomTooltip: React.FC<TooltipProps<any, any>> = ({ active, payload, labe
     if (active && payload && payload.length) {
         return (
             <div className="custom-tooltip">
-                <div style={{ backgroundColor: 'white', padding: '10px', borderRadius: '5px' }}>
+                <div style={{ backgroundColor: 'white', padding: '10px', borderRadius: '5px',boxShadow: '0 4px 4px rgba(0, 0, 0, 0.1)', border: '1px solid black', width: '130px' }}>
                     {payload.map((p, index) => (
                         <div key={index}>
                             {index === 0 &&
-                                <p className="label" style={{ margin: 0 }}>{`Sensor ${p.payload.sensorID}`}</p>
+                                <p className="label" style={{ margin: 0 }}>{`Depth ${p.payload.depth} (m)`}</p>
                             }
                             <div style={{ display: 'flex', alignItems: 'center', color: p.color }}>
-                                <p style={{ margin: 0, width: '10px', height: '10px', borderRadius: '50%', backgroundColor: p.color, marginRight: '10px' }}/>
-                                <p style={{ margin: 0 }}  className="label">{`${p.value}`}</p>
+                                <p style={{ margin: 0, width: '10px', height: '10px', borderRadius: '50%', backgroundColor: p.color, marginRight: '10px', marginLeft:'20px' }}/>
+                                <p style={{ margin: 0}}  className="label">{`${p.value.toFixed(2)}`}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+    return null;
+};
+
+const CustomTooltipDetails: React.FC<TooltipProps<any, any>> = ({ active, payload, label}) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="custom-tooltip">
+                <div style={{ backgroundColor: 'white', padding: '10px', borderRadius: '5px',boxShadow: '0 4px 4px rgba(0, 0, 0, 0.1)', border: '1px solid black', width: '130px' }}>
+                    {payload.map((p, index) => (
+                        <div key={index}>
+                            {index === 0 &&
+                                <p className="label" style={{ margin: 0 }}>{`Depth ${p.payload.depth} (m)`}</p>
+                            }
+                            <div style={{ display: 'flex', alignItems: 'center', color: p.color }}>
+                                <p style={{ margin: 0, width: '10px', height: '10px', borderRadius: '50%', backgroundColor: p.color, marginRight: '10px', marginLeft:'20px' }}/>
+                                <p style={{ margin: 0}}  className="label">{`${p.value.toFixed(2)}`}</p>
                             </div>
                         </div>
                     ))}
@@ -434,7 +506,7 @@ const CustomTooltipSoil: React.FC<TooltipProps<any, any>> = ({ active, payload, 
     if (active && payload && payload.length) {
         return (
             <div className="custom-tooltip">
-                <div style={{ backgroundColor: 'white', padding: '10px', borderRadius: '5px' }}>
+                <div style={{ backgroundColor: 'white', padding: '10px', borderRadius: '5px',boxShadow: '0 4px 4px rgba(0, 0, 0, 0.1)', border: '1px solid black' }}>
                     {payload.map((p, index) => (
                         <div key={index}>
                             <div style={{ display: 'flex', alignItems: 'center', color: p.color }}>
@@ -541,37 +613,77 @@ const ChartClockDataPrep = (graphDataA: InclinometerData[], graphDataB: Inclinom
     return data;
 }
 
-const Chart: React.FC<ChartPropsInc> = ({ graphData}) => {
+const CustomLabel: React.FC<{ viewBox: { x: number; y: number } }> = ({viewBox}) => (
+    <g>
+        <rect
+            x={viewBox.x - 80}
+            y={viewBox.y + 540}
+            fill="#22c55e"
+            width={80}
+            height={30}
+            stroke="#000000"
+            strokeWidth="1"
+        />
+        <line
+            x1={viewBox.x}
+            y1={viewBox.y}
+            x2={viewBox.x-570}
+            y2={viewBox.y}
+            stroke="black"
+            transform={`rotate(-90, ${viewBox.x}, ${viewBox.y})`}/>
+        <text
+            x={viewBox.x}
+            y={viewBox.y}
+            fill="#ffffff"
+            dy={560}
+            dx={-75}>
+            Reference
+        </text>
+    </g>
+);
+
+const handleClickChart = (payload: React.MouseEvent<SVGCircleElement, MouseEvent>) => {
+    let pl = payload as unknown as PointData
+    desiredDepth = pl.payload.depth;
+}
+
+const Chart: React.FC<ChartPropsInc> = ({graphData, initialMaxDepth, minDepth, maxDepth}) => {
     let data: InclinometerData[][] = ChartDataPrep(graphData);
     let graphType: string = "A";
-
+    let typeOfResult: string = "Cumulative displacements"
     if(data.length > 0 && data[0].length > 0){
         if(data[0][0].field.split("")[1].toUpperCase() === "X"){
             graphType = "A"
         }else{
             graphType = "B"
         }
+        typeOfResult = data[0][0].typeOfResult;
     }
+
+    let maxD = initialMaxDepth  - minDepth;
+    let minD =  Math.abs(0 - (initialMaxDepth  - maxDepth));
 
     return (
         <div className="wrapper">
             {graphData.length > 0 && (
-                <ResponsiveContainer width="100%" height={600}>
-                    <LineChart layout="vertical" margin={{top: 25, right: 20, left: 20, bottom: 15}} >
+                <ResponsiveContainer width="100%" height={640}>
+                    <LineChart layout="vertical" margin={{top: 25, right: 20, left: 20, bottom: 55}} >
                         <CartesianGrid strokeDasharray="3 3"/>
                         <XAxis type="number" dataKey="displacement" orientation="top">
                             <Label value={`${graphType} (mm)`} position="top" />
                         </XAxis>
-                        <YAxis dataKey="depth" >
-                            <Label value="Depth (m)" position="left" angle={-90} />
+                        <YAxis dataKey="depth" domain={[minD, maxD]} allowDataOverflow={true}>
+                            {graphType === "A" && <Label value="Depth (m)" position="left" angle={-90} />}
                         </YAxis>
-                        <Tooltip content={<CustomTooltip/>}/>
-                        {graphType === "A" && <Legend align="left" verticalAlign="top" layout="vertical" margin={{right: 50}}/>}
+                        {graphType === "A" && <Tooltip content={<CustomTooltip/>} position={{ x: -240, y: 25 }}/>}
+                        {graphType === "B" && <Tooltip content={<CustomTooltip/>} position={{ x: -700, y: 25 }}/>}
+                        {graphType === "A" && <Legend align="right" verticalAlign="top" layout="vertical" margin={{right: 50}} wrapperStyle={{ position: 'absolute', right: -35, top: 50 }}/>}
 
                         {data.map((incData, i) => (
                             <Line name={`${incData[i].time.split(" ")[0]}`} key={`${incData[i].time}`} type="monotone"
-                                  dataKey="displacement" data={incData} stroke={colorsArray[i]} activeDot={{r: 8}}/>
+                                  dataKey="displacement" data={incData} stroke={colorsArray[i]} activeDot={{r: 8, onClick: (event, payload) => {handleClickChart(payload)} }} />
                         ))}
+                        {typeOfResult === "Cumulative displacements" && <ReferenceLine x={0} stroke="#000000" label={<CustomLabel viewBox={{ x: 0, y: 0 }}/>}/>}
                     </LineChart>
                 </ResponsiveContainer>
             )}
@@ -595,7 +707,7 @@ const ChartTotal: React.FC<ChartPropsTotal> = ({ graphDataX, graphDataY}) => {
                             <Label value="Depth (m)" position="left" angle={-90} />
                         </YAxis>
                         <Tooltip content={<CustomTooltip/>}/>
-                        <Legend/>
+                        <Legend align="left" verticalAlign="top" layout="vertical" margin={{right: 50}}/>
                         {data.map((incData, i) => (
                             <Line name={`${incData[i].time.split(" ")[0]}`} key={`${incData[i].time}`} type="monotone"
                                   dataKey="displacement" data={incData} stroke={colorsArray[i]} activeDot={{r: 8}}/>
@@ -623,7 +735,6 @@ const ChartTemp: React.FC<ChartProps> = ({ graphData}) => {
                             <Label value="Depth (m)" position="left" angle={-90} />
                         </YAxis>
                         <Tooltip content={<CustomTooltip/>}/>
-                        <Legend />
                         {data.map((incData, i) => (
                             <Line name={`${incData[i].time.split(" ")[0]}`} key={`${incData[i].time}`}  type="monotone"
                                   dataKey="value" data={incData} stroke={colorsArray[i]} activeDot={{ r: 8 }} />
@@ -641,28 +752,9 @@ const ChartClock: React.FC<ChartPropsClock> = ({ graphDataA, graphDataB}) => {
     return (
         <div
             className="wrapper">
-            <svg
-                width="100%"
-                height="100%"
-                style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    pointerEvents: 'none'
-
-                }}
-            >
-                <circle
-                    cx="49.7%"
-                    cy="56.5%"
-                    r="180"
-                    stroke="black"
-                    fill="none"
-                />
-            </svg>
             {graphDataA.length > 0 && (
                 <ResponsiveContainer
-                    width="140%"
+                    width="117%"
                     height={300}>
                     <LineChart
                         margin={{
@@ -675,20 +767,20 @@ const ChartClock: React.FC<ChartPropsClock> = ({ graphDataA, graphDataB}) => {
                             strokeDasharray="3 3"/>
                         <XAxis
                             type="number"
-                            dataKey="b"
-                            axisLine={false}>
+                            dataKey="a"
+                            axisLine={false} orientation="top">
                             <Label
-                                value="B (mm)"
-                                position="bottom"/>
+                                value="A (mm)"
+                                position="top"/>
                         </XAxis>
                         <ReferenceLine
                             y={0}
                             stroke="#000000"/>
                         <YAxis
-                            dataKey="a"
+                            dataKey="b"
                             axisLine={false}>
                             <Label
-                                value="A (mm)"
+                                value="B (mm)"
                                 position="left"
                                 angle={-90}/>
                         </YAxis>
@@ -704,7 +796,7 @@ const ChartClock: React.FC<ChartPropsClock> = ({ graphDataA, graphDataB}) => {
                                 name={`${d[i].time.split(" ")[0]}`}
                                 key={`${d[i].time}`}
                                 type="linear"
-                                dataKey="a"
+                                dataKey="b"
                                 data={d}
                                 stroke={colorsArray[i]}
                                 activeDot={{r: 8}}/>
@@ -745,7 +837,7 @@ const ChartDetails: React.FC<ChartPropsDetails> = ({
                         <YAxis dataKey="displacement">
                             <Label value={`${graphType} (mm)`} position="left" angle={-90} />
                         </YAxis>
-                        <Tooltip content={<CustomTooltip/>}/>
+                        <Tooltip content={<CustomTooltipDetails/>}/>
                         {data.map((incData, i) => (
                             <Line name={`${incData[i].time.split(" ")[0]}`} key={`${incData[i].time}`}  type="monotone"
                                   dataKey="displacement" data={incData} stroke={colorsArray[i]} activeDot={{ r: 8 }} />
@@ -771,17 +863,21 @@ const ChartSoil: React.FC<ChartSoil> = ({ graphData }) => {
                         <YAxis dataKey="depth" type="number" domain={[0, 32]} hide={true}/>
                         <Tooltip content={<CustomTooltipSoil/>}/>
                         <Legend />
-                        <Bar key={`$3`} dataKey="Rock" stackId="stack" fill={uniqueColors[3]} />
-                        <Bar key={`$2`} dataKey="ZG2B" stackId="stack" fill={uniqueColors[2]} />
-                        <Bar key={`$1`} dataKey="ZG2A" stackId="stack" fill={uniqueColors[1]} />
-                        <Bar key={`$0`} dataKey="At" stackId="stack" fill={uniqueColors[0]} />
+                        <Bar key={`$3`} dataKey="Rock" stackId="stack" fill={uniqueColors[3]} >
+                            <LabelList dataKey="Rock" position="inside"/>
+                        </Bar>
+                        <Bar key={`$2`} dataKey="ZG2B" stackId="stack" fill={uniqueColors[2]} >
+                        </Bar>
+                        <Bar key={`$1`} dataKey="ZG2A" stackId="stack" fill={uniqueColors[1]} >
+                        </Bar>
+                        <Bar key={`$0`} dataKey="At" stackId="stack" fill={uniqueColors[0]} >
+                        </Bar>
                     </BarChart>
                 </ResponsiveContainer>
             )}
         </div>
     );
 };
-
 
 /*{data.map((d, i) => (
 ))}
@@ -808,6 +904,10 @@ const ChartSoil: React.FC<ChartSoil> = ({graphData}) => {
         </div>
     );
 };*/
+
+const calculateTopValueSlider = (numSensors: number) => {
+    return numSensors/2-0.5;
+}
 
 const isDateChecked = (date: string, dates: string[]) => {
     let found: boolean = false;
@@ -1047,13 +1147,27 @@ const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateDa
                         measurement: item.measurement,
                         time: item.time,
                         depth: getDepth(data[i], Number(item.inc), item.depth),
+                        value: calculateAngle(item.value),
+                        cumulative: 0,
+                        displacement: calculateAngle(item.value),
+                        typeOfResult: selectedResult
+                    };
+                    returnData.push(updatedItem);
+                }else if(selectedResult === results[3].name) {
+                    const updatedItem: InclinometerData = {
+                        inc: item.inc,
+                        sensorID: item.sensorID,
+                        field: item.field,
+                        measurement: item.measurement,
+                        time: item.time,
+                        depth: getDepth(data[i], Number(item.inc), item.depth),
                         value: item.value,
                         cumulative: 0,
                         displacement: item.value,
                         typeOfResult: selectedResult
                     };
                     returnData.push(updatedItem);
-                }else if(selectedResult === results[3].name){
+                }else if(selectedResult === results[4].name){
                     const updatedItem: InclinometerData = {
                         inc: item.inc,
                         sensorID: item.sensorID,
@@ -1213,13 +1327,27 @@ const getDataArrayY = (selectedInc: number, array: InclinometerData[], refDateDa
                         measurement: item.measurement,
                         time: item.time,
                         depth: getDepth(data[i], Number(item.inc), item.depth),
+                        value: calculateAngle(item.value),
+                        cumulative: 0,
+                        displacement: calculateAngle(item.value),
+                        typeOfResult: selectedResult
+                    };
+                    returnData.push(updatedItem);
+                }else if(selectedResult === results[3].name) {
+                    const updatedItem: InclinometerData = {
+                        inc: item.inc,
+                        sensorID: item.sensorID,
+                        field: item.field,
+                        measurement: item.measurement,
+                        time: item.time,
+                        depth: getDepth(data[i], Number(item.inc), item.depth),
                         value: item.value,
                         cumulative: 0,
                         displacement: item.value,
                         typeOfResult: selectedResult
                     };
                     returnData.push(updatedItem);
-                }else if(selectedResult === results[3].name){
+                }else if(selectedResult === results[4].name){
                     const updatedItem: InclinometerData = {
                         inc: item.inc,
                         sensorID: item.sensorID,
@@ -1239,6 +1367,29 @@ const getDataArrayY = (selectedInc: number, array: InclinometerData[], refDateDa
     }
 
     return returnData;
+}
+
+const getFiveMostRecent = (data: InclinometerData[]) => {
+
+    console.log(data)
+    let newData: InclinometerData[] = [];
+
+    let revData = data.reverse();
+    let lastDate = revData[0].time;
+    let counter = 0;
+
+    for(let i = 0; i < revData.length; i++){
+        if(revData[i].time === lastDate && counter < 5){
+            newData.push(revData[i])
+        }else if(counter < 5){
+            lastDate = revData[i].time;
+            newData.push(revData[i])
+            counter++;
+        }
+    }
+
+    console.log(newData.reverse())
+    return newData.reverse();
 }
 
 const exportSVG = (svg: SVGElement, graphName: string) => {
@@ -1285,7 +1436,12 @@ function ResultsVisualization(){
     const [selectedDatesTypes, setSelectedDatesTypes] = useState(datesTypes[0])
     const [selectedElevation, setSelectedElevation] = useState(elevation[0])
 
+    const [topValueSlider, setTopValueSlider] = useState<number>(32)
+    const [lowerValueSlider, setLowerValueSlider] = useState<number>(0)
+    const [stepValueSlider, setStepValueSlider] = useState<number>(5)
+    const [selectedValuesSlider, setSelectedValuesSlider] = useState<number[]>([0,32])
 
+    const [lastToggleRef, setLastToggleRef] = useState<number>(0);
     const [toggleIntervalRef, setToggleIntervalRef] = useState(false);
 
     useEffect(() => {
@@ -1297,10 +1453,19 @@ function ResultsVisualization(){
 
     useEffect(() => {
         if (!arrayInitialized && (dataArrayX.length > 0 || dataArrayY.length > 0)) {
-            setSelectedAXChartData(getDataArrayX(1, dataArrayX, refDateDataX, selectedResults.name));
-            setSelectedAYChartData(getDataArrayY(1, dataArrayY, refDateDataY, selectedResults.name));
-            //setColorArray(generateColorArray(dataArray));
+            setMaxDepthInc((getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer))/2)-0.5);
+            setMaxDepthGraph((getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer))/2)-0.5);
+            setMinDepthGraph(0);
+            //setSelectedAXChartData(getDataArrayX(1, dataArrayX, refDateDataX, selectedResults.name));
+            //setSelectedAYChartData(getDataArrayY(1, dataArrayY, refDateDataY, selectedResults.name));
+            //let initialDataX = getFiveMostRecent(getDataArrayX(1, dataArrayX, refDateDataX, selectedResults.name))
+            //let initialDataY = getFiveMostRecent(getDataArrayY(1, dataArrayY, refDateDataY, selectedResults.name))
+            //setFilteredDataArrayX(initialDataX)
+            //setFilteredDataArrayY(initialDataY)
+            //setSelectedAXChartData(getFiveMostRecent(getDataArrayX(1, dataArrayX, refDateDataX, selectedResults.name)));
+            //setSelectedAYChartData(getFiveMostRecent(getDataArrayY(1, dataArrayY, refDateDataY, selectedResults.name)));
             setArrayInitialized(true);
+            handleStepSlider();
         }
     }, [dataArrayX, dataArrayY, arrayInitialized]);
 
@@ -1349,6 +1514,9 @@ function ResultsVisualization(){
 
     const [selectedInclinometer, setSelectedInclinometer] = useState<Number>(1);
     const [selectedDepth, setSelectedDepth] = useState<number>(0.5);
+    const [maxDepthInc, setMaxDepthInc] = useState<number>(32);
+    const [maxDepthGraph, setMaxDepthGraph] = useState<number>(32);
+    const [minDepthGraph, setMinDepthGraph] = useState<number>(0);
     //const [selectedTimestamp, setSelectedTimestamp] = useState<Date>(new Date("2005-05-20 00:00:00"));
 
     const [selectedAXChartData, setSelectedAXChartData] = useState<InclinometerData[]>([]);
@@ -1375,11 +1543,14 @@ function ResultsVisualization(){
             case results[3].name:
                 selectedType = results[3];
                 break;
+            case results[4].name:
+                selectedType = results[4];
+                break;
             default:
                 selectedType = results[0];
                 break;
         }
-        console.log(selectedType)
+
         setSelectedResults(selectedType)
         handleSelectedAXChartData(Number(selectedInclinometer), type);
         handleSelectedAYChartData(Number(selectedInclinometer), type);
@@ -1393,7 +1564,6 @@ function ResultsVisualization(){
 
     const handleDateCheck = (value: string) => {
         const isChecked = isDateChecked(value, checkedDates);
-        console.log(isChecked)
         const updatedDates = isChecked
             ? checkedDates.filter(date => date !== value)
             : [...checkedDates, value];
@@ -1420,6 +1590,11 @@ function ResultsVisualization(){
 
     };
 
+    useEffect(() => {
+        handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name)
+        handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name)
+    }, [checkedDates, refDate, filteredDataArrayX]);
+
     const handleSelectedAXChartData = (inc: number, selectedType: string) => {
         setSelectedAXChartData(getDataArrayX(inc, filteredDataArrayX, refDateDataX, selectedType));
         //setColorArray(generateColorArray(dataArray));
@@ -1438,6 +1613,8 @@ function ResultsVisualization(){
         handleDepthArray(inc);
         handleSelectedAXChartData(inc, selectedResults.name);
         handleSelectedAYChartData(inc, selectedResults.name);
+        handleStepSlider();
+        setMaxDepthInc((getNumberOfSensors(filteredDataArrayX, inc)/2)-0.5);
     };
 
     const handleDepthArray = (inc: number) => {
@@ -1447,6 +1624,26 @@ function ResultsVisualization(){
     const handleSelectedDepth = (depth: string) => {
         setSelectedDepth(Number(depth));
     };
+
+    useEffect(() => {
+        setSelectedDepth(Number(desiredDepth));
+        console.log(desiredDepth)
+    }, [desiredDepth]);
+
+    const handleStepSlider = () =>{
+        let maxDepth = (getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer))/2)-0.5;
+        setStepValueSlider(1);//100/Math.ceil(maxDepth));
+    }
+
+    const handleSliderChange = (event: Event, value: number | number[]) => {//(range: number[]) => {
+
+        console.log(value as number[])
+        let v = value as number[]
+        setSelectedValuesSlider(v)
+        setMinDepthGraph(v[0])
+        setMaxDepthGraph(v[1])
+
+    }
 
     const handleDatesIntervalChange = (initialDate: string, lastDate: string) => {
         setFilteredDataArrayX(getIntervalDates(dataArrayX, initialDate, lastDate));
@@ -1565,6 +1762,31 @@ function ResultsVisualization(){
             setToggleSelectDates(true)
         }
     };
+
+    const handleToogleReference = (n: number) =>{
+       if(n === lastToggleRef){
+           return true;
+       }
+       return false;
+    }
+
+    const handleGetClosestDate = (date: string) => {
+
+        let newDataX = getIntervalDates(dataArrayX, date, getMostRecentDate(filteredDataArrayX))
+        let newDataY = getIntervalDates(dataArrayY, date, getMostRecentDate(filteredDataArrayX))
+        setFilteredDataArrayX(newDataX);
+        setFilteredDataArrayY(newDataY);
+        setFilteredDataArrayTemp(getIntervalDates(dataArrayTemp, date, getMostRecentDate(filteredDataArrayX)));
+
+        let newRef = getRefDate(newDataX);
+
+        setRefDate(newRef);
+        setRefDateDataX(getRefDateData(newRef, dataArrayX, "aX"));
+        setRefDateDataY(getRefDateData(newRef, dataArrayY, "aY"));
+
+        handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
+        handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
+    }
 
 
 
@@ -1893,8 +2115,18 @@ function ResultsVisualization(){
                                         oneTap
                                         placeholder="YYYY-MM-DD"
                                         style={{width: 190}}
-                                        onChange={(e) => handleFirstDateInterval(e?.getFullYear(), e?.getMonth(), e?.getDay())}
-                                        onClean={(e) => handleFirstDateIntervalReset}
+                                        onChange={(e) => {
+                                            handleFirstDateInterval(e?.getFullYear(), e?.getMonth(), e?.getDay())
+                                            if(lastToggleRef == 1) {
+                                                if(e?.getFullYear() !== undefined && e?.getMonth() !== undefined && e?.getDay() !== undefined) {
+                                                    let date = e?.getFullYear() + "-" + e?.getMonth() + "-" + e?.getDay();
+                                                    let expectedDate = handleGetClosestDate(date);
+                                                    //handleRefDate(expectedDate);
+
+                                                }
+                                            }
+                                        }}
+                                        onClean={handleFirstDateIntervalReset}
                                     />
                                 </div>
                                 <div
@@ -1911,7 +2143,7 @@ function ResultsVisualization(){
                                         placeholder="YYYY-MM-DD"
                                         style={{width: 190}}
                                         onChange={(e) => handleLastDateInterval(e?.getFullYear(), e?.getMonth(), e?.getDay())}
-                                        onClean={(e) => handleLastDateIntervalReset}
+                                        onClean={handleLastDateIntervalReset}
                                     />
                                 </div>
                                     <div
@@ -2006,7 +2238,6 @@ function ResultsVisualization(){
                             </div>
                         </div>
                     )}
-
                 </div>
                 <div>
                     <div
@@ -2014,7 +2245,9 @@ function ResultsVisualization(){
                         <div
                             className="column-container middle-column">
                             <div
-                                className="filter-container-typeViz">
+                                className="middle-col-select">
+                                <div
+                                    className="filter-container-typeViz">
                                 <Listbox
                                     value={"PK150_PK200"}
                                     /*onChange={(selectedOption) => {
@@ -2178,6 +2411,7 @@ function ResultsVisualization(){
                                     )}
                                 </Listbox>
                             </div>
+                            </div>
                             <div
                                 className="filter-container-graphClock chart-wrapper"
                                 ref={chartClock}
@@ -2192,7 +2426,7 @@ function ResultsVisualization(){
                         <div
                             className="column-container right-column">
                             <div
-                                className="filter-container-typeViz">
+                                className="filter-container-ref">
                                 <Listbox>
                                     <Listbox.Label
                                         className="block text-lg font-medium leading-6 text-gray-900 text-left pb-2">Reference</Listbox.Label>
@@ -2207,13 +2441,37 @@ function ResultsVisualization(){
                                                 type="radio"
                                                 value="false"
                                                 name="list-radio"
-                                                checked={!toggleIntervalRef}
-                                                onChange={(e) => {handleEarliestDate(false); handleResetRefDate()}}
+                                                checked={handleToogleReference(0)}
+                                                onChange={(e) => {
+                                                    handleEarliestDate(false);
+                                                    handleResetRefDate()
+                                                    setLastToggleRef(0)
+                                                }}
                                                 className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 "/>
                                             <label
                                                 htmlFor="earliestDate"
                                                 className="w-full py-3 ms-2 text-sm font-medium text-white-50 ">Earliest
                                                 date</label>
+                                        </div>
+                                    </li>
+                                    <li className="w-full border-b border-gray-200 sm:border-b-0 sm:border-r dark:border-gray-600">
+                                        <div
+                                            className="flex items-center ps-3">
+                                            <input
+                                                id="fromselectdate"
+                                                type="radio"
+                                                value="true"
+                                                name="list-radio"
+                                                checked={handleToogleReference(1)}
+                                                onChange={(e) => {
+                                                    handleEarliestDate(true)
+                                                    setLastToggleRef(1)
+
+                                                }}
+                                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300  "/>
+                                            <label
+                                                htmlFor="fromselectdate"
+                                                className="w-full py-3 ms-2 text-sm font-medium text-white-50">Select<br/>date</label>
                                         </div>
                                     </li>
                                     <li className="w-full dark:border-gray-600">
@@ -2224,19 +2482,28 @@ function ResultsVisualization(){
                                                 type="radio"
                                                 value="true"
                                                 name="list-radio"
-                                                checked={toggleIntervalRef}
-                                                onChange={(e) => handleEarliestDate(true)}
+                                                checked={handleToogleReference(2)}
+                                                onChange={(e) => {
+                                                    handleEarliestDate(false)
+                                                    handleResetRefDate()
+                                                    setLastToggleRef(2)
+                                                    setSelectedDatesTypes(datesTypes[0]);
+                                                    if(toggleSelectDates) {
+                                                        handleToogleSelectDates();
+                                                    }
+                                                }}
                                                 className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300  "/>
                                             <label
                                                 htmlFor="fromInterval"
-                                                className="w-full py-3 ms-2 text-sm font-medium text-white-50">Interval</label>
+                                                className="w-full py-3 ms-2 text-sm font-medium text-white-50">From interval</label>
                                         </div>
                                     </li>
                                 </ul>
                                 <div
                                     className="pt-3">
                                     {toggleIntervalRef ? (
-                                        <select id="selectRefDateId"
+                                        <select
+                                            id="selectRefDateId"
                                             onChange={(e) => handleRefDate(e.target.value)}
                                             style={{
                                                 padding: '8px',
@@ -2441,6 +2708,38 @@ function ResultsVisualization(){
 
                     <div
                         className="charts-container">
+                        <div
+                            className="filter-container-slider">
+                            <div
+                                className="container-slider">
+                                <Slider sx={{
+                                    '& .MuiSlider-thumb': {
+                                        color: "#22c55e"
+                                    },
+                                    '& .MuiSlider-track': {
+                                        color: "#15803d"
+                                    },
+                                    '& .MuiSlider-rail': {
+                                        color: "#86efac"
+                                    },
+                                    '& .MuiSlider-active': {
+                                        color: "#15803d"
+                                    }}}
+                                    //getAriaLabel={() => 'Temperature range'}
+                                    orientation="vertical"
+                                    min={lowerValueSlider}
+                                    step={1}
+                                    marks
+                                    max={maxDepthInc}
+                                    value={selectedValuesSlider}
+                                    onChange={handleSliderChange}
+                                    valueLabelDisplay="on"
+                                    valueLabelFormat={value => <div>{`${Math.abs(maxDepthInc-value)} (m)`}</div>}
+                                    //getAriaValueText={valuetext}
+                                />
+
+                            </div>
+                        </div>
                         {!toggleTotalChart ? (
                             <>
                                 <div
@@ -2448,6 +2747,9 @@ function ResultsVisualization(){
                                     ref={chartAXRef}>
                                     <Chart
                                         graphData={selectedAXChartData}
+                                        initialMaxDepth={maxDepthInc}
+                                        minDepth={minDepthGraph}
+                                        maxDepth={maxDepthGraph}
                                     />
                                 </div>
 
@@ -2470,7 +2772,10 @@ function ResultsVisualization(){
                                     className="chart-wrapper"
                                     ref={chartAYRef}>
                                     <Chart
-                                        graphData={selectedAYChartData}/>
+                                        graphData={selectedAYChartData}
+                                        initialMaxDepth={maxDepthInc}
+                                        minDepth={minDepthGraph}
+                                        maxDepth={maxDepthGraph}/>
                                 </div>
                             </>
                         ) : (
@@ -2493,7 +2798,7 @@ function ResultsVisualization(){
 
                     <div>
                         <label>Desired
-                            depth: </label>
+                            depth </label>
                         <select
                             onChange={(e) => handleSelectedDepth(e.target.value)}
                             style={{

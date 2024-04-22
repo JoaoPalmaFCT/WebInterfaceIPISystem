@@ -36,7 +36,8 @@ code {
   flex-direction: row;
   justify-content: center;
   align-items: flex-start;
-  width: 1000px;
+  width: 1300px;
+  padding-left:8%;
 }
 
 .left-container{
@@ -69,17 +70,24 @@ code {
 }
 
 .left-column{
+  padding-left: 8%;
   padding-right: 0%;
 }
 
 .middle-column{
-  padding-left: 15%;
-  padding-right: 5%;
+  padding-left: 0%;
+  padding-right: 15%;
 }
 
+
+.middle-col-select{
+  padding-left: 15%;
+}
+
+
 .right-column{
-  padding-left: 10%;
-  padding-right: 5%;
+  padding-left: 0%;
+  padding-right: 10%;
 }
 
 .chart-wrapper{
@@ -96,6 +104,11 @@ code {
   width: 290px;
 }
 
+.filter-container-ref{
+  padding: 10%;
+  width: 400px;
+}
+
 .filter-container-elevation{
   padding: 10%;
   padding-top: 0%;
@@ -103,22 +116,36 @@ code {
 }
 
 .filter-container-typeInputs1{
-  padding: 10%;
-  padding-left: 5%;
-  width: 290px;
+  padding: 5%;
+  padding-left: 20%;
+  width: 350px;
 }
 
 .filter-container-typeInputs2{
-  padding: 10%;
+  padding: 5%;
+  padding-left: 26%;
   padding-right: 0%;
-  width: 290px;
+  width: 350px;
 }
 
 .filter-container-graphClock{
-  padding: 10%;
+  padding: 0%;
   width: 290px;
 }
 
 .left-graph{
-  width: 1400px;
+  width: 1550px;
 }
+
+.filter-container-slider{
+  padding-top:4.5%;
+  padding-left: 0%;
+  width: 10px;
+  height: 400px;
+}
+
+.container-slider{
+  padding-left: 0%;
+  height: 530px;
+}
+
