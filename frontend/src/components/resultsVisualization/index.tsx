@@ -20,7 +20,8 @@ import {
     Bar,
     Brush,
     ReferenceLine,
-    LabelList
+    LabelList,
+    LabelProps
 } from 'recharts';
 import {
     Checkbox,
@@ -31,15 +32,36 @@ import {
 import 'rsuite/DatePicker/styles/index.css';
 //import 'rsuite/RangeSlider/styles/index.css';
 //import 'rsuite/Slider/styles/index.css';
-import { Listbox, Transition } from '@headlessui/react'
-import { CheckIcon, ChevronUpDownIcon } from '@heroicons/react/20/solid'
-import Slider from '@mui/material/Slider';
+import {
+    Listbox,
+    Transition
+} from '@headlessui/react'
+import {
+    CheckIcon,
+    ChevronUpDownIcon
+} from '@heroicons/react/20/solid'
+import Slider
+    from '@mui/material/Slider';
 
 interface InfluxDataAux {
     host: string;
     inc: string;
     result: string;
     sensorID: string;
+    table: number;
+    topic: string;
+    _field: string;
+    _measurement: string;
+    _start: string;
+    _stop: string;
+    _time: string;
+    _value: number;
+}
+
+interface InfluxDataAuxTest {
+    host: string;
+    result: string;
+    n: string;
     table: number;
     topic: string;
     _field: string;
@@ -122,9 +144,7 @@ interface ChartProps {
 
 interface ChartPropsInc {
     graphData: InclinometerData[];
-    initialMaxDepth: number;
-    minDepth: number;
-    maxDepth: number;
+    defaultDates: boolean;
     //colorArray: string[];
 }
 
@@ -143,6 +163,9 @@ interface ChartPropsClock {
 interface ChartPropsDetails {
     graphData: InclinometerData[];
     depth: number;
+    initialMaxDepth: number;
+    minDepth: number;
+    maxDepth: number;
     //colorArray: string[];
 }
 
@@ -151,7 +174,10 @@ interface ChartSoil {
 }
 
 
-const api = new InfluxDB({ url: 'https://positive-presumably-bluegill.ngrok-free.app/', token: '5q-pfsRjWHQvyFZqhQ3Y8BT9CQmUJBAbd4e_paPOo5bMuwDtqSi-vG_PVQMQhs06Fm45PEPDySxu7Z0DLDjJRA==' }).getQueryApi('c5936632b4808196');
+const api = new InfluxDB({
+    url: 'https://positive-presumably-bluegill.ngrok-free.app/',
+    token: '5q-pfsRjWHQvyFZqhQ3Y8BT9CQmUJBAbd4e_paPOo5bMuwDtqSi-vG_PVQMQhs06Fm45PEPDySxu7Z0DLDjJRA=='
+}).getQueryApi('c5936632b4808196');
 
 export function getData() {
     try {
@@ -164,6 +190,19 @@ export function getData() {
         throw error;
     }
 }
+
+export function getTestData() {
+    try {
+        const fluxQuery = 'from(bucket:"telegraf") |> range(start: 0) |> filter(fn: (r) => r._measurement == "I1")';
+        const response = api.collectRows(fluxQuery);
+
+        console.log('Query Response:', response);
+        return response
+    } catch (error) {
+        throw error;
+    }
+}
+
 /*
 export function getDataFromLastYear() {
     try {
@@ -337,11 +376,11 @@ const formatDate = (dateS: string) => {
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
-const getNumberOfSensors = (graphData: InclinometerData[], inc:number) => {
+const getNumberOfSensors = (graphData: InclinometerData[], inc: number) => {
     let sensorNumber = 0;
 
     graphData.map(g => {
-        if(Number(g.inc) === inc && sensorNumber < Number(g.sensorID))
+        if (Number(g.inc) === inc && sensorNumber < Number(g.sensorID))
             sensorNumber = Number(g.sensorID)
     })
     return sensorNumber;
@@ -351,7 +390,7 @@ const getRefDate = (graphData: Inclinometer[]) => {
     let oldestDate = graphData[0].time;
 
     graphData.map(g => {
-        if(oldestDate > g.time)
+        if (oldestDate > g.time)
             oldestDate = g.time
     })
 
@@ -362,7 +401,7 @@ const getMostRecentDate = (graphData: Inclinometer[]) => {
     let oldestDate = graphData[0].time;
 
     graphData.map(g => {
-        if(oldestDate < g.time)
+        if (oldestDate < g.time)
             oldestDate = g.time
     })
 
@@ -370,19 +409,51 @@ const getMostRecentDate = (graphData: Inclinometer[]) => {
 }
 
 const getIntervalDates = (graphData: InclinometerData[], initialDate: string, lastDate: string) => {
-    let tempData:InclinometerData[] = [];
+    let tempData: InclinometerData[] = [];
     graphData.map(g => {
-        if(lastDate >= g.time && initialDate <= g.time)
+        if (lastDate >= g.time && initialDate <= g.time)
             tempData.push(g)
     })
     return tempData;
 }
 
+const getInitialDatesChecked = (graphData: InclinometerData[]) => {
+    let tempDateArray: string[] = []
+
+    let refDate = graphData[0].time;
+    tempDateArray.push(refDate);
+
+    let revData = graphData.reverse();
+    let lastDate = revData[0].time;
+    let counter = 0;
+
+    for(let i = 0; i < revData.length; i++){
+        if(revData[i].time === lastDate && counter < 5){
+            tempDateArray.push(revData[i].time)
+        }else if(counter < 5){
+            lastDate = revData[i].time;
+            tempDateArray.push(revData[i].time)
+            counter++;
+        }
+    }
+
+    const dates = new Set(tempDateArray);
+    return Array.from(dates).sort((date1, date2) => {
+        if (date1 < date2) {
+            return -1;
+        } else if (date1 > date2) {
+            return 1;
+        } else {
+            return 0;
+        }
+    });
+}
+
 const getUniqueDates = (graphData: InclinometerData[]) => {
-    let tempDateArray : string[] = []
+    let tempDateArray: string[] = []
 
     graphData.map(g => {
-            tempDateArray.push(g.time)
+        tempDateArray.push(g.time)
     })
 
     const uniqueDates = new Set(tempDateArray);
@@ -398,7 +469,7 @@ const getUniqueDates = (graphData: InclinometerData[]) => {
 }
 
 const getUniqueInclinometers = (dataArray: InclinometerData[]) => {
-    let tempDateArray : string[] = []
+    let tempDateArray: string[] = []
 
     dataArray.map(d => {
         tempDateArray.push(d.inc)
@@ -409,10 +480,10 @@ const getUniqueInclinometers = (dataArray: InclinometerData[]) => {
 }
 
 const getUniqueDepth = (inc: number, dataArray: InclinometerData[]) => {
-    let tempDateArray : number[] = []
+    let tempDateArray: number[] = []
 
     dataArray.map(d => {
-        if(Number(d.inc) === inc)
+        if (Number(d.inc) === inc)
             tempDateArray.push(d.depth)
     })
 
@@ -423,15 +494,18 @@ const getUniqueDepth = (inc: number, dataArray: InclinometerData[]) => {
 const getDepth = (data: InclinometerData[], inc: number, depth: number) => {
     let numberOfSensors = getNumberOfSensors(data, inc);
     let value;
-
-    if(depth === numberOfSensors/2){
-        value = 0;
+    if(data[0].measurement === "BarragemX"){
+        if (depth === numberOfSensors / 2) {
+            value = 0;
+        } else {
+            value = numberOfSensors / 2 - depth
+        }
     }else{
-        value = numberOfSensors/2 - depth
+        value = depth - 0.5
     }
-
     return value;
 }
+
 
 /*const generateRandomHexColor = (): string => {
     const color = Math.floor(Math.random() * 16777215);
@@ -440,19 +514,48 @@ const getDepth = (data: InclinometerData[], inc: number, depth: number) => {
     return `#${hexColor}`;
 };*/
 
-const CustomTooltip: React.FC<TooltipProps<any, any>> = ({ active, payload, label}) => {
+const CustomTooltip: React.FC<TooltipProps<any, any>> = ({
+                                                             active,
+                                                             payload,
+                                                             label
+                                                         }) => {
     if (active && payload && payload.length) {
         return (
-            <div className="custom-tooltip">
-                <div style={{ backgroundColor: 'white', padding: '10px', borderRadius: '5px',boxShadow: '0 4px 4px rgba(0, 0, 0, 0.1)', border: '1px solid black', width: '130px' }}>
+            <div
+                className="custom-tooltip">
+                <div
+                    style={{
+                        backgroundColor: 'white',
+                        padding: '10px',
+                        borderRadius: '5px',
+                        boxShadow: '0 4px 4px rgba(0, 0, 0, 0.1)',
+                        border: '1px solid black',
+                        width: '130px'
+                    }}>
                     {payload.map((p, index) => (
-                        <div key={index}>
+                        <div
+                            key={index}>
                             {index === 0 &&
-                                <p className="label" style={{ margin: 0 }}>{`Depth ${p.payload.depth} (m)`}</p>
+                                <p className="label"
+                                   style={{margin: 0}}>{`Depth ${p.payload.depth} (m)`}</p>
                             }
-                            <div style={{ display: 'flex', alignItems: 'center', color: p.color }}>
-                                <p style={{ margin: 0, width: '10px', height: '10px', borderRadius: '50%', backgroundColor: p.color, marginRight: '10px', marginLeft:'20px' }}/>
-                                <p style={{ margin: 0}}  className="label">{`${p.value.toFixed(2)}`}</p>
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    color: p.color
+                                }}>
+                                <p style={{
+                                    margin: 0,
+                                    width: '10px',
+                                    height: '10px',
+                                    borderRadius: '50%',
+                                    backgroundColor: p.color,
+                                    marginRight: '10px',
+                                    marginLeft: '20px'
+                                }}/>
+                                <p style={{margin: 0}}
+                                   className="label">{`${p.value.toFixed(2)}`}</p>
                             </div>
                         </div>
                     ))}
@@ -463,19 +566,48 @@ const CustomTooltip: React.FC<TooltipProps<any, any>> = ({ active, payload, labe
     return null;
 };
 
-const CustomTooltipDetails: React.FC<TooltipProps<any, any>> = ({ active, payload, label}) => {
+const CustomTooltipDetails: React.FC<TooltipProps<any, any>> = ({
+                                                                    active,
+                                                                    payload,
+                                                                    label
+                                                                }) => {
     if (active && payload && payload.length) {
         return (
-            <div className="custom-tooltip">
-                <div style={{ backgroundColor: 'white', padding: '10px', borderRadius: '5px',boxShadow: '0 4px 4px rgba(0, 0, 0, 0.1)', border: '1px solid black', width: '130px' }}>
+            <div
+                className="custom-tooltip">
+                <div
+                    style={{
+                        backgroundColor: 'white',
+                        padding: '10px',
+                        borderRadius: '5px',
+                        boxShadow: '0 4px 4px rgba(0, 0, 0, 0.1)',
+                        border: '1px solid black',
+                        width: '130px'
+                    }}>
                     {payload.map((p, index) => (
-                        <div key={index}>
+                        <div
+                            key={index}>
                             {index === 0 &&
-                                <p className="label" style={{ margin: 0 }}>{`Depth ${p.payload.depth} (m)`}</p>
+                                <p className="label"
+                                   style={{margin: 0}}>{`${p.payload.time.split(" ")[0]}`}</p>
                             }
-                            <div style={{ display: 'flex', alignItems: 'center', color: p.color }}>
-                                <p style={{ margin: 0, width: '10px', height: '10px', borderRadius: '50%', backgroundColor: p.color, marginRight: '10px', marginLeft:'20px' }}/>
-                                <p style={{ margin: 0}}  className="label">{`${p.value.toFixed(2)}`}</p>
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    color: p.color
+                                }}>
+                                <p style={{
+                                    margin: 0,
+                                    width: '10px',
+                                    height: '10px',
+                                    borderRadius: '50%',
+                                    backgroundColor: p.color,
+                                    marginRight: '10px',
+                                    marginLeft: '20px'
+                                }}/>
+                                <p style={{margin: 0}}
+                                   className="label">{`${p.value.toFixed(2)}`}</p>
                             </div>
                         </div>
                     ))}
@@ -487,7 +619,7 @@ const CustomTooltipDetails: React.FC<TooltipProps<any, any>> = ({ active, payloa
 };
 
 const getSoilDepth = (depth: number) => {
-    switch(depth){
+    switch (depth) {
         case 4:
             return " 29 - 32";
         case 8:
@@ -502,16 +634,42 @@ const getSoilDepth = (depth: number) => {
 }
 
 
-const CustomTooltipSoil: React.FC<TooltipProps<any, any>> = ({ active, payload, label}) => {
+const CustomTooltipSoil: React.FC<TooltipProps<any, any>> = ({
+                                                                 active,
+                                                                 payload,
+                                                                 label
+                                                             }) => {
     if (active && payload && payload.length) {
         return (
-            <div className="custom-tooltip">
-                <div style={{ backgroundColor: 'white', padding: '10px', borderRadius: '5px',boxShadow: '0 4px 4px rgba(0, 0, 0, 0.1)', border: '1px solid black' }}>
+            <div
+                className="custom-tooltip">
+                <div
+                    style={{
+                        backgroundColor: 'white',
+                        padding: '10px',
+                        borderRadius: '5px',
+                        boxShadow: '0 4px 4px rgba(0, 0, 0, 0.1)',
+                        border: '1px solid black'
+                    }}>
                     {payload.map((p, index) => (
-                        <div key={index}>
-                            <div style={{ display: 'flex', alignItems: 'center', color: p.color }}>
-                                <p style={{ margin: 0, width: '10px', height: '10px', borderRadius: '50%', backgroundColor: p.color, marginRight: '10px' }}/>
-                                <p style={{ margin: 0 }}  className="label">{`${p.name + getSoilDepth(p.value)}`}</p>
+                        <div
+                            key={index}>
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    color: p.color
+                                }}>
+                                <p style={{
+                                    margin: 0,
+                                    width: '10px',
+                                    height: '10px',
+                                    borderRadius: '50%',
+                                    backgroundColor: p.color,
+                                    marginRight: '10px'
+                                }}/>
+                                <p style={{margin: 0}}
+                                   className="label">{`${p.name + getSoilDepth(p.value)}`}</p>
                             </div>
                         </div>
                     ))}
@@ -533,7 +691,7 @@ const ChartDataPrepTotal = (graphDataX: InclinometerData[], graphDataY: Inclinom
         graphDataX.map(g => {
             if (g.time === uniqueDates[i]) {
                 graphDataY.map(y => {
-                    if(g.sensorID === y.sensorID && g.time === y.time){
+                    if (g.sensorID === y.sensorID && g.time === y.time) {
                         g.field = "total"
                         g.displacement = calculateTotal(g.displacement, y.displacement);
                     }
@@ -567,13 +725,48 @@ const ChartDataPrep = (graphData: InclinometerData[]): InclinometerData[][] => {
     return data;
 }
 
+const ChartDataPrepDetails = (graphData: InclinometerData[], maxD: number, minD: number): InclinometerData[][] => {
+    let data: InclinometerData[][] = [];
+
+    if(graphData.length > 0){
+        const uniqueDepths = getUniqueDepth(Number(graphData[0].inc), graphData)
+        const filteredDepths = uniqueDepths.filter(depth => depth >= minD && depth <= maxD);
+
+        for (let i = 0; i < filteredDepths.length; i++) {
+            let tempArray: InclinometerData[] = []
+            graphData.map(g => {
+                if (g.depth === filteredDepths[i]) {
+                    tempArray.push(g)
+                }
+            })
+            data[i] = tempArray
+            data[i].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
+        }
+    }
+    /*const uniqueDates = getUniqueDates(graphData);
+    const numberOfDates = uniqueDates.length;
+
+    for (let i = 0; i < numberOfDates; i++) {
+        let tempArray: InclinometerData[] = []
+        graphData.map(g => {
+            if (g.time === uniqueDates[i]) {
+                tempArray.push(g)
+            }
+        })
+        data[i] = tempArray
+        data[i].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
+    }
+*/
+    return data;
+}
+
 const ChartDataPrepDetailsX = (graphData: InclinometerData[][], depth: number): InclinometerData[][] => {
     let newArray: InclinometerData[][] = [];
-    for(let i = 0; i < graphData.length; i++){
+    for (let i = 0; i < graphData.length; i++) {
         let tempArray: InclinometerData[] = []
-        graphData.map(a =>{
-            a.map(b =>{
-                if(b.depth === depth){
+        graphData.map(a => {
+            a.map(b => {
+                if (b.depth === depth) {
                     tempArray.push(b);
                 }
             })
@@ -613,13 +806,21 @@ const ChartClockDataPrep = (graphDataA: InclinometerData[], graphDataB: Inclinom
     return data;
 }
 
-const CustomLabel: React.FC<{ viewBox: { x: number; y: number } }> = ({viewBox}) => (
+const CustomLabel: React.FC<{
+    viewBox: {
+        x: number;
+        y: number;
+    }
+    refDate:string;
+}> = ({viewBox, refDate}) =>  {
+
+    return (
     <g>
         <rect
-            x={viewBox.x - 80}
+            x={viewBox.x - 90}
             y={viewBox.y + 540}
             fill="#22c55e"
-            width={80}
+            width={90}
             height={30}
             stroke="#000000"
             strokeWidth="1"
@@ -627,7 +828,7 @@ const CustomLabel: React.FC<{ viewBox: { x: number; y: number } }> = ({viewBox})
         <line
             x1={viewBox.x}
             y1={viewBox.y}
-            x2={viewBox.x-570}
+            x2={viewBox.x - 570}
             y2={viewBox.y}
             stroke="black"
             transform={`rotate(-90, ${viewBox.x}, ${viewBox.y})`}/>
@@ -636,21 +837,35 @@ const CustomLabel: React.FC<{ viewBox: { x: number; y: number } }> = ({viewBox})
             y={viewBox.y}
             fill="#ffffff"
             dy={560}
-            dx={-75}>
-            Reference
+            dx={-85}>
+            {`${refDate.split(" ")[0]}`}
         </text>
     </g>
-);
+)};
+
+const CustomLabelBarChart = (props: LabelProps, label: string)=> {
+    const { x, y, width, height, value } = props;
+    //const radius = 10;<circle cx={x + width / 2} cy={y - radius} r={radius} fill="#8884d8" />
+    console.log(label)
+    const radius = 10;
+
+    return (
+            <text x={Number(x) + Number(width) / 2} y={Number(y) - radius} fill="#fff" textAnchor="middle" dominantBaseline="middle">
+                {label}
+            </text>
+    );
+};
 
 const handleClickChart = (payload: React.MouseEvent<SVGCircleElement, MouseEvent>) => {
     let pl = payload as unknown as PointData
     desiredDepth = pl.payload.depth;
 }
 
-const Chart: React.FC<ChartPropsInc> = ({graphData, initialMaxDepth, minDepth, maxDepth}) => {
+const Chart: React.FC<ChartPropsInc> = ({graphData, defaultDates}) => {
     let data: InclinometerData[][] = ChartDataPrep(graphData);
     let graphType: string = "A";
     let typeOfResult: string = "Cumulative displacements"
+    let refDate: string = "Ref Date";
     if(data.length > 0 && data[0].length > 0){
         if(data[0][0].field.split("")[1].toUpperCase() === "X"){
             graphType = "A"
@@ -658,10 +873,12 @@ const Chart: React.FC<ChartPropsInc> = ({graphData, initialMaxDepth, minDepth, m
             graphType = "B"
         }
         typeOfResult = data[0][0].typeOfResult;
-    }
+        refDate = data[0][0].time;
 
-    let maxD = initialMaxDepth  - minDepth;
-    let minD =  Math.abs(0 - (initialMaxDepth  - maxDepth));
+        if(defaultDates){
+            data = getFiveMostRecent(data);
+        }
+    }
 
     return (
         <div className="wrapper">
@@ -672,18 +889,17 @@ const Chart: React.FC<ChartPropsInc> = ({graphData, initialMaxDepth, minDepth, m
                         <XAxis type="number" dataKey="displacement" orientation="top">
                             <Label value={`${graphType} (mm)`} position="top" />
                         </XAxis>
-                        <YAxis dataKey="depth" domain={[minD, maxD]} allowDataOverflow={true}>
+                        <YAxis dataKey="depth" allowDataOverflow={true}>
                             {graphType === "A" && <Label value="Depth (m)" position="left" angle={-90} />}
                         </YAxis>
                         {graphType === "A" && <Tooltip content={<CustomTooltip/>} position={{ x: -240, y: 25 }}/>}
                         {graphType === "B" && <Tooltip content={<CustomTooltip/>} position={{ x: -700, y: 25 }}/>}
                         {graphType === "A" && <Legend align="right" verticalAlign="top" layout="vertical" margin={{right: 50}} wrapperStyle={{ position: 'absolute', right: -35, top: 50 }}/>}
-
-                        {data.map((incData, i) => (
-                            <Line name={`${incData[i].time.split(" ")[0]}`} key={`${incData[i].time}`} type="monotone"
+                        {data.map((incData, i) =>
+                            (<Line name={`${incData[0].time.split(" ")[0]}`} key={`${incData[0].time}`} type="monotone"
                                   dataKey="displacement" data={incData} stroke={colorsArray[i]} activeDot={{r: 8, onClick: (event, payload) => {handleClickChart(payload)} }} />
                         ))}
-                        {typeOfResult === "Cumulative displacements" && <ReferenceLine x={0} stroke="#000000" label={<CustomLabel viewBox={{ x: 0, y: 0 }}/>}/>}
+                        {typeOfResult === "Cumulative displacements" && <ReferenceLine x={0} stroke="#000000" label={<CustomLabel viewBox={{ x: 0, y: 0}} refDate={refDate} />}/>}
                     </LineChart>
                 </ResponsiveContainer>
             )}
@@ -697,8 +913,8 @@ const ChartTotal: React.FC<ChartPropsTotal> = ({ graphDataX, graphDataY}) => {
     return (
         <div className="wrapper">
             {graphDataX.length > 0 && (
-                <ResponsiveContainer width="100%" height={600}>
-                    <LineChart layout="vertical" margin={{top: 25, right: 20, left: 20, bottom: 15}} >
+                <ResponsiveContainer width="100%" height={640}>
+                    <LineChart layout="vertical" margin={{top: 25, right: 20, left: 20, bottom: 55}} >
                         <CartesianGrid strokeDasharray="3 3"/>
                         <XAxis type="number" dataKey="displacement" orientation="top">
                             <Label value={`Total (mm)`} position="top" />
@@ -707,9 +923,9 @@ const ChartTotal: React.FC<ChartPropsTotal> = ({ graphDataX, graphDataY}) => {
                             <Label value="Depth (m)" position="left" angle={-90} />
                         </YAxis>
                         <Tooltip content={<CustomTooltip/>}/>
-                        <Legend align="left" verticalAlign="top" layout="vertical" margin={{right: 50}}/>
+                        <Legend align="right" verticalAlign="top" layout="vertical" margin={{right: 50}} wrapperStyle={{ position: 'absolute', right: -35, top: 50 }}/>
                         {data.map((incData, i) => (
-                            <Line name={`${incData[i].time.split(" ")[0]}`} key={`${incData[i].time}`} type="monotone"
+                            <Line name={`${incData[0].time.split(" ")[0]}`} key={`${incData[0].time}`} type="monotone"
                                   dataKey="displacement" data={incData} stroke={colorsArray[i]} activeDot={{r: 8}}/>
                         ))}
                     </LineChart>
@@ -736,7 +952,7 @@ const ChartTemp: React.FC<ChartProps> = ({ graphData}) => {
                         </YAxis>
                         <Tooltip content={<CustomTooltip/>}/>
                         {data.map((incData, i) => (
-                            <Line name={`${incData[i].time.split(" ")[0]}`} key={`${incData[i].time}`}  type="monotone"
+                            <Line name={`${incData[0].time.split(" ")[0]}`} key={`${incData[0].time}`}  type="monotone"
                                   dataKey="value" data={incData} stroke={colorsArray[i]} activeDot={{ r: 8 }} />
                         ))}
                     </LineChart>
@@ -793,8 +1009,8 @@ const ChartClock: React.FC<ChartPropsClock> = ({ graphDataA, graphDataB}) => {
 
                         {data.map((d, i) => (
                             <Line
-                                name={`${d[i].time.split(" ")[0]}`}
-                                key={`${d[i].time}`}
+                                name={`${d[0].time.split(" ")[0]}`}
+                                key={`${d[0].time}`}
                                 type="linear"
                                 dataKey="b"
                                 data={d}
@@ -810,11 +1026,15 @@ const ChartClock: React.FC<ChartPropsClock> = ({ graphDataA, graphDataB}) => {
 
 const ChartDetails: React.FC<ChartPropsDetails> = ({
                                                        graphData,
-                                                       depth
-                                                   }) => {
-    let initialData: InclinometerData[][] = ChartDataPrep(graphData);
-    let data: InclinometerData[][] = ChartDataPrepDetailsX(initialData, depth);
+                                                       depth, initialMaxDepth, minDepth, maxDepth}) => {
+    let maxD = initialMaxDepth  - minDepth;
+    let minD =  Math.abs(0 - (initialMaxDepth  - maxDepth));
 
+    let data: InclinometerData[][] = ChartDataPrepDetails(graphData, maxD, minD);
+    //let initialData: InclinometerData[][] = ChartDataPrep(graphData);
+    //let data: InclinometerData[][] = ChartDataPrepDetailsX(initialData, depth);
+
+    //console.log(data)
     let graphType: string = "A";
 
     if (data.length > 0 && data[0].length > 0) {
@@ -825,11 +1045,13 @@ const ChartDetails: React.FC<ChartPropsDetails> = ({
         }
     }
 
+//domain={[minD, maxD]}
+//{data.map((date, i) => {}(`${date[i].time.split(" ")[0]}` ))}
     return (
         <div className="wrapper" >
             {graphData.length > 0 && (
-                <ResponsiveContainer width="100%" height={300}>
-                    <LineChart margin={{ top: 25, right: 100, left: 20, bottom: 20 }}>
+                <ResponsiveContainer width="80%" height={320}>
+                    <LineChart margin={{ top: 25, right: 100, left: 15, bottom: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="time" allowDuplicatedCategory={false}>
                             <Label value="Dates" position="bottom"/>
@@ -837,9 +1059,9 @@ const ChartDetails: React.FC<ChartPropsDetails> = ({
                         <YAxis dataKey="displacement">
                             <Label value={`${graphType} (mm)`} position="left" angle={-90} />
                         </YAxis>
-                        <Tooltip content={<CustomTooltipDetails/>}/>
+                        <Tooltip content={<CustomTooltipDetails/>} position={{ x: -140, y: 10 }}/>
                         {data.map((incData, i) => (
-                            <Line name={`${incData[i].time.split(" ")[0]}`} key={`${incData[i].time}`}  type="monotone"
+                            <Line name={`${incData[0]}`} key={`${incData[0]}`}  type="monotone"
                                   dataKey="displacement" data={incData} stroke={colorsArray[i]} activeDot={{ r: 8 }} />
                         ))}
                     </LineChart>
@@ -864,7 +1086,7 @@ const ChartSoil: React.FC<ChartSoil> = ({ graphData }) => {
                         <Tooltip content={<CustomTooltipSoil/>}/>
                         <Legend />
                         <Bar key={`$3`} dataKey="Rock" stackId="stack" fill={uniqueColors[3]} >
-                            <LabelList dataKey="Rock" position="inside"/>
+                            <LabelList dataKey="Rock"  position="inside" content={(props) => CustomLabelBarChart(props, "Rock")}/>
                         </Bar>
                         <Bar key={`$2`} dataKey="ZG2B" stackId="stack" fill={uniqueColors[2]} >
                         </Bar>
@@ -1369,6 +1591,20 @@ const getDataArrayY = (selectedInc: number, array: InclinometerData[], refDateDa
     return returnData;
 }
 
+const getFiveMostRecent = (data: InclinometerData[][]) => {
+
+    let newData: InclinometerData[][] = [];
+    let refDate = data[0];
+    let revData = data.reverse();
+
+    for(let i = 0; i < 5; i++){
+        newData.push(revData[i])
+    }
+    newData.push(refDate);
+    //console.log(newData.reverse())
+    return newData.reverse();
+}
+/*
 const getFiveMostRecent = (data: InclinometerData[]) => {
 
     console.log(data)
@@ -1390,7 +1626,7 @@ const getFiveMostRecent = (data: InclinometerData[]) => {
 
     console.log(newData.reverse())
     return newData.reverse();
-}
+}*/
 
 const exportSVG = (svg: SVGElement, graphName: string) => {
     const svgString = new XMLSerializer().serializeToString(svg);
@@ -1426,6 +1662,7 @@ function ResultsVisualization(){
     const [refDateDataX, setRefDateDataX] = useState<InclinometerData[]>([]);
     const [refDateDataY, setRefDateDataY] = useState<InclinometerData[]>([]);
     const [depthArray, setDepthArray] = useState<number[]>([]);
+    const [defaultDatesGraph, setDefaultDatesGraph] = useState(true);
 
     const [toggleTotalChart, setToggleTotalChart] = useState(false);
     const [toggleTempChart, setToggleTempChart] = useState(false);
@@ -1444,12 +1681,22 @@ function ResultsVisualization(){
     const [lastToggleRef, setLastToggleRef] = useState<number>(0);
     const [toggleIntervalRef, setToggleIntervalRef] = useState(false);
 
+    const [selectedMeasurement, setSelectedMeasurement] = useState<string>("PK150_PK200")
+
+    useEffect(() => {
+        if (selectedMeasurement === "PK150_PK200") {
+            fetchData();
+        }else if(selectedMeasurement === "PK250_PK300"){
+            fetchTestData()
+        }
+    }, [selectedMeasurement]);
+
     useEffect(() => {
         if (!arrayInitialized) {
-            fetchData();
+            //fetchData();
+            setSelectedMeasurement("PK150_PK200");
         }
     }, [arrayInitialized]);
-
 
     useEffect(() => {
         if (!arrayInitialized && (dataArrayX.length > 0 || dataArrayY.length > 0)) {
@@ -1458,6 +1705,7 @@ function ResultsVisualization(){
             setMinDepthGraph(0);
             //setSelectedAXChartData(getDataArrayX(1, dataArrayX, refDateDataX, selectedResults.name));
             //setSelectedAYChartData(getDataArrayY(1, dataArrayY, refDateDataY, selectedResults.name));
+
             //let initialDataX = getFiveMostRecent(getDataArrayX(1, dataArrayX, refDateDataX, selectedResults.name))
             //let initialDataY = getFiveMostRecent(getDataArrayY(1, dataArrayY, refDateDataY, selectedResults.name))
             //setFilteredDataArrayX(initialDataX)
@@ -1485,7 +1733,7 @@ function ResultsVisualization(){
                 typeOfResult: results[0].name
             }));
 
-            let auxRefDate = getRefDate(mappedData);
+            /*let auxRefDate = getRefDate(mappedData);
             setRefDate(auxRefDate);
             setRefDateDataX(getRefDateData(auxRefDate, mappedData, "aX"));
             setRefDateDataY(getRefDateData(auxRefDate, mappedData, "aY"));
@@ -1498,17 +1746,61 @@ function ResultsVisualization(){
             setDataArrayY(mappedData);
             setFilteredDataArrayY(mappedData);
             setDataArrayTemp(mappedData);
-            setFilteredDataArrayTemp(mappedData);
+            setFilteredDataArrayTemp(mappedData);*/
+            defineInitialValues(mappedData);
 
         } catch (error) {
             console.error('Error fetching data:', error);
         }
     }
 
+    const defineInitialValues = (mappedData: InclinometerData[]) => {
+        let auxRefDate = getRefDate(mappedData);
+        setRefDate(auxRefDate);
+        setRefDateDataX(getRefDateData(auxRefDate, mappedData, "aX"));
+        setRefDateDataY(getRefDateData(auxRefDate, mappedData, "aY"));
+        setEarliestRefDate(auxRefDate);
+        setEarliestRefDateDataX(getRefDateData(auxRefDate, mappedData, "aX"));
+        setEarliestRefDateDataY(getRefDateData(auxRefDate, mappedData, "aY"));
+
+        setDataArrayX(mappedData);
+        setFilteredDataArrayX(mappedData);
+        setDataArrayY(mappedData);
+        setFilteredDataArrayY(mappedData);
+        setDataArrayTemp(mappedData);
+        setFilteredDataArrayTemp(mappedData);
+    };
+
     useEffect(() => {
         setDepthArray(getUniqueDepth(1, filteredDataArrayX).sort((a, b) => Number(a) - Number(b)));
     }, [filteredDataArrayX]);
 
+    async function fetchTestData() {
+        try {
+            const response = await getTestData() as InfluxDataAuxTest[];
+            const mappedData: InclinometerData[] = response.map(i => ({
+                inc: i._measurement.split("I")[1],
+                sensorID: i.n,
+                field: i._field,
+                measurement: i._measurement,
+                time: formatDate(i._time),
+                depth: Number(i.n) * 0.5,
+                value: i._value,
+                cumulative: 0,
+                displacement: 0,
+                typeOfResult: results[0].name
+            }));
+
+            console.log(mappedData.filter(i => i.field !== "sensors_spacing"))
+            defineInitialValues(mappedData.filter(i => i.field !== "sensors_spacing"));
+
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }
+    }
+
+
+    const numberOfMeasurements: string[] = ["PK150_PK200", "PK250_PK300"]
     const numberOfInc: string[] = getUniqueInclinometers(filteredDataArrayX).sort((a, b) => Number(a) - Number(b))
     const numberOfDates: string[] = getUniqueDates(dataArrayX)
 
@@ -1608,6 +1900,11 @@ function ResultsVisualization(){
         //setSelectedTotalChartData();
     };
 
+    const handleSelectedMeasurement = (m: string) => {
+        setSelectedMeasurement(m);
+
+    };
+
     const handleSelectedInclinometer = (inc: number) => {
         setSelectedInclinometer(inc);
         handleDepthArray(inc);
@@ -1627,7 +1924,6 @@ function ResultsVisualization(){
 
     useEffect(() => {
         setSelectedDepth(Number(desiredDepth));
-        console.log(desiredDepth)
     }, [desiredDepth]);
 
     const handleStepSlider = () =>{
@@ -1635,15 +1931,44 @@ function ResultsVisualization(){
         setStepValueSlider(1);//100/Math.ceil(maxDepth));
     }
 
-    const handleSliderChange = (event: Event, value: number | number[]) => {//(range: number[]) => {
+    const minDistance = 1;
+    const handleSliderChange = (event: Event, value: number | number[], activeThumb: number) => {//(range: number[]) => {
 
         console.log(value as number[])
         let v = value as number[]
-        setSelectedValuesSlider(v)
+
+        /*if (activeThumb === 0) {
+            setMinDepthGraph(Math.min(v[0], maxDepthGraph - minDistance))
+            //setMaxDepthGraph(maxDepthGraph)
+            setSelectedValuesSlider([Math.min(v[0], maxDepthGraph - minDistance), maxDepthGraph])
+            //setValue1([Math.min(newValue[0], value1[1] - minDistance), value1[1]]);
+        } else {
+            //setMinDepthGraph(minDepthGraph)
+            setMaxDepthGraph(Math.max(v[1], minDepthGraph + minDistance))
+            setSelectedValuesSlider([minDepthGraph, Math.max(v[1], minDepthGraph + minDistance)])
+            //setValue1([value1[0], Math.max(newValue[1], value1[0] + minDistance)]);
+        }*/
+
         setMinDepthGraph(v[0])
         setMaxDepthGraph(v[1])
-
+        setSelectedValuesSlider(v)
     }
+
+    /*useEffect(() => {
+        setSelectedValuesSlider(selectedValuesSlider)
+    }, [lowerValueSlider, maxDepthGraph]);*/
+
+    useEffect(() => {
+        setMinDepthGraph(minDepthGraph)
+        setLowerValueSlider(lowerValueSlider)
+        console.log("min " + minDepthGraph + " | " + lowerValueSlider)
+    }, [minDepthGraph, lowerValueSlider]);
+
+    useEffect(() => {
+        setMaxDepthGraph(maxDepthGraph)
+        setTopValueSlider(maxDepthInc)
+        console.log("max " + maxDepthGraph + " | " + maxDepthInc)
+    }, [maxDepthGraph, maxDepthInc]);
 
     const handleDatesIntervalChange = (initialDate: string, lastDate: string) => {
         setFilteredDataArrayX(getIntervalDates(dataArrayX, initialDate, lastDate));
@@ -1659,6 +1984,7 @@ function ResultsVisualization(){
             setFilteredDataArrayY(getIntervalDates(dataArrayY, date, getMostRecentDate(filteredDataArrayY)));
             handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
             handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
+            setDefaultDatesGraph(false);
         }
     };
 
@@ -1669,6 +1995,7 @@ function ResultsVisualization(){
             setFilteredDataArrayY(getIntervalDates(dataArrayY, getRefDate(filteredDataArrayY), date));
             handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
             handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
+            setDefaultDatesGraph(false);
         }
     };
 
@@ -1677,6 +2004,7 @@ function ResultsVisualization(){
         setFilteredDataArrayY(getIntervalDates(dataArrayY, earliestRefDate, getMostRecentDate(filteredDataArrayY)));
         handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
         handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
+        setDefaultDatesGraph(false);
     };
 
     const handleLastDateIntervalReset = () => {
@@ -1684,6 +2012,7 @@ function ResultsVisualization(){
         setFilteredDataArrayY(getIntervalDates(dataArrayY, getRefDate(filteredDataArrayY), getMostRecentDate(dataArrayY)));
         handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
         handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
+        setDefaultDatesGraph(false);
     };
 
     const handleResetDates = () => {
@@ -1691,6 +2020,7 @@ function ResultsVisualization(){
         setFilteredDataArrayY(getIntervalDates(dataArrayY, earliestRefDate, getMostRecentDate(dataArrayY)));
         handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
         handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
+        setDefaultDatesGraph(false);
     }
 
     const handleRefDate = (newRef: string) => {
@@ -1704,6 +2034,7 @@ function ResultsVisualization(){
 
         handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
         handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
+        setDefaultDatesGraph(false);
         //handleTemp
     };
 
@@ -1758,7 +2089,13 @@ function ResultsVisualization(){
         if(toggleSelectDates){
             setToggleSelectDates(false)
         }else{
-            setCheckedDates(numberOfDates)
+            if(defaultDatesGraph){
+                let initialDatesChecked = getInitialDatesChecked(filteredDataArrayX)
+                setCheckedDates(initialDatesChecked)
+            }else{
+                let uniqueD = getUniqueDates(filteredDataArrayX)
+                setCheckedDates(uniqueD)
+            }
             setToggleSelectDates(true)
         }
     };
@@ -2249,11 +2586,11 @@ function ResultsVisualization(){
                                 <div
                                     className="filter-container-typeViz">
                                 <Listbox
-                                    value={"PK150_PK200"}
-                                    /*onChange={(selectedOption) => {
-                                        setSelectedDatesTypes(selectedOption);
-                                        handleToogleSelectDates();
-                                    }}*/>
+                                    value={selectedMeasurement}
+                                    onChange={(selectedOption) => {
+                                        setSelectedMeasurement(selectedOption);
+                                        handleSelectedMeasurement(selectedOption.toString());
+                                    }}>
                                     {({open}) => (
                                         <>
                                             <Listbox.Label
@@ -2265,7 +2602,7 @@ function ResultsVisualization(){
                                       <span
                                           className="flex items-center">
                                           <span
-                                              className="ml-3 block truncate">{"PK150_PK200"}</span>
+                                              className="ml-3 block truncate">{selectedMeasurement}</span>
                                       </span>
                                                     <span
                                                         className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
@@ -2283,16 +2620,16 @@ function ResultsVisualization(){
                                                 >
                                                     <Listbox.Options
                                                         className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-
+                                                        {numberOfMeasurements.map((m) => (
                                                         <Listbox.Option
-                                                            key={"PK150_PK200"}
+                                                            key={m}
                                                             className={({active}) =>
                                                                 classNames(
                                                                     active ? 'bg-yellow-500 text-white' : 'text-gray-900',
                                                                     'relative cursor-default select-none py-2 pl-3 pr-9'
                                                                 )
                                                             }
-                                                            value={"PK150_PK200"}
+                                                            value={m}
                                                         >
                                                             {({
                                                                   selected,
@@ -2303,7 +2640,7 @@ function ResultsVisualization(){
                                                                         className="flex items-center">
                                                                 <span
                                                                     className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
-                                                                >{"PK150_PK200"}</span>
+                                                                >{m}</span>
                                                                     </div>
 
                                                                     {selected ? (
@@ -2321,6 +2658,7 @@ function ResultsVisualization(){
                                                                 </>
                                                             )}
                                                         </Listbox.Option>
+                                                        ))}
                                                     </Listbox.Options>
                                                 </Transition>
                                             </div>
@@ -2649,7 +2987,9 @@ function ResultsVisualization(){
                                         id="Green"
                                         type="checkbox"
                                         onChange={(e) => handleToogleTempChart()}
-                                        className="checked:bg-green-500 outline-none focus:outline-none right-4 checked:right-0 duration-200 ease-in absolute block w-6 h-6 rounded-full bg-white border-4 border-green-500 appearance-none cursor-pointer"/>
+                                        className={`checked:bg-green-500 outline-none focus:outline-none right-4 checked:right-0 duration-200 ease-in absolute block w-6 h-6 rounded-full bg-white border-4 ${!toggleTotalChart ? 'border-gray-500' : 'border-green-500'} appearance-none cursor-pointer ${!toggleTotalChart ? 'opacity-50' : ''}`}
+                                        disabled={!toggleTotalChart}
+                                    />
                                     <label
                                         htmlFor="Green"
                                         className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"/>
@@ -2735,6 +3075,7 @@ function ResultsVisualization(){
                                     onChange={handleSliderChange}
                                     valueLabelDisplay="on"
                                     valueLabelFormat={value => <div>{`${Math.abs(maxDepthInc-value)} (m)`}</div>}
+                                    disableSwap
                                     //getAriaValueText={valuetext}
                                 />
 
@@ -2747,12 +3088,17 @@ function ResultsVisualization(){
                                     ref={chartAXRef}>
                                     <Chart
                                         graphData={selectedAXChartData}
-                                        initialMaxDepth={maxDepthInc}
-                                        minDepth={minDepthGraph}
-                                        maxDepth={maxDepthGraph}
+                                        defaultDates={defaultDatesGraph}
                                     />
                                 </div>
-
+                                <div
+                                    className="chart-wrapper"
+                                    ref={chartAYRef}>
+                                    <Chart
+                                        graphData={selectedAYChartData}
+                                        defaultDates={defaultDatesGraph}
+                                    />
+                                </div>
                             </>
                         ) : (
                             <>
@@ -2768,15 +3114,7 @@ function ResultsVisualization(){
                         )}
                         {!toggleTempChart ? (
                             <>
-                                <div
-                                    className="chart-wrapper"
-                                    ref={chartAYRef}>
-                                    <Chart
-                                        graphData={selectedAYChartData}
-                                        initialMaxDepth={maxDepthInc}
-                                        minDepth={minDepthGraph}
-                                        maxDepth={maxDepthGraph}/>
-                                </div>
+
                             </>
                         ) : (
                             <>
@@ -2817,12 +3155,20 @@ function ResultsVisualization(){
                     <div>
                         <ChartDetails
                             graphData={selectedAXChartData}
-                            depth={selectedDepth}/>
+                            depth={selectedDepth}
+                            initialMaxDepth={maxDepthInc}
+                            minDepth={minDepthGraph}
+                            maxDepth={maxDepthGraph}
+                        />
                     </div>
                     <div>
                         <ChartDetails
                             graphData={selectedAYChartData}
-                            depth={selectedDepth}/>
+                            depth={selectedDepth}
+                            initialMaxDepth={maxDepthInc}
+                            minDepth={minDepthGraph}
+                            maxDepth={maxDepthGraph}
+                        />
                     </div>
                 </div>
             </div>
