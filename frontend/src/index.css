@@ -104,6 +104,12 @@ code {
   width: 290px;
 }
 
+.filter-container-typeDepth{
+  padding: 10%;
+  padding-top: 240%;
+  width: 290px;
+}
+
 .filter-container-ref{
   padding: 10%;
   width: 400px;
