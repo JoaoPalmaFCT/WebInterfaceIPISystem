@@ -145,7 +145,6 @@ interface ChartProps {
 
 interface ChartPropsInc {
     graphData: InclinometerData[];
-    defaultDates: boolean;
     //colorArray: string[];
 }
 
@@ -158,7 +157,6 @@ interface ChartPropsTotal {
 interface ChartPropsClock {
     graphDataA: InclinometerData[];
     graphDataB: InclinometerData[];
-    defaultDates: boolean;
     //colorArray: string[];
 }
 
@@ -527,7 +525,7 @@ const getDepth = (data: InclinometerData[], inc: number, depth: number) => {
     return `#${hexColor}`;
 };*/
 
-const CustomTooltip: React.FC<TooltipProps<any, any>> = ({
+/*const CustomTooltip: React.FC<TooltipProps<any, any>> = ({
                                                              active,
                                                              payload,
                                                              label
@@ -569,6 +567,66 @@ const CustomTooltip: React.FC<TooltipProps<any, any>> = ({
                                 }}/>
                                 <p style={{margin: 0}}
                                    className="label">{`${p.value.toFixed(2)}`}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+    return null;
+};*/
+
+
+const CustomTooltip: React.FC<TooltipProps<any, any>> = ({
+                                                             active,
+                                                             payload,
+                                                             label
+                                                         }) => {
+    if (active && payload && payload.length) {
+        const isWideLayout = payload.length > 20;
+        const columnCount = isWideLayout ? Math.ceil(payload.length / 20) : 1;
+
+        return (
+            <div className="custom-tooltip">
+                <div
+                    style={{
+                        backgroundColor: 'white',
+                        padding: '10px',
+                        borderRadius: '5px',
+                        boxShadow: '0 4px 4px rgba(0, 0, 0, 0.1)',
+                        border: '1px solid black',
+                        display: 'grid',
+                        width: isWideLayout ? '130px * ${columnCount}' : '130px',
+                        gridTemplateColumns: `repeat(${columnCount}, auto)`,
+                        gap: '10px',
+                        gridTemplateRows: 'auto 1fr'
+                    }}
+                >
+                    {payload.map((p, index) => (
+                        <div key={index}>
+                            {index  === 0 && (
+                                <p className="label" style={{ margin: 0, gridColumn: '1 / span ${columnCount}' }}>{`Depth ${p.payload.depth} (m)`}</p>
+                            )}
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    color: p.color
+                                }}
+                            >
+                                <p
+                                    style={{
+                                        margin: 0,
+                                        width: '10px',
+                                        height: '10px',
+                                        borderRadius: '50%',
+                                        backgroundColor: p.color,
+                                        marginRight: '10px',
+                                        marginLeft: '20px'
+                                    }}
+                                />
+                                <p style={{ margin: 0 }} className="label">{`${p.value.toFixed(2)}`}</p>
                             </div>
                         </div>
                     ))}
@@ -881,11 +939,12 @@ const handleClickChart = (payload: React.MouseEvent<SVGCircleElement, MouseEvent
     desiredDepth = pl.payload.depth;
 }
 
-const Chart: React.FC<ChartPropsInc> = ({graphData, defaultDates}) => {
+const Chart: React.FC<ChartPropsInc> = ({graphData}) => {
     let data: InclinometerData[][] = ChartDataPrep(graphData);
     let graphType: string = "A";
     let typeOfResult: string = "Cumulative displacements"
     let refDate: string = "Ref Date";
+
     if(data.length > 0 && data[0].length > 0){
         if(data[0][0].field.split("")[1].toUpperCase() === "X"){
             graphType = "A"
@@ -894,10 +953,6 @@ const Chart: React.FC<ChartPropsInc> = ({graphData, defaultDates}) => {
         }
         typeOfResult = data[0][0].typeOfResult;
         refDate = data[0][0].time;
-
-        if(defaultDates){
-            data = getFiveMostRecent(data);
-        }
     }
 
     return (
@@ -982,12 +1037,9 @@ const ChartTemp: React.FC<ChartProps> = ({ graphData}) => {
     );
 };
 
-const ChartClock: React.FC<ChartPropsClock> = ({ graphDataA, graphDataB, defaultDates}) => {
+const ChartClock: React.FC<ChartPropsClock> = ({ graphDataA, graphDataB}) => {
     let data: ABData[][] = ChartClockDataPrep(graphDataA, graphDataB);
 
-    if(defaultDates){
-        data = getFiveMostRecentClock(data);
-    }
 
     return (
         <div
@@ -1101,12 +1153,11 @@ const ChartSoil: React.FC<ChartSoil> = ({ graphData }) => {
     return (
         <div className="wrapper" >
             {graphData.length > 0 && (
-                <ResponsiveContainer width="50%" height={720}>
+                <ResponsiveContainer width="50%" height={640}>
                     <BarChart  data={data} margin={{ top: 50, right: 20, left: 20, bottom: 40 }}>
                         <XAxis type="category" hide={true}/>
                         <YAxis dataKey="depth" type="number" domain={[0, 32]} hide={true}/>
                         <Tooltip content={<CustomTooltipSoil/>}/>
-                        <Legend />
                         <Bar key={`$3`} dataKey="Rock" stackId="stack" fill={uniqueColors[3]} >
                             <LabelList dataKey="Rock"  position="inside" content={(props) => CustomLabelBarChart(props, "Rock")}/>
                         </Bar>
@@ -1164,6 +1215,17 @@ const isDateChecked = (date: string, dates: string[]) => {
             found = true;
         }
     })
+    return found
+}
+
+
+const areAllDatesChecked = (numberOfDates: number, checkedDates: string[]) => {
+    let found: boolean = false;
+
+    if(checkedDates.length === numberOfDates){
+        found = true;
+    }
+
     return found
 }
 
@@ -1760,6 +1822,10 @@ function ResultsVisualization(){
             setMaxDepthInc((getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer))/2)-0.5);
             setMaxDepthGraph((getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer))/2)-0.5);
             setMinDepthGraph(0);
+
+            setTopValueSlider((getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer))/2)-0.5);
+            setLowerValueSlider(0);
+
             setSelectedFirstDesiredDepth(0);
             setSelectedLastDesiredDepth((getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer))/2)-0.5);
             setOriginalFirstDesiredDepth(0);
@@ -1886,6 +1952,8 @@ function ResultsVisualization(){
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [filteredDates, setFilteredDates] = useState<string[]>([]);
     const [checkedDates, setCheckedDates] = useState<string[]>([])
+    const [initialCheckedDates, setInitialCheckedDates] = useState<string[]>([])
+
 
     const handleSelectedResults = (type: string) => {
         let selectedType;
@@ -1913,6 +1981,71 @@ function ResultsVisualization(){
         setSelectedResults(selectedType)
         handleSelectedAXChartData(Number(selectedInclinometer), type);
         handleSelectedAYChartData(Number(selectedInclinometer), type);
+    }
+
+    useEffect(() => {
+        if(filteredDataArrayX.length === dataArrayX.length && filteredDataArrayX.length > 0 && defaultDatesGraph){
+            defaultCheckedDates();
+        }
+    }, [filteredDataArrayX]);
+
+    useEffect(() => {
+        setDefaultDatesGraph(true);
+    }, [selectedMeasurement]);
+
+    const defaultCheckedDates = () => {
+        let defaultDataX: InclinometerData[] = [];
+        let defaultDataY: InclinometerData[] = [];
+        let checkedDatesInitial: string[] = [];
+
+        const refValuesX = dataArrayX.filter(item => item.time === refDate);
+        const refValuesY = dataArrayX.filter(item => item.time === refDate);
+        defaultDataX = defaultDataX.concat(refValuesX);
+        defaultDataY = defaultDataY.concat(refValuesY);
+
+        let revDataX = filteredDataArrayX.reverse();
+        let revDataY = filteredDataArrayY.reverse();
+
+        let revDates = numberOfDates.reverse();
+
+        for(let i = 0; i < 5; i++){
+            let newDateToAddX = revDataX.filter(item => item.time === revDates[i])
+            let newDateToAddY = revDataY.filter(item => item.time === revDates[i])
+            defaultDataX = defaultDataX.concat(newDateToAddX);
+            defaultDataY = defaultDataY.concat(newDateToAddY);
+            checkedDatesInitial = checkedDatesInitial.concat(revDates[i]);
+        }
+
+        checkedDatesInitial = checkedDatesInitial.concat(refDate);
+        checkedDatesInitial.reverse();
+        defaultDataX.reverse();
+        defaultDataY.reverse();
+        setInitialCheckedDates(checkedDatesInitial);
+        setFilteredDataArrayX(defaultDataX)
+        setFilteredDataArrayY(defaultDataY)
+        handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name)
+        handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name)
+
+        setDefaultDatesGraph(false);
+    }
+
+    const defaultCheckedDatesClock = () => {
+        //let defaultData = getFiveMostRecentClock()
+    }
+
+    const handleAllDatesCheck = () => {
+        const areAllChecked = areAllDatesChecked(numberOfDates.length, checkedDates);
+
+        if(areAllChecked) {
+            setCheckedDates(initialCheckedDates);
+            defaultCheckedDates();
+        }else{
+            setCheckedDates(numberOfDates);
+            setFilteredDataArrayX(dataArrayX)
+            setFilteredDataArrayY(dataArrayY)
+            handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name)
+            handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name)
+        }
     }
 
     const handleSearchChange = (value: string) => {
@@ -1977,7 +2110,16 @@ function ResultsVisualization(){
         handleSelectedAXChartData(inc, selectedResults.name);
         handleSelectedAYChartData(inc, selectedResults.name);
         handleStepSlider();
-        setMaxDepthInc((getNumberOfSensors(filteredDataArrayX, inc)/2)-0.5);
+        let maxDepth = (getNumberOfSensors(filteredDataArrayX, inc)/2)-0.5;
+
+        setMaxDepthInc(maxDepth);
+        setTopValueSlider(maxDepth);
+        setLowerValueSlider(0);
+
+        setMaxDepthGraph(maxDepth);
+        setMinDepthGraph(0);
+        setSelectedFirstDesiredDepth(0);
+        setSelectedLastDesiredDepth(maxDepth);
     };
 
     const handleDepthArray = (inc: number) => {
@@ -2032,9 +2174,9 @@ function ResultsVisualization(){
 
     useEffect(() => {
         setMaxDepthGraph(maxDepthGraph)
-        setTopValueSlider(maxDepthInc)
-        console.log("max " + maxDepthGraph + " | " + maxDepthInc)
-    }, [maxDepthGraph, maxDepthInc]);
+        setTopValueSlider(topValueSlider)
+        console.log("max " + maxDepthGraph + " | " + topValueSlider)
+    }, [maxDepthGraph, topValueSlider]);
 
     const handleDatesIntervalChange = (initialDate: string, lastDate: string) => {
         setFilteredDataArrayX(getIntervalDates(dataArrayX, initialDate, lastDate));
@@ -2050,7 +2192,6 @@ function ResultsVisualization(){
             setFilteredDataArrayY(getIntervalDates(dataArrayY, date, getMostRecentDate(filteredDataArrayY)));
             handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
             handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
-            setDefaultDatesGraph(false);
         }
     };
 
@@ -2061,7 +2202,6 @@ function ResultsVisualization(){
             setFilteredDataArrayY(getIntervalDates(dataArrayY, getRefDate(filteredDataArrayY), date));
             handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
             handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
-            setDefaultDatesGraph(false);
         }
     };
 
@@ -2070,7 +2210,6 @@ function ResultsVisualization(){
         setFilteredDataArrayY(getIntervalDates(dataArrayY, earliestRefDate, getMostRecentDate(filteredDataArrayY)));
         handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
         handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
-        setDefaultDatesGraph(false);
     };
 
     const handleLastDateIntervalReset = () => {
@@ -2078,7 +2217,6 @@ function ResultsVisualization(){
         setFilteredDataArrayY(getIntervalDates(dataArrayY, getRefDate(filteredDataArrayY), getMostRecentDate(dataArrayY)));
         handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
         handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
-        setDefaultDatesGraph(false);
     };
 
     const handleResetDates = () => {
@@ -2086,23 +2224,20 @@ function ResultsVisualization(){
         setFilteredDataArrayY(getIntervalDates(dataArrayY, earliestRefDate, getMostRecentDate(dataArrayY)));
         handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
         handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
-        setDefaultDatesGraph(false);
     }
 
     const handleFirstDesiredDepth = (d: string) => {
-        //setMinDepthGraph(Number(d))
-        //setLowerValueSlider(Number(d))
-        setSelectedValuesSlider([Number(d), selectedLastDesiredDepth])
+        setSelectedValuesSlider([selectedValuesSlider[0], topValueSlider - Number(d)])
+
         setSelectedFirstDesiredDepth(Number(d))
+        setMinDepthGraph(Number(d));
     };
 
     const handleLastDesiredDepth = (d: string) => {
-        //setMaxDepthGraph(Number(d))
-        //setTopValueSlider(Number(d))
-        setSelectedValuesSlider([selectedLastDesiredDepth - Number(d), selectedFirstDesiredDepth])
+        setSelectedValuesSlider([topValueSlider - Number(d), selectedValuesSlider[1]])
 
-        console.log([selectedFirstDesiredDepth, selectedLastDesiredDepth - Number(d)])
         setSelectedLastDesiredDepth(Number(d))
+        setMaxDepthGraph(Number(d));
     };
 
     const handleDesiredDepthIntervalReset = () => {
@@ -2112,6 +2247,7 @@ function ResultsVisualization(){
         setTopValueSlider(originalLastDesiredDepth)
         setSelectedFirstDesiredDepth(originalFirstDesiredDepth)
         setSelectedLastDesiredDepth(originalLastDesiredDepth)
+        setSelectedValuesSlider([0, (getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer))/2)-0.5])
     };
 
     const handleRefDate = (newRef: string) => {
@@ -2125,7 +2261,6 @@ function ResultsVisualization(){
 
         handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
         handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
-        setDefaultDatesGraph(false);
         //handleTemp
     };
 
@@ -2180,14 +2315,15 @@ function ResultsVisualization(){
         if(toggleSelectDates){
             setToggleSelectDates(false)
         }else{
-            console.log(checkedDates)
+            let uniqueD = getUniqueDates(filteredDataArrayX)
+            setCheckedDates(uniqueD)
+            /*console.log(checkedDates)
             if(defaultDatesGraph){
                 let initialDatesChecked = getInitialDatesChecked(filteredDataArrayX)
                 setCheckedDates(initialDatesChecked)
             }else{
-                let uniqueD = getUniqueDates(filteredDataArrayX)
-                setCheckedDates(uniqueD)
-            }
+
+            }*/
             setToggleSelectDates(true)
         }
     };
@@ -2652,7 +2788,23 @@ function ResultsVisualization(){
                                                     className="w-full ms-2 text-sm font-medium text-gray-900 rounded">{date.split(" ")[0]}</label>
                                             </div>
                                         </li>
-                                    )) : numberOfDates.map((date, index) => (
+                                    )) : (
+                                        <>
+                                        <li>
+                                            <div className="flex items-center p-2 rounded hover:bg-gray-100">
+                                                <input
+                                                    id="checkbox-all-dates"
+                                                    type="checkbox"
+                                                    value={'All dates'}
+                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                                    checked={areAllDatesChecked(numberOfDates.length, checkedDates)}
+                                                    onChange={handleAllDatesCheck}
+                                                />
+                                                <label htmlFor="checkbox-all-dates" className="w-full ms-2 text-sm font-medium text-white rounded hover:text-black">All Dates</label>
+                                            </div>
+                                        </li>
+                                        {
+                                        numberOfDates.map((date, index) => (
                                         <li key={index}>
                                             <div
                                                 className="flex items-center p-2 rounded hover:bg-gray-100 ">
@@ -2670,6 +2822,8 @@ function ResultsVisualization(){
                                             </div>
                                         </li>
                                     ))}
+                                        </>
+                                    )}
                                 </ul>
 
                             </div>
@@ -2893,7 +3047,7 @@ function ResultsVisualization(){
                                                 >
                                                     <Listbox.Options
                                                         className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                        {depthArray.filter(value => value > selectedFirstDesiredDepth).map((d) => (
+                                                        {depthArray.filter(value => value > selectedFirstDesiredDepth && value <= topValueSlider).map((d) => (
                                                             <Listbox.Option
                                                                 key={d}
                                                                 className={({active}) =>
@@ -3132,7 +3286,6 @@ function ResultsVisualization(){
                                 <ChartClock
                                     graphDataA={selectedAXChartData}
                                     graphDataB={selectedAYChartData}
-                                    defaultDates={defaultDatesGraph}
                                 />
                             </div>
 
@@ -3446,7 +3599,7 @@ function ResultsVisualization(){
                                     min={lowerValueSlider}
                                     step={1}
                                     marks
-                                    max={maxDepthInc}
+                                    max={topValueSlider}
                                     value={selectedValuesSlider}
                                     onChange={handleSliderChange}
                                     valueLabelDisplay="on"
@@ -3464,7 +3617,6 @@ function ResultsVisualization(){
                                     ref={chartAXRef}>
                                     <Chart
                                         graphData={selectedAXChartData}
-                                        defaultDates={defaultDatesGraph}
                                     />
                                 </div>
                                 <div
@@ -3472,7 +3624,6 @@ function ResultsVisualization(){
                                     ref={chartAYRef}>
                                     <Chart
                                         graphData={selectedAYChartData}
-                                        defaultDates={defaultDatesGraph}
                                     />
                                 </div>
                             </>
