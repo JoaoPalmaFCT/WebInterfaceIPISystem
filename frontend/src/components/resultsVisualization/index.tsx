@@ -603,11 +603,10 @@ const CustomTooltip: React.FC<TooltipProps<any, any>> = ({
                         gridTemplateRows: 'auto 1fr'
                     }}
                 >
+                    <p className="label" style={{ margin: 0, gridColumn: '1 / -1' }}>{`Depth ${payload[0].payload.depth} (m)`}</p>
+
                     {payload.map((p, index) => (
                         <div key={index}>
-                            {index  === 0 && (
-                                <p className="label" style={{ margin: 0, gridColumn: '1 / span ${columnCount}' }}>{`Depth ${p.payload.depth} (m)`}</p>
-                            )}
                             <div
                                 style={{
                                     display: 'flex',
@@ -643,48 +642,69 @@ const CustomTooltipDetails: React.FC<TooltipProps<any, any>> = ({
                                                                     label
                                                                 }) => {
     if (active && payload && payload.length) {
+        const sizeLimit = 66;
+        const isWideLayout = payload.length > 22;
+        const columnCount = isWideLayout ? Math.ceil(payload.length / 22) : 1;
+        payload.sort((a, b) => parseFloat(a.name) - parseFloat(b.name));
+        let lastRet = false;
+
         return (
             <div
                 className="custom-tooltip">
                 <div
                     style={{
                         backgroundColor: 'white',
-                        padding: '10px',
+                        padding: '5px',
                         borderRadius: '5px',
                         boxShadow: '0 4px 4px rgba(0, 0, 0, 0.1)',
                         border: '1px solid black',
-                        width: '130px'
+                        display: 'grid',
+                        width: isWideLayout ? '160px * ${columnCount}' : '160px',
+                        gridTemplateColumns: `repeat(${columnCount}, auto)`,
+                        gap: '5px',
+                        gridTemplateRows: 'auto 1fr'
                     }}>
+                    <div
+                        className="" style={{
+                        margin: 0,
+                        textAlign: 'center',
+                        width: '100%',
+                        gridColumn: '1 / -1'
+                    }}
+                    >
+                        <p className="label-container">{`${payload[0].payload.time.split(" ")[0]}`}</p>
+                        </div>
                     {payload.map((p, index) => (
-                        <div
-                            key={index}>
-                            {index === 0 &&
-                                <p className="label"
-                                   style={{margin: 0}}>{`${p.payload.time.split(" ")[0]}`}</p>
-                            }
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    color: p.color
-                                }}>
-                                <p style={{
-                                    margin: 0,
-                                    width: '10px',
-                                    height: '10px',
-                                    borderRadius: '50%',
-                                    backgroundColor: p.color,
-                                    marginRight: '10px',
-                                    marginLeft: '20px'
-                                }}/>
-                                <p style={{margin: 0}}
-                                   className="label">{`${p.value.toFixed(2)}`}</p>
-                            </div>
+
+                        <div key={index}>
+                            {(index <= sizeLimit) ? (
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        color: p.color
+                                    }}>
+                                    <p style={{
+                                        margin: 0,
+                                        width: '10px',
+                                        height: '10px',
+                                        borderRadius: '50%',
+                                        backgroundColor: p.color,
+                                        marginRight: '5px',
+                                        marginLeft: '5px'
+                                    }}/>
+                                    <p style={{margin: 0}}
+                                       className="label">{`${p.payload.depth}(m): ${p.value.toFixed(2)}`}</p>
+                                </div>) : (
+                                (index === sizeLimit + 1) ? (
+                                    <p className="label-container">{`...`}</p>
+                                ) : null
+                            )}
                         </div>
                     ))}
                 </div>
             </div>
-        );
+            );
     }
     return null;
 };
@@ -989,7 +1009,7 @@ const ChartTotal: React.FC<ChartPropsTotal> = ({ graphDataX, graphDataY}) => {
         <div className="wrapper">
             {graphDataX.length > 0 && (
                 <ResponsiveContainer width="100%" height={640}>
-                    <LineChart layout="vertical" margin={{top: 25, right: 20, left: 20, bottom: 55}} >
+                    <LineChart layout="vertical" margin={{top: 25, right: 10, left: 20, bottom: 55}} >
                         <CartesianGrid strokeDasharray="3 3"/>
                         <XAxis type="number" dataKey="displacement" orientation="top">
                             <Label value={`Total (mm)`} position="top" />
@@ -1016,8 +1036,8 @@ const ChartTemp: React.FC<ChartProps> = ({ graphData}) => {
     return (
         <div className="wrapper" >
             {graphData.length > 0 && (
-                <ResponsiveContainer width="100%" height={600}>
-                    <LineChart layout="vertical" margin={{ top: 25, right: 20, left: 20, bottom: 15 }}>
+                <ResponsiveContainer width="80%" height={600}>
+                    <LineChart layout="vertical" margin={{ top: 25, right: 20, left: 10, bottom: 15 }}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis type="number" dataKey="value" orientation="top">
                             <Label value="Temp (ºC)" position="top" />
@@ -1108,7 +1128,7 @@ const ChartDetails: React.FC<ChartPropsDetails> = ({ graphData, initialMaxDepth,
     //let initialData: InclinometerData[][] = ChartDataPrep(graphData);
     //let data: InclinometerData[][] = ChartDataPrepDetailsX(initialData, depth);
 
-    //console.log(data)
+    console.log(data)
     let graphType: string = "A";
 
     if (data.length > 0 && data[0].length > 0) {
@@ -1127,15 +1147,16 @@ const ChartDetails: React.FC<ChartPropsDetails> = ({ graphData, initialMaxDepth,
                 <ResponsiveContainer width="80%" height={320}>
                     <LineChart margin={{ top: 25, right: 100, left: 15, bottom: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="time" allowDuplicatedCategory={false}>
+                        <XAxis dataKey="time" tickFormatter={(date) => date.split(" ")[0]} allowDuplicatedCategory={false}>
                             <Label value="Dates" position="bottom"/>
                         </XAxis>
                         <YAxis dataKey="displacement">
                             <Label value={`${graphType} (mm)`} position="left" angle={-90} />
                         </YAxis>
-                        <Tooltip content={<CustomTooltipDetails/>} position={{ x: -140, y: 10 }}/>
+                        {graphType === "A" && <Tooltip content={<CustomTooltipDetails/>} position={{ x: -400, y: 10 }}/>}
+                        {graphType === "B" && <Tooltip content={<CustomTooltipDetails/>} position={{ x: -400, y: -310 }}/>}
                         {data.map((incData, i) => (
-                            <Line name={`${incData[0]}`} key={`${incData[0]}`}  type="monotone"
+                            <Line name={`${incData[0].depth}`} key={`${incData[0].depth}`}  type="monotone"
                                   dataKey="displacement" data={incData} stroke={colorsArray[i]} activeDot={{ r: 8 }} />
                         ))}
                     </LineChart>
@@ -2120,6 +2141,9 @@ function ResultsVisualization(){
         setMinDepthGraph(0);
         setSelectedFirstDesiredDepth(0);
         setSelectedLastDesiredDepth(maxDepth);
+        setOriginalFirstDesiredDepth(0);
+        setOriginalLastDesiredDepth(maxDepth);
+        handleDesiredDepthIntervalReset();
     };
 
     const handleDepthArray = (inc: number) => {
@@ -2160,6 +2184,8 @@ function ResultsVisualization(){
         setMinDepthGraph(v[0])
         setMaxDepthGraph(v[1])
         setSelectedValuesSlider(v)
+        setSelectedFirstDesiredDepth(maxDepthInc - v[1]);
+        setSelectedLastDesiredDepth(maxDepthInc - v[0]);
     }
 
     /*useEffect(() => {
@@ -2230,14 +2256,14 @@ function ResultsVisualization(){
         setSelectedValuesSlider([selectedValuesSlider[0], topValueSlider - Number(d)])
 
         setSelectedFirstDesiredDepth(Number(d))
-        setMinDepthGraph(Number(d));
+        setMaxDepthGraph(topValueSlider - Number(d));
     };
 
     const handleLastDesiredDepth = (d: string) => {
         setSelectedValuesSlider([topValueSlider - Number(d), selectedValuesSlider[1]])
 
         setSelectedLastDesiredDepth(Number(d))
-        setMaxDepthGraph(Number(d));
+        setMinDepthGraph(topValueSlider - Number(d));
     };
 
     const handleDesiredDepthIntervalReset = () => {
@@ -2293,6 +2319,7 @@ function ResultsVisualization(){
         if(toggleTotalChart){
             handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name)
             setToggleTotalChart(false)
+            setToggleTempChart(false)
         }else{
             setToggleTotalChart(true)
         }
@@ -3518,6 +3545,7 @@ function ResultsVisualization(){
                                         onChange={(e) => handleToogleTempChart()}
                                         className={`checked:bg-green-500 outline-none focus:outline-none right-4 checked:right-0 duration-200 ease-in absolute block w-6 h-6 rounded-full bg-white border-4 ${!toggleTotalChart ? 'border-gray-500' : 'border-green-500'} appearance-none cursor-pointer ${!toggleTotalChart ? 'opacity-50' : ''}`}
                                         disabled={!toggleTotalChart}
+                                        style={{ transform: (!toggleTotalChart && toggleTempChart) ? 'translateX(-50%)' : 'none' }}
                                     />
                                     <label
                                         htmlFor="Green"
@@ -3678,6 +3706,8 @@ function ResultsVisualization(){
                         />
                     </div>
                 </div>
+            </div>
+            <div className="page-footer">
             </div>
         </div>
 

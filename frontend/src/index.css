@@ -107,7 +107,7 @@ code {
 .filter-container-typeDepth{
   padding: 10%;
   padding-top: 240%;
-  width: 290px;
+  width: 270px;
 }
 
 .filter-container-ref{
@@ -155,3 +155,11 @@ code {
   height: 530px;
 }
 
+.page-footer{
+  height: 100px;
+}
+
+.label-container {
+  display: flex;
+  justify-content: center;
+}

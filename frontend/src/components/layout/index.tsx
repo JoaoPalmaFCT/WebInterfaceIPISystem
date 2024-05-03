@@ -14,6 +14,6 @@ export const Header = (props: { title:string, children: ReactNode }) =>
 
 const containerStyle = { flex: 1}
 export const Container = (props: { children?: ReactNode }) => <div style={containerStyle}>{ props.children }</div>
-export const Footer = () => <footer style={{height: '50px', backgroundColor: '#333', color: 'white',textAlign: 'center', paddingTop: '15px'}}>
+export const Footer = () => <footer style={{height: '80px', backgroundColor: '#333', color: 'white',textAlign: 'center', paddingTop: '25px'}}>
     © Lincs
 </footer>
