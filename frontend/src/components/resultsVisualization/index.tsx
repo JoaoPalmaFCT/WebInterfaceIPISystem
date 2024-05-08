@@ -21,7 +21,8 @@ import {
     Brush,
     ReferenceLine,
     LabelList,
-    LabelProps
+    LabelProps,
+    LegendProps
 } from 'recharts';
 import {
     Checkbox,
@@ -43,7 +44,7 @@ import {
 import Slider
     from '@mui/material/Slider';
 import { parse } from 'papaparse';
-
+import { SyncLoader } from 'react-spinners';
 interface InfluxDataAux {
     host: string;
     inc: string;
@@ -141,22 +142,26 @@ interface PointData {
 interface ChartProps {
     graphData: InclinometerData[];
     //colorArray: string[];
+    loadingData: boolean;
 }
 
 interface ChartPropsInc {
     graphData: InclinometerData[];
+    loadingData: boolean;
     //colorArray: string[];
 }
 
 interface ChartPropsTotal {
     graphDataX: InclinometerData[];
     graphDataY: InclinometerData[];
+    loadingData: boolean;
     //colorArray: string[];
 }
 
 interface ChartPropsClock {
     graphDataA: InclinometerData[];
     graphDataB: InclinometerData[];
+    loadingData: boolean;
     //colorArray: string[];
 }
 
@@ -165,11 +170,13 @@ interface ChartPropsDetails {
     initialMaxDepth: number;
     minDepth: number;
     maxDepth: number;
+    loadingData: boolean;
     //colorArray: string[];
 }
 
 interface ChartSoil {
     graphData: SoilData[];
+    loadingData: boolean;
 }
 
 
@@ -269,7 +276,29 @@ const colorsArray: string[] = [
     "#33FFA4",
     "#FF7733",
     "#33FF33",
-    "#FFBA33"
+    "#FFBA33",
+    "#FFEA33",
+    "#FF9D33",
+    "#3377FF",
+    "#33FFE9",
+    "#33FF77",
+    "#33FF33",
+    "#33FFC1",
+    "#A033FF",
+    "#FF3333",
+    "#33FF3A",
+    "#2E33FF",
+    "#33E9FF",
+    "#FF1E33",
+    "#338bff",
+    "#33FF0D",
+    "#1a5365",
+    "#FFD133",
+    "#33FFFF",
+    "#33FF94",
+    "#7a3f0d",
+    "#FF7733",
+    "#33FF33"
 ];
 
 const soilData: SoilData[] = [
@@ -505,15 +534,15 @@ const getUniqueDepth = (inc: number, dataArray: InclinometerData[]) => {
 const getDepth = (data: InclinometerData[], inc: number, depth: number) => {
     let numberOfSensors = getNumberOfSensors(data, inc);
     let value;
-    if(data[0].measurement === "BarragemX"){
+    //if(data[0].measurement === "BarragemX"){
         if (depth === numberOfSensors / 2) {
             value = 0;
         } else {
             value = numberOfSensors / 2 - depth
         }
-    }else{
+    /*}else{
         value = depth - 0.5
-    }
+    }*/
     return value;
 }
 
@@ -584,6 +613,7 @@ const CustomTooltip: React.FC<TooltipProps<any, any>> = ({
                                                              label
                                                          }) => {
     if (active && payload && payload.length) {
+        const sizeLimit = 22;
         const isWideLayout = payload.length > 20;
         const columnCount = isWideLayout ? Math.ceil(payload.length / 20) : 1;
 
@@ -607,6 +637,7 @@ const CustomTooltip: React.FC<TooltipProps<any, any>> = ({
 
                     {payload.map((p, index) => (
                         <div key={index}>
+                            {(index <= sizeLimit) ? (
                             <div
                                 style={{
                                     display: 'flex',
@@ -626,7 +657,11 @@ const CustomTooltip: React.FC<TooltipProps<any, any>> = ({
                                     }}
                                 />
                                 <p style={{ margin: 0 }} className="label">{`${p.value.toFixed(2)}`}</p>
-                            </div>
+                            </div>) : (
+                                (index === sizeLimit + 1) ? (
+                                    <p className="label-container">{`...`}</p>
+                                ) : null
+                            )}
                         </div>
                     ))}
                 </div>
@@ -647,6 +682,7 @@ const CustomTooltipDetails: React.FC<TooltipProps<any, any>> = ({
         const columnCount = isWideLayout ? Math.ceil(payload.length / 22) : 1;
         payload.sort((a, b) => parseFloat(a.name) - parseFloat(b.name));
         let lastRet = false;
+        let discardHMS = payload[0].payload.time.split(" ")[1] === "00:00:00"
 
         return (
             <div
@@ -672,8 +708,11 @@ const CustomTooltipDetails: React.FC<TooltipProps<any, any>> = ({
                         gridColumn: '1 / -1'
                     }}
                     >
-                        <p className="label-container">{`${payload[0].payload.time.split(" ")[0]}`}</p>
-                        </div>
+                        {(discardHMS) ? (
+                        <p className="label-container">{`${payload[0].payload.time.split(" ")[0]}`}</p>)
+                        :(<p className="label-container">{`${payload[0].payload.time}`}</p>
+                        )}
+                    </div>
                     {payload.map((p, index) => (
 
                         <div key={index}>
@@ -905,9 +944,11 @@ const CustomLabel: React.FC<{
     refDate:string;
 }> = ({viewBox, refDate}) =>  {
 
+    let discardHMS = refDate.split(" ")[1] === "00:00:00"
+
     return (
     <g>
-        <rect
+        {discardHMS ? (<rect
             x={viewBox.x - 90}
             y={viewBox.y + 540}
             fill="#22c55e"
@@ -915,7 +956,15 @@ const CustomLabel: React.FC<{
             height={30}
             stroke="#000000"
             strokeWidth="1"
-        />
+        />) : (<rect
+            x={viewBox.x - 90}
+            y={viewBox.y + 540}
+            fill="#22c55e"
+            width={90}
+            height={60}
+            stroke="#000000"
+            strokeWidth="1"
+        />)}
         <line
             x1={viewBox.x}
             y1={viewBox.y}
@@ -923,19 +972,41 @@ const CustomLabel: React.FC<{
             y2={viewBox.y}
             stroke="black"
             transform={`rotate(-90, ${viewBox.x}, ${viewBox.y})`}/>
-        <text
-            x={viewBox.x}
-            y={viewBox.y}
-            fill="#ffffff"
-            dy={560}
-            dx={-85}>
-            {`${refDate.split(" ")[0]}`}
-        </text>
+        {discardHMS ? (
+            <text
+                x={viewBox.x}
+                y={viewBox.y}
+                fill="#ffffff"
+                dy={560}
+                dx={-85}
+            >
+                {`${refDate.split(" ")[0]}`}
+            </text>
+        ) : (
+            <text
+                x={viewBox.x}
+                y={viewBox.y}
+                fill="#ffffff"
+                dy={560}
+                dx={-85}
+            >
+                {`${refDate.split(" ")[0]}`}
+                <tspan x={viewBox.x-75} dy="1.2em">
+                    {`${refDate.split(" ")[1]}`}
+                </tspan>
+            </text>
+        )}
     </g>
-)};
+    )
+};
 
-const CustomLabelBarChart = (props: LabelProps, label: string)=> {
-    const { x, y, width, height } = props;
+const CustomLabelBarChart = (props: LabelProps, label: string) => {
+    const {
+        x,
+        y,
+        width,
+        height
+    } = props;
     const radius = 5;
 
     const barCenterY = Number(y) + Number(height) / 2;
@@ -959,11 +1030,17 @@ const handleClickChart = (payload: React.MouseEvent<SVGCircleElement, MouseEvent
     desiredDepth = pl.payload.depth;
 }
 
-const Chart: React.FC<ChartPropsInc> = ({graphData}) => {
+const CustomLegend = (props: any) => {
+
+};
+
+
+const Chart: React.FC<ChartPropsInc> = ({graphData, loadingData}) => {
     let data: InclinometerData[][] = ChartDataPrep(graphData);
     let graphType: string = "A";
     let typeOfResult: string = "Cumulative displacements"
     let refDate: string = "Ref Date";
+    let discardHMS: boolean = false;
 
     if(data.length > 0 && data[0].length > 0){
         if(data[0][0].field.split("")[1].toUpperCase() === "X"){
@@ -973,13 +1050,34 @@ const Chart: React.FC<ChartPropsInc> = ({graphData}) => {
         }
         typeOfResult = data[0][0].typeOfResult;
         refDate = data[0][0].time;
+        discardHMS = data[0][0].time.split(" ")[1] === "00:00:00"
     }
+
 
     return (
         <div className="wrapper">
-            {graphData.length > 0 && (
-                <ResponsiveContainer width="100%" height={640}>
-                    <LineChart layout="vertical" margin={{top: 25, right: 20, left: 20, bottom: 55}} >
+            <ResponsiveContainer width="100%" height={640}>
+            {(graphData.length === 0 || loadingData) ? (
+                    <div
+                        style={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            height: '100%'
+                        }}>
+                        <SyncLoader
+                            color="#22C55E"/>
+                    </div>
+                )
+                : (
+                    <LineChart
+                        layout="vertical"
+                        margin={{
+                            top: 25,
+                            right: 10,
+                            left: 30,
+                            bottom: 55
+                        }}>
                         <CartesianGrid strokeDasharray="3 3"/>
                         <XAxis type="number" dataKey="displacement" orientation="top">
                             <Label value={`${graphType} (mm)`} position="top" />
@@ -996,19 +1094,32 @@ const Chart: React.FC<ChartPropsInc> = ({graphData}) => {
                         ))}
                         {typeOfResult === "Cumulative displacements" && <ReferenceLine x={0} stroke="#000000" label={<CustomLabel viewBox={{ x: 0, y: 0}} refDate={refDate} />}/>}
                     </LineChart>
-                </ResponsiveContainer>
+
             )}
+            </ResponsiveContainer>
         </div>
     );
 };
 
-const ChartTotal: React.FC<ChartPropsTotal> = ({ graphDataX, graphDataY}) => {
+const ChartTotal: React.FC<ChartPropsTotal> = ({ graphDataX, graphDataY, loadingData}) => {
     let data: InclinometerData[][] = ChartDataPrepTotal(graphDataX, graphDataY);
 
     return (
         <div className="wrapper">
-            {graphDataX.length > 0 && (
-                <ResponsiveContainer width="100%" height={640}>
+            <ResponsiveContainer width="100%" height={640}>
+            {(graphDataX.length === 0 || loadingData) ? (
+                    <div
+                        style={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            height: '100%'
+                        }}>
+                        <SyncLoader
+                            color="#22C55E"/>
+                    </div>
+                )
+                : (
                     <LineChart layout="vertical" margin={{top: 25, right: 10, left: 20, bottom: 55}} >
                         <CartesianGrid strokeDasharray="3 3"/>
                         <XAxis type="number" dataKey="displacement" orientation="top">
@@ -1024,19 +1135,31 @@ const ChartTotal: React.FC<ChartPropsTotal> = ({ graphDataX, graphDataY}) => {
                                   dataKey="displacement" data={incData} stroke={colorsArray[i]} activeDot={{r: 8}}/>
                         ))}
                     </LineChart>
-                </ResponsiveContainer>
             )}
+        </ResponsiveContainer>
         </div>
     );
 };
 
-const ChartTemp: React.FC<ChartProps> = ({ graphData}) => {
+const ChartTemp: React.FC<ChartProps> = ({ graphData, loadingData}) => {
     let data: InclinometerData[][] = ChartDataPrep(graphData);
 
     return (
         <div className="wrapper" >
-            {graphData.length > 0 && (
-                <ResponsiveContainer width="80%" height={600}>
+            <ResponsiveContainer width="80%" height={600}>
+                {(graphData.length === 0 || loadingData) ? (
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                height: '100%'
+                            }}>
+                            <SyncLoader
+                                color="#22C55E"/>
+                        </div>
+                    )
+                    : (
                     <LineChart layout="vertical" margin={{ top: 25, right: 20, left: 10, bottom: 15 }}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis type="number" dataKey="value" orientation="top">
@@ -1051,28 +1174,40 @@ const ChartTemp: React.FC<ChartProps> = ({ graphData}) => {
                                   dataKey="value" data={incData} stroke={colorsArray[i]} activeDot={{ r: 8 }} />
                         ))}
                     </LineChart>
-                </ResponsiveContainer>
             )}
+            </ResponsiveContainer>
         </div>
     );
 };
 
-const ChartClock: React.FC<ChartPropsClock> = ({ graphDataA, graphDataB}) => {
+const ChartClock: React.FC<ChartPropsClock> = ({ graphDataA, graphDataB, loadingData}) => {
     let data: ABData[][] = ChartClockDataPrep(graphDataA, graphDataB);
 
 
     return (
         <div
             className="wrapper">
-            {graphDataA.length > 0 && (
-                <ResponsiveContainer
-                    width="117%"
-                    height={300}>
+            <ResponsiveContainer
+            width="117%"
+            height={300}>
+                {(graphDataA.length === 0 || loadingData) ? (
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                height: '100%'
+                            }}>
+                            <SyncLoader
+                                color="#22C55E"/>
+                        </div>
+                    )
+                    : (
                     <LineChart
                         margin={{
                             top: 25,
-                            right: 20,
-                            left: 20,
+                            right: 10,
+                            left: 35,
                             bottom: 20
                         }}>
                         <CartesianGrid
@@ -1114,13 +1249,13 @@ const ChartClock: React.FC<ChartPropsClock> = ({ graphDataA, graphDataB}) => {
                                 activeDot={{r: 8}}/>
                         ))}
                     </LineChart>
-                </ResponsiveContainer>
             )}
+            </ResponsiveContainer>
         </div>
     );
 };
 
-const ChartDetails: React.FC<ChartPropsDetails> = ({ graphData, initialMaxDepth, minDepth, maxDepth}) => {
+const ChartDetails: React.FC<ChartPropsDetails> = ({ graphData, initialMaxDepth, minDepth, maxDepth, loadingData}) => {
     let maxD = initialMaxDepth  - minDepth;
     let minD =  Math.abs(0 - (initialMaxDepth  - maxDepth));
 
@@ -1128,8 +1263,9 @@ const ChartDetails: React.FC<ChartPropsDetails> = ({ graphData, initialMaxDepth,
     //let initialData: InclinometerData[][] = ChartDataPrep(graphData);
     //let data: InclinometerData[][] = ChartDataPrepDetailsX(initialData, depth);
 
-    console.log(data)
+    //console.log(data)
     let graphType: string = "A";
+    let discardHMS: boolean = false;
 
     if (data.length > 0 && data[0].length > 0) {
         if (data[0][0].field.split("")[1].toUpperCase() === "X") {
@@ -1137,17 +1273,30 @@ const ChartDetails: React.FC<ChartPropsDetails> = ({ graphData, initialMaxDepth,
         }else{
             graphType = "B"
         }
-    }
 
+        discardHMS = data[0][0].time.split(" ")[1] === "00:00:00"
+    }
 //domain={[minD, maxD]}
 //{data.map((date, i) => {}(`${date[i].time.split(" ")[0]}` ))}
     return (
         <div className="wrapper" >
-            {graphData.length > 0 && (
-                <ResponsiveContainer width="80%" height={320}>
+            <ResponsiveContainer width="80%" height={320}>
+                {(graphData.length === 0 || loadingData) ? (
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                height: '100%'
+                            }}>
+                            <SyncLoader
+                                color="#22C55E"/>
+                        </div>
+                    )
+                    : (
                     <LineChart margin={{ top: 25, right: 100, left: 15, bottom: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="time" tickFormatter={(date) => date.split(" ")[0]} allowDuplicatedCategory={false}>
+                        <XAxis dataKey="time" tickFormatter={(date) => {  return (discardHMS) ? (date.split(" ")[0]) : (date)}} allowDuplicatedCategory={false}>
                             <Label value="Dates" position="bottom"/>
                         </XAxis>
                         <YAxis dataKey="displacement">
@@ -1160,21 +1309,33 @@ const ChartDetails: React.FC<ChartPropsDetails> = ({ graphData, initialMaxDepth,
                                   dataKey="displacement" data={incData} stroke={colorsArray[i]} activeDot={{ r: 8 }} />
                         ))}
                     </LineChart>
-                </ResponsiveContainer>
             )}
+            </ResponsiveContainer>
         </div>
     );
 };
 
-const ChartSoil: React.FC<ChartSoil> = ({ graphData }) => {
+const ChartSoil: React.FC<ChartSoil> = ({ graphData, loadingData }) => {
     const maxY = Math.max(...graphData.map(soil => soil.depth));
     const data = [{ depth: maxY, ...graphData.reduce((acc, soil) => ({ ...acc, [soil.name]: soil.depth }), {})}];
     const uniqueColors = Array.from(new Set(graphData.map(soil => soil.color)));
 
     return (
         <div className="wrapper" >
-            {graphData.length > 0 && (
-                <ResponsiveContainer width="50%" height={640}>
+            <ResponsiveContainer width="50%" height={640}>
+                {(graphData.length === 0 || loadingData) ? (
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                height: '100%'
+                            }}>
+                            <SyncLoader
+                                color="#22C55E"/>
+                        </div>
+                    )
+                    : (
                     <BarChart  data={data} margin={{ top: 50, right: 20, left: 20, bottom: 40 }}>
                         <XAxis type="category" hide={true}/>
                         <YAxis dataKey="depth" type="number" domain={[0, 32]} hide={true}/>
@@ -1192,8 +1353,8 @@ const ChartSoil: React.FC<ChartSoil> = ({ graphData }) => {
                             <LabelList dataKey="Rock"  position="inside" content={(props) => CustomLabelBarChart(props, "At")}/>
                         </Bar>
                     </BarChart>
-                </ResponsiveContainer>
             )}
+            </ResponsiveContainer>
         </div>
     );
 };
@@ -1613,7 +1774,7 @@ const getDataArrayY = (selectedInc: number, array: InclinometerData[], refDateDa
         }
     }
 
-    for (let i = 0; i < numberOfDates; i++) {//numberOfDates
+    for (let i = 0; i < numberOfDates; i++) {
         let cumulative: number = 0;
         for (const item of data[i]) {
             if(Number(item.inc) === selectedInc && item.field === "aY"){
@@ -1751,6 +1912,64 @@ const getFiveMostRecent = (data: InclinometerData[]) => {
     return newData.reverse();
 }*/
 
+const filterTestData = (data: InclinometerData[]): InclinometerData[] => {
+    let filteredData: InclinometerData[] = [];
+    let prevTimestampX: string | null = null;
+    let prevTimestampY: string | null = null;
+    let interval = 30;
+
+    data.map((d, index) => {
+        const currentTimestamp = d.time;
+        if(d.field === "aX"){
+            if (prevTimestampX !== null) {
+                const prevTimeComponents = prevTimestampX.split(":");
+                const currentTimeComponents = currentTimestamp.split(":");
+                const prevSec = Number(prevTimeComponents[2]);
+                const currentSec = Number(currentTimeComponents[2]);
+                const prevMin = Number(prevTimeComponents[1]);
+                const currentMin = Number(currentTimeComponents[1]);
+
+                const timeDifference = (currentMin - prevMin) * 60 + (currentSec - prevSec);
+
+                if (timeDifference >= interval) {
+                    filteredData.push(d);
+                    prevTimestampX = currentTimestamp;
+                }else if(timeDifference === 0){
+                    filteredData.push(d);
+                    prevTimestampX = currentTimestamp;
+                }
+            } else {
+                filteredData.push(d);
+                prevTimestampX = currentTimestamp;
+            }
+        }else if(d.field === "aY"){
+            if (prevTimestampY !== null) {
+                const prevTimeComponents = prevTimestampY.split(":");
+                const currentTimeComponents = currentTimestamp.split(":");
+                const prevSec = Number(prevTimeComponents[2]);
+                const currentSec = Number(currentTimeComponents[2]);
+                const prevMin = Number(prevTimeComponents[1]);
+                const currentMin = Number(currentTimeComponents[1]);
+
+                const timeDifference = (currentMin - prevMin) * 60 + (currentSec - prevSec);
+
+                if (timeDifference >= interval) {
+                    filteredData.push(d);
+                    prevTimestampY = currentTimestamp;
+                }else if(timeDifference === 0){
+                    filteredData.push(d);
+                    prevTimestampX = currentTimestamp;
+                }
+            } else {
+                filteredData.push(d);
+                prevTimestampY = currentTimestamp;
+            }
+        }
+    })
+
+    return filteredData;
+}
+
 const exportSVG = (svg: SVGElement, graphName: string) => {
     const svgString = new XMLSerializer().serializeToString(svg);
     const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
@@ -1823,7 +2042,10 @@ function ResultsVisualization(){
 
     const [selectedMeasurement, setSelectedMeasurement] = useState<string>("PK150_PK200")
 
+    const [loadingData, setLoadingData] = useState(true);
+
     useEffect(() => {
+        setLoadingData(true)
         if (selectedMeasurement === "PK150_PK200") {
             fetchData();
         }else if(selectedMeasurement === "PK250_PK300"){
@@ -1903,20 +2125,54 @@ function ResultsVisualization(){
     }
 
     const defineInitialValues = (mappedData: InclinometerData[]) => {
-        let auxRefDate = getRefDate(mappedData);
-        setRefDate(auxRefDate);
-        setRefDateDataX(getRefDateData(auxRefDate, mappedData, "aX"));
-        setRefDateDataY(getRefDateData(auxRefDate, mappedData, "aY"));
-        setEarliestRefDate(auxRefDate);
-        setEarliestRefDateDataX(getRefDateData(auxRefDate, mappedData, "aX"));
-        setEarliestRefDateDataY(getRefDateData(auxRefDate, mappedData, "aY"));
+        if(selectedMeasurement === "PK250_PK300"){
+            let auxRefDate = getRefDate(mappedData);
+            setRefDate(auxRefDate);
+            setRefDateDataX(getRefDateData(auxRefDate, mappedData, "aX"));
+            setRefDateDataY(getRefDateData(auxRefDate, mappedData, "aY"));
+            setEarliestRefDate(auxRefDate);
+            setEarliestRefDateDataX(getRefDateData(auxRefDate, mappedData, "aX"));
+            setEarliestRefDateDataY(getRefDateData(auxRefDate, mappedData, "aY"));
 
-        setDataArrayX(mappedData);
-        setFilteredDataArrayX(mappedData);
-        setDataArrayY(mappedData);
-        setFilteredDataArrayY(mappedData);
-        setDataArrayTemp(mappedData);
-        setFilteredDataArrayTemp(mappedData);
+            mappedData.sort((date1, date2) => {
+                if (date1.time < date2.time) {
+                    return -1;
+                } else if (date1.time > date2.time) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            })
+
+            console.log(mappedData)
+            let newTestData = filterTestData(mappedData);
+            console.log(newTestData)
+            setDataArrayX(newTestData);
+            setFilteredDataArrayX(newTestData);
+            setDataArrayY(newTestData);
+            setFilteredDataArrayY(newTestData);
+            setDataArrayTemp(newTestData);
+            setFilteredDataArrayTemp(newTestData);
+
+            setSelectedInclinometer(1);
+        }else{
+            let auxRefDate = getRefDate(mappedData);
+            setRefDate(auxRefDate);
+            setRefDateDataX(getRefDateData(auxRefDate, mappedData, "aX"));
+            setRefDateDataY(getRefDateData(auxRefDate, mappedData, "aY"));
+            setEarliestRefDate(auxRefDate);
+            setEarliestRefDateDataX(getRefDateData(auxRefDate, mappedData, "aX"));
+            setEarliestRefDateDataY(getRefDateData(auxRefDate, mappedData, "aY"));
+
+            setDataArrayX(mappedData);
+            setFilteredDataArrayX(mappedData);
+            setDataArrayY(mappedData);
+            setFilteredDataArrayY(mappedData);
+            setDataArrayTemp(mappedData);
+            setFilteredDataArrayTemp(mappedData);
+
+            setSelectedInclinometer(1);
+        }
     };
 
     useEffect(() => {
@@ -1939,7 +2195,6 @@ function ResultsVisualization(){
                 typeOfResult: results[0].name
             }));
 
-            console.log(mappedData.filter(i => i.field !== "sensors_spacing"))
             defineInitialValues(mappedData.filter(i => i.field !== "sensors_spacing"));
 
         } catch (error) {
@@ -2105,6 +2360,7 @@ function ResultsVisualization(){
     useEffect(() => {
         handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name)
         handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name)
+        setLoadingData(false)
     }, [checkedDates, refDate, filteredDataArrayX]);
 
     const handleSelectedAXChartData = (inc: number, selectedType: string) => {
@@ -2143,7 +2399,7 @@ function ResultsVisualization(){
         setSelectedLastDesiredDepth(maxDepth);
         setOriginalFirstDesiredDepth(0);
         setOriginalLastDesiredDepth(maxDepth);
-        handleDesiredDepthIntervalReset();
+        handleDepthReset(inc);
     };
 
     const handleDepthArray = (inc: number) => {
@@ -2166,7 +2422,7 @@ function ResultsVisualization(){
     const minDistance = 1;
     const handleSliderChange = (event: Event, value: number | number[], activeThumb: number) => {//(range: number[]) => {
 
-        console.log(value as number[])
+        //console.log(value as number[])
         let v = value as number[]
 
         /*if (activeThumb === 0) {
@@ -2193,14 +2449,14 @@ function ResultsVisualization(){
     }, [lowerValueSlider, maxDepthGraph]);*/
 
     useEffect(() => {
-        setMinDepthGraph(minDepthGraph)
-        setLowerValueSlider(lowerValueSlider)
+        //setMinDepthGraph(minDepthGraph)
+        //setLowerValueSlider(lowerValueSlider)
         console.log("min " + minDepthGraph + " | " + lowerValueSlider)
     }, [minDepthGraph, lowerValueSlider]);
 
     useEffect(() => {
-        setMaxDepthGraph(maxDepthGraph)
-        setTopValueSlider(topValueSlider)
+        //setMaxDepthGraph(maxDepthGraph)
+        //setTopValueSlider(topValueSlider)
         console.log("max " + maxDepthGraph + " | " + topValueSlider)
     }, [maxDepthGraph, topValueSlider]);
 
@@ -2267,13 +2523,41 @@ function ResultsVisualization(){
     };
 
     const handleDesiredDepthIntervalReset = () => {
-        setMinDepthGraph(originalFirstDesiredDepth)
+        /*setMinDepthGraph(originalFirstDesiredDepth)
         setLowerValueSlider(originalFirstDesiredDepth)
         setMaxDepthGraph(originalLastDesiredDepth)
         setTopValueSlider(originalLastDesiredDepth)
         setSelectedFirstDesiredDepth(originalFirstDesiredDepth)
         setSelectedLastDesiredDepth(originalLastDesiredDepth)
-        setSelectedValuesSlider([0, (getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer))/2)-0.5])
+        setSelectedValuesSlider([0, (getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer))/2)-0.5])*/
+        let maxDepth = (getNumberOfSensors(filteredDataArrayX, selectedInclinometer.valueOf())/2)-0.5;
+        console.log(maxDepth)
+        setMinDepthGraph(0)
+        setLowerValueSlider(0)
+        setMaxDepthGraph(maxDepth)
+        setTopValueSlider(maxDepth)
+        setSelectedFirstDesiredDepth(0)
+        setSelectedLastDesiredDepth(maxDepth)
+        setSelectedValuesSlider([0, maxDepth])
+    };
+
+    const handleDepthReset = (inc: number) => {
+        /*setMinDepthGraph(originalFirstDesiredDepth)
+        setLowerValueSlider(originalFirstDesiredDepth)
+        setMaxDepthGraph(originalLastDesiredDepth)
+        setTopValueSlider(originalLastDesiredDepth)
+        setSelectedFirstDesiredDepth(originalFirstDesiredDepth)
+        setSelectedLastDesiredDepth(originalLastDesiredDepth)
+        setSelectedValuesSlider([0, (getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer))/2)-0.5])*/
+        let maxDepth = (getNumberOfSensors(filteredDataArrayX, inc)/2)-0.5;
+        console.log(maxDepth)
+        setMinDepthGraph(0)
+        setLowerValueSlider(0)
+        setMaxDepthGraph(maxDepth)
+        setTopValueSlider(maxDepth)
+        setSelectedFirstDesiredDepth(0)
+        setSelectedLastDesiredDepth(maxDepth)
+        setSelectedValuesSlider([0, maxDepth])
     };
 
     const handleRefDate = (newRef: string) => {
@@ -2812,7 +3096,7 @@ function ResultsVisualization(){
                                                 />
                                                 <label
                                                     htmlFor={`checkbox-item-${index}`}
-                                                    className="w-full ms-2 text-sm font-medium text-gray-900 rounded">{date.split(" ")[0]}</label>
+                                                    className="w-full ms-2 text-sm font-medium text-gray-900 rounded">{date.split(" ")[1] === "00:00:00" ? date.split(" ")[0]: date}</label>
                                             </div>
                                         </li>
                                     )) : (
@@ -2845,7 +3129,7 @@ function ResultsVisualization(){
                                                 />
                                                 <label
                                                     htmlFor={`checkbox-item-${index}`}
-                                                    className="w-full ms-2 text-sm font-medium text-white rounded hover:text-black">{date.split(" ")[0]}</label>
+                                                    className="w-full ms-2 text-sm font-medium text-white rounded hover:text-black">{date.split(" ")[1] === "00:00:00" ? date.split(" ")[0]: date}</label>
                                             </div>
                                         </li>
                                     ))}
@@ -3313,6 +3597,7 @@ function ResultsVisualization(){
                                 <ChartClock
                                     graphDataA={selectedAXChartData}
                                     graphDataB={selectedAYChartData}
+                                    loadingData={loadingData}
                                 />
                             </div>
 
@@ -3645,6 +3930,7 @@ function ResultsVisualization(){
                                     ref={chartAXRef}>
                                     <Chart
                                         graphData={selectedAXChartData}
+                                        loadingData={loadingData}
                                     />
                                 </div>
                                 <div
@@ -3652,6 +3938,7 @@ function ResultsVisualization(){
                                     ref={chartAYRef}>
                                     <Chart
                                         graphData={selectedAYChartData}
+                                        loadingData={loadingData}
                                     />
                                 </div>
                             </>
@@ -3663,7 +3950,8 @@ function ResultsVisualization(){
 
                                     <ChartTotal
                                         graphDataX={selectedAXChartData}
-                                        graphDataY={selectedAYChartData}/>
+                                        graphDataY={selectedAYChartData}
+                                        loadingData={loadingData}/>
                                 </div>
                             </>
                         )}
@@ -3677,7 +3965,8 @@ function ResultsVisualization(){
                                     className="chart-wrapper"
                                     ref={chartTempRef}>
                                     <ChartTemp
-                                        graphData={auxDataTemp}/>
+                                        graphData={auxDataTemp}
+                                        loadingData={loadingData}/>
                                 </div>
                             </>
                         )}
@@ -3685,7 +3974,8 @@ function ResultsVisualization(){
                             className="chart-wrapper"
                             ref={chartSoil}>
                             <ChartSoil
-                                graphData={soilData}/>
+                                graphData={soilData}
+                                loadingData={loadingData}/>
                         </div>
                     </div>
 
@@ -3695,6 +3985,7 @@ function ResultsVisualization(){
                             initialMaxDepth={maxDepthInc}
                             minDepth={minDepthGraph}
                             maxDepth={maxDepthGraph}
+                            loadingData={loadingData}
                         />
                     </div>
                     <div>
@@ -3703,6 +3994,7 @@ function ResultsVisualization(){
                             initialMaxDepth={maxDepthInc}
                             minDepth={minDepthGraph}
                             maxDepth={maxDepthGraph}
+                            loadingData={loadingData}
                         />
                     </div>
                 </div>
