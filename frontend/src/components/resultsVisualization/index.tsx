@@ -614,9 +614,9 @@ const CustomTooltip: React.FC<TooltipProps<any, any>> = ({
                                                          }) => {
     if (active && payload && payload.length) {
         const sizeLimit = 22;
-        const isWideLayout = payload.length > 20;
-        const columnCount = isWideLayout ? Math.ceil(payload.length / 20) : 1;
-
+        const isWideLayout = payload.length > 16;
+        const columnCount = isWideLayout ? Math.ceil(payload.length / 21) : 1;
+        //const nullPoints: boolean = payload.length>0 ? payload[0].value === payload[1].value : false;
         return (
             <div className="custom-tooltip">
                 <div
@@ -1030,17 +1030,19 @@ const handleClickChart = (payload: React.MouseEvent<SVGCircleElement, MouseEvent
     desiredDepth = pl.payload.depth;
 }
 
-const CustomLegend = (props: any) => {
-
-};
-
-
 const Chart: React.FC<ChartPropsInc> = ({graphData, loadingData}) => {
     let data: InclinometerData[][] = ChartDataPrep(graphData);
     let graphType: string = "A";
     let typeOfResult: string = "Cumulative displacements"
     let refDate: string = "Ref Date";
     let discardHMS: boolean = false;
+    let numberOfDates: number = 0;
+    let overloadDates: boolean = false;
+    let datesData: InclinometerData[][] = data;
+    let positionXA: number = -240;
+    let positionYA: number = 25;
+    let positionXB: number = -700;
+    let positionYB: number = 25;
 
     if(data.length > 0 && data[0].length > 0){
         if(data[0][0].field.split("")[1].toUpperCase() === "X"){
@@ -1051,8 +1053,50 @@ const Chart: React.FC<ChartPropsInc> = ({graphData, loadingData}) => {
         typeOfResult = data[0][0].typeOfResult;
         refDate = data[0][0].time;
         discardHMS = data[0][0].time.split(" ")[1] === "00:00:00"
-    }
+        numberOfDates = data.length
+        if(discardHMS && numberOfDates > 22){
+            overloadDates = true;
+            let firstSlice = data.slice(0, 11)
+            let lastSlice = data.slice(numberOfDates-12, numberOfDates)
+            datesData = [...firstSlice, ...lastSlice]
+        }else if(!discardHMS && numberOfDates > 12){
+            overloadDates = true;
+            let firstSlice = data.slice(0, 6)
+            let lastSlice = data.slice(numberOfDates-7, numberOfDates)
+            datesData = [...firstSlice, ...lastSlice]
+        }else{
+            overloadDates = false;
+        }
 
+        let isWideLayout = numberOfDates > 16;
+        let columnCount = isWideLayout ? Math.ceil(numberOfDates / 21) : 1;
+
+        switch(columnCount){
+            case 1:
+                positionXA = -240;
+                positionYA = 25;
+                positionXB = -700;
+                positionYB = 25;
+                break;
+            case 2:
+                positionXA = -310;
+                positionYA = 25;
+                positionXB = -770;
+                positionYB = 25;
+                break;
+            case 3:
+                positionXA = -380;
+                positionYA = 25;
+                positionXB = -840;
+                positionYB = 25;
+                break;
+            default:
+                positionXA = -240;
+                positionYA = 25;
+                positionXB = -700;
+                positionYB = 25;
+        }
+    }
 
     return (
         <div className="wrapper">
@@ -1085,9 +1129,29 @@ const Chart: React.FC<ChartPropsInc> = ({graphData, loadingData}) => {
                         <YAxis dataKey="depth" allowDataOverflow={true}>
                             {graphType === "A" && <Label value="Depth (m)" position="left" angle={-90} />}
                         </YAxis>
-                        {graphType === "A" && <Tooltip content={<CustomTooltip/>} position={{ x: -240, y: 25 }}/>}
-                        {graphType === "B" && <Tooltip content={<CustomTooltip/>} position={{ x: -700, y: 25 }}/>}
-                        {graphType === "A" && <Legend align="right" verticalAlign="top" layout="vertical" margin={{right: 50}} wrapperStyle={{ position: 'absolute', right: -35, top: 50 }}/>}
+                        {graphType === "A" && <Tooltip content={<CustomTooltip/>} position={{ x: positionXA, y: positionYA }}/>}
+                        {graphType === "B" && <Tooltip content={<CustomTooltip/>} position={{ x: positionXB, y: positionYB }}/>}
+                        {graphType === "A" && <Legend align="right" verticalAlign="top" layout="vertical" margin={{right: 50}} wrapperStyle={{ position: 'absolute', right: -35, top: 50 }} payload={
+                            (!overloadDates) ? (data.map((incData, i) => ({
+                            value: discardHMS ? incData[0].time.split(" ")[0] : (
+                            <>{incData[0].time.split(" ")[0]}
+                            <div>&emsp;&ensp;{incData[0].time.split(" ")[1]}</div>
+                            </>
+                            ),
+                            type: 'line',
+                            color: colorsArray[i]
+                        }))):((datesData.map((incData, i) => ({
+                                    value: discardHMS ? (i !== 10 ? (incData[0].time.split(" ")[0]): (<>{'...'}</>))
+                                        : ( i !== 6 ? (
+                                                <>{incData[0].time.split(" ")[0]}
+                                            <div>&emsp;&ensp;{incData[0].time.split(" ")[1]}</div>
+                                        </>
+                                    ): <>{'...'}</>),
+                                    type: 'line',
+                                    color:  discardHMS ? (i !== 10 ? colorsArray[i] : '000000') : (i !== 6 ? colorsArray[i]: '#000000')
+                                })))
+                            )
+                        }/>}
                         {data.map((incData, i) =>
                             (<Line name={`${incData[0].time.split(" ")[0]}`} key={`${incData[0].time}`} type="monotone"
                                   dataKey="displacement" data={incData} stroke={colorsArray[i]} activeDot={{r: 8, onClick: (event, payload) => {handleClickChart(payload)} }} />
