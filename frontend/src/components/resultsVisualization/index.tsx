@@ -2219,6 +2219,22 @@ function ResultsVisualization(){
             setFilteredDataArrayTemp(newTestData);
 
             setSelectedInclinometer(1);
+
+
+            setMaxDepthInc((getNumberOfSensors(newTestData, Number(1))/2)-0.5);
+            setMaxDepthGraph((getNumberOfSensors(newTestData, Number(1))/2)-0.5);
+            setMinDepthGraph(0);
+
+            setTopValueSlider((getNumberOfSensors(newTestData, Number(1))/2)-0.5);
+            setLowerValueSlider(0);
+
+            setSelectedFirstDesiredDepth(0);
+            setSelectedLastDesiredDepth((getNumberOfSensors(newTestData, Number(1))/2)-0.5);
+            setOriginalFirstDesiredDepth(0);
+            setOriginalLastDesiredDepth((getNumberOfSensors(newTestData, Number(1))/2)-0.5);
+            handleStepSlider();
+
+
         }else{
             let auxRefDate = getRefDate(mappedData);
             setRefDate(auxRefDate);
