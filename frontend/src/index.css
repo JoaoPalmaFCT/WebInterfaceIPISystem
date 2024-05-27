@@ -134,6 +134,11 @@ code {
   width: 350px;
 }
 
+.filter-container-typeSummary{
+  padding-top: 10%;
+  width: 390px;
+}
+
 .filter-container-graphClock{
   padding: 0%;
   width: 290px;
@@ -153,6 +158,40 @@ code {
 .container-slider{
   padding-left: 0%;
   height: 530px;
+}
+
+.container-profile{
+  padding-left: 10%;
+}
+
+.left-column-p{
+  padding-left: 0%;
+  padding-right: 5%;
+}
+
+.left-column-profile{
+  padding-left: 0%;
+}
+
+.filter-container-typeInputsLocation{
+  padding-bottom: 5%;
+  padding-left: 0%;
+  padding-right: 30%;
+  padding-top: 0%;
+  width: 350px;
+}
+
+.chart-wrapper2{
+  width: 300px;
+  flex: 1;
+  margin-right: -200px;
+}
+
+.flex-charts-container {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
 }
 
 .page-footer{

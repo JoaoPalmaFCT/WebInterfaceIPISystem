@@ -2,9 +2,10 @@ import { InfluxDB, Point, QueryApi } from '@influxdata/influxdb-client';
 import React, {
     Fragment,
     PureComponent,
+    useEffect,
     useRef
 } from 'react';
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
     LineChart,
     Line,
@@ -25,7 +26,6 @@ import {
     LegendProps
 } from 'recharts';
 import {
-    Checkbox,
     DatePicker//,
     //RangeSlider,
     //Slider
@@ -45,6 +45,30 @@ import Slider
     from '@mui/material/Slider';
 import { parse } from 'papaparse';
 import { SyncLoader } from 'react-spinners';
+import Konva from 'konva';
+import { Stage } from 'konva/lib/Stage';
+import {
+    Table,
+    TableCell,
+    TableHead,
+    TableRow,
+    Checkbox,
+    TableSortLabel,
+    Box,
+    Toolbar,
+    alpha,
+    Typography,
+    FormControlLabel,
+    Paper,
+    TablePagination,
+    TableContainer,
+    TableBody
+} from '@mui/material';
+import { visuallyHidden } from '@mui/utils';
+/*
+ * INCLINOMETER DATA
+ */
+
 interface InfluxDataAux {
     host: string;
     inc: string;
@@ -179,6 +203,283 @@ interface ChartSoil {
     loadingData: boolean;
 }
 
+/*
+ * PROFILE DATA
+ */
+
+interface ChartPropsProfileInc {
+    graphData: InclinometerData[];
+    loadingData: boolean;
+    maxDepthOverall: number;
+    maxDepthInc: number;
+    maxData: number;
+    inc: number;
+    leftChart: boolean;
+}
+
+interface TableData {
+    id: number;
+    inc: number;
+    a: number;
+    b: number;
+    total: number;
+    direction: number;
+    node: string;
+    level: number;
+    date: string;
+}
+
+interface TableDataA {
+    id: number;
+    inc: number;
+    a: number;
+    node: string;
+    level: number;
+    date: string;
+}
+
+interface TableDataB {
+    id: number;
+    inc: number;
+    b: number;
+    node: string;
+    level: number;
+    date: string;
+}
+
+function createTableData(
+    id: number,
+    inc: number,
+    a: number,
+    b: number,
+    total: number,
+    direction: number,
+    node: string,
+    level: number,
+    date: string,
+): TableData {
+    return {
+        id,
+        inc,
+        a,
+        b,
+        total,
+        direction,
+        node,
+        level,
+        date
+    };
+}
+
+function createTableDataA(
+    id: number,
+    inc: number,
+    a: number,
+    node: string,
+    level: number,
+    date: string,
+): TableDataA {
+    return {
+        id,
+        inc,
+        a,
+        node,
+        level,
+        date
+    };
+}
+
+function createTableDataB(
+    id: number,
+    inc: number,
+    b: number,
+    node: string,
+    level: number,
+    date: string,
+): TableDataB {
+    return {
+        id,
+        inc,
+        b,
+        node,
+        level,
+        date
+    };
+}
+
+interface HeadCell {
+    disablePadding: boolean;
+    id: keyof TableData;
+    label: string;
+    numeric: boolean;
+}
+
+interface HeadCellA {
+    disablePadding: boolean;
+    id: keyof TableDataA;
+    label: string;
+    numeric: boolean;
+}
+
+interface HeadCellB {
+    disablePadding: boolean;
+    id: keyof TableDataB;
+    label: string;
+    numeric: boolean;
+}
+
+const headCells: readonly HeadCell[] = [
+    {
+        id: 'inc',
+        numeric: true,
+        disablePadding: true,
+        label: 'Incl',
+    },
+    {
+        id: 'a',
+        numeric: true,
+        disablePadding: false,
+        label: 'A (mm)',
+    },
+    {
+        id: 'b',
+        numeric: true,
+        disablePadding: false,
+        label: 'B (mm)',
+    },
+    {
+        id: 'total',
+        numeric: true,
+        disablePadding: false,
+        label: 'Total (mm)',
+    },
+    {
+        id: 'direction',
+        numeric: true,
+        disablePadding: false,
+        label: 'Direction (º)',
+    },
+    {
+        id: 'node',
+        numeric: false,
+        disablePadding: false,
+        label: 'Node',
+    },
+    {
+        id: 'level',
+        numeric: true,
+        disablePadding: false,
+        label: 'Level (m)',
+    },
+    {
+        id: 'date',
+        numeric: false,
+        disablePadding: false,
+        label: 'Date',
+    }
+];
+
+interface EnhancedTableProps {
+    //numSelected: number;
+    onRequestSort: (event: React.MouseEvent<unknown>, property: keyof TableData) => void;
+    //onSelectAllClick: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    order: Order;
+    orderBy: string;
+    rowCount: number;
+}
+
+const headCellsA: readonly HeadCellA[] = [
+    {
+        id: 'inc',
+        numeric: true,
+        disablePadding: true,
+        label: 'Incl',
+    },
+    {
+        id: 'a',
+        numeric: true,
+        disablePadding: false,
+        label: 'A (mm)',
+    },
+    {
+        id: 'node',
+        numeric: false,
+        disablePadding: false,
+        label: 'Node',
+    },
+    {
+        id: 'level',
+        numeric: true,
+        disablePadding: false,
+        label: 'Level (m)',
+    },
+    {
+        id: 'date',
+        numeric: false,
+        disablePadding: false,
+        label: 'Date',
+    }
+];
+
+interface EnhancedTablePropsA {
+    //numSelected: number;
+    onRequestSort: (event: React.MouseEvent<unknown>, property: keyof TableDataA) => void;
+    //onSelectAllClick: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    order: Order;
+    orderBy: string;
+    rowCount: number;
+}
+
+const headCellsB: readonly HeadCellB[] = [
+    {
+        id: 'inc',
+        numeric: true,
+        disablePadding: true,
+        label: 'Incl',
+    },
+    {
+        id: 'b',
+        numeric: true,
+        disablePadding: false,
+        label: 'B (mm)',
+    },
+    {
+        id: 'node',
+        numeric: false,
+        disablePadding: false,
+        label: 'Node',
+    },
+    {
+        id: 'level',
+        numeric: true,
+        disablePadding: false,
+        label: 'Level (m)',
+    },
+    {
+        id: 'date',
+        numeric: false,
+        disablePadding: false,
+        label: 'Date',
+    }
+];
+
+interface EnhancedTablePropsB {
+    //numSelected: number;
+    onRequestSort: (event: React.MouseEvent<unknown>, property: keyof TableDataB) => void;
+    //onSelectAllClick: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    order: Order;
+    orderBy: string;
+    rowCount: number;
+}
+
+/*
+ *
+ * INFLUXDB API QUERIES
+ *
+ * Queries to get inclinometer data from InfluxDB
+ *
+ * START
+ */
 
 const api = new InfluxDB({
     //url: 'https://positive-presumably-bluegill.ngrok-free.app/',
@@ -223,6 +524,24 @@ export function getDataFromLastYear() {
         throw error;
     }
 }*/
+
+/*
+ * INFLUXDB API QUERIES
+ *
+ * END
+ */
+
+const profilePosArray: number[] = [
+    293.9759051572062,137.467221651754,
+    307.0369757491928,178.48439409197888,
+    384.5834641373972,116.29482793608675,
+    397.1268966391787,155.38014872373353,
+    405.5478067907014,194.53481986550128,
+    435.51871388561534,101.61149271936408,
+    458.41490819149766,179.33384655857358,
+    498.3038925944048,84.78825478770023,
+    513.0379957938668,124.321863311431
+]
 
 const colorsArray: string[] = [
     "#33A4FF",
@@ -387,6 +706,17 @@ const results = [
     }
 ]
 
+const resultsProfiles = [
+    {
+        id: 1,
+        name: 'Cumulative displacements',
+    },
+    {
+        id: 2,
+        name: 'Relative displacements',
+    }
+]
+
 const elevation = [
     {
         id: 1,
@@ -397,6 +727,40 @@ const elevation = [
         name: 'Level',
     }
 ]
+
+const locations = [
+    {
+        id: 1,
+        name: 'Surface',
+    },
+    {
+        id: 2,
+        name: 'Max',
+    }
+]
+
+const profiles = [
+    {
+        id: 1,
+        name: 'All',
+    },
+    {
+        id: 2,
+        name: 'Crest',
+    }
+]
+
+const orthoDirection = [
+    {
+        id: 1,
+        name: 'A',
+    },
+    {
+        id: 2,
+        name: 'B',
+    }
+]
+
 
 let desiredDepth = 0;
 
@@ -467,10 +831,10 @@ const getInitialDatesChecked = (graphData: InclinometerData[]) => {
     let lastDate = revData[0].time;
     let counter = 0;
 
-    for(let i = 0; i < revData.length; i++){
-        if(revData[i].time === lastDate && counter < 5){
+    for (let i = 0; i < revData.length; i++) {
+        if (revData[i].time === lastDate && counter < 5) {
             tempDateArray.push(revData[i].time)
-        }else if(counter < 5){
+        } else if (counter < 5) {
             lastDate = revData[i].time;
             tempDateArray.push(revData[i].time)
             counter++;
@@ -535,11 +899,11 @@ const getDepth = (data: InclinometerData[], inc: number, depth: number) => {
     let numberOfSensors = getNumberOfSensors(data, inc);
     let value;
     //if(data[0].measurement === "BarragemX"){
-        if (depth === numberOfSensors / 2) {
-            value = 0;
-        } else {
-            value = numberOfSensors / 2 - depth
-        }
+    if (depth === numberOfSensors / 2) {
+        value = 0;
+    } else {
+        value = numberOfSensors / 2 - depth
+    }
     /*}else{
         value = depth - 0.5
     }*/
@@ -618,7 +982,8 @@ const CustomTooltip: React.FC<TooltipProps<any, any>> = ({
         const columnCount = isWideLayout ? Math.ceil(payload.length / 21) : 1;
         //const nullPoints: boolean = payload.length>0 ? payload[0].value === payload[1].value : false;
         return (
-            <div className="custom-tooltip">
+            <div
+                className="custom-tooltip">
                 <div
                     style={{
                         backgroundColor: 'white',
@@ -633,31 +998,37 @@ const CustomTooltip: React.FC<TooltipProps<any, any>> = ({
                         gridTemplateRows: 'auto 1fr'
                     }}
                 >
-                    <p className="label" style={{ margin: 0, gridColumn: '1 / -1' }}>{`Depth ${payload[0].payload.depth} (m)`}</p>
+                    <p className="label"
+                       style={{
+                           margin: 0,
+                           gridColumn: '1 / -1'
+                       }}>{`Depth ${payload[0].payload.depth} (m)`}</p>
 
                     {payload.map((p, index) => (
-                        <div key={index}>
+                        <div
+                            key={index}>
                             {(index <= sizeLimit) ? (
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    color: p.color
-                                }}
-                            >
-                                <p
+                                <div
                                     style={{
-                                        margin: 0,
-                                        width: '10px',
-                                        height: '10px',
-                                        borderRadius: '50%',
-                                        backgroundColor: p.color,
-                                        marginRight: '10px',
-                                        marginLeft: '20px'
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        color: p.color
                                     }}
-                                />
-                                <p style={{ margin: 0 }} className="label">{`${p.value.toFixed(2)}`}</p>
-                            </div>) : (
+                                >
+                                    <p
+                                        style={{
+                                            margin: 0,
+                                            width: '10px',
+                                            height: '10px',
+                                            borderRadius: '50%',
+                                            backgroundColor: p.color,
+                                            marginRight: '10px',
+                                            marginLeft: '20px'
+                                        }}
+                                    />
+                                    <p style={{margin: 0}}
+                                       className="label">{`${p.value.toFixed(2)}`}</p>
+                                </div>) : (
                                 (index === sizeLimit + 1) ? (
                                     <p className="label-container">{`...`}</p>
                                 ) : null
@@ -701,21 +1072,24 @@ const CustomTooltipDetails: React.FC<TooltipProps<any, any>> = ({
                         gridTemplateRows: 'auto 1fr'
                     }}>
                     <div
-                        className="" style={{
-                        margin: 0,
-                        textAlign: 'center',
-                        width: '100%',
-                        gridColumn: '1 / -1'
-                    }}
+                        className=""
+                        style={{
+                            margin: 0,
+                            textAlign: 'center',
+                            width: '100%',
+                            gridColumn: '1 / -1'
+                        }}
                     >
                         {(discardHMS) ? (
-                        <p className="label-container">{`${payload[0].payload.time.split(" ")[0]}`}</p>)
-                        :(<p className="label-container">{`${payload[0].payload.time}`}</p>
-                        )}
+                                <p className="label-container">{`${payload[0].payload.time.split(" ")[0]}`}</p>)
+                            : (
+                                <p className="label-container">{`${payload[0].payload.time}`}</p>
+                            )}
                     </div>
                     {payload.map((p, index) => (
 
-                        <div key={index}>
+                        <div
+                            key={index}>
                             {(index <= sizeLimit) ? (
                                 <div
                                     style={{
@@ -743,7 +1117,7 @@ const CustomTooltipDetails: React.FC<TooltipProps<any, any>> = ({
                     ))}
                 </div>
             </div>
-            );
+        );
     }
     return null;
 };
@@ -858,7 +1232,7 @@ const ChartDataPrep = (graphData: InclinometerData[]): InclinometerData[][] => {
 const ChartDataPrepDetails = (graphData: InclinometerData[], maxD: number, minD: number): InclinometerData[][] => {
     let data: InclinometerData[][] = [];
 
-    if(graphData.length > 0){
+    if (graphData.length > 0) {
         const uniqueDepths = getUniqueDepth(Number(graphData[0].inc), graphData)
         const filteredDepths = uniqueDepths.filter(depth => depth >= minD && depth <= maxD);
 
@@ -941,62 +1315,69 @@ const CustomLabel: React.FC<{
         x: number;
         y: number;
     }
-    refDate:string;
-}> = ({viewBox, refDate}) =>  {
+    refDate: string;
+}> = ({
+          viewBox,
+          refDate
+      }) => {
 
     let discardHMS = refDate.split(" ")[1] === "00:00:00"
 
     return (
-    <g>
-        {discardHMS ? (<rect
-            x={viewBox.x - 90}
-            y={viewBox.y + 540}
-            fill="#22c55e"
-            width={90}
-            height={30}
-            stroke="#000000"
-            strokeWidth="1"
-        />) : (<rect
-            x={viewBox.x - 90}
-            y={viewBox.y + 540}
-            fill="#22c55e"
-            width={90}
-            height={60}
-            stroke="#000000"
-            strokeWidth="1"
-        />)}
-        <line
-            x1={viewBox.x}
-            y1={viewBox.y}
-            x2={viewBox.x - 570}
-            y2={viewBox.y}
-            stroke="black"
-            transform={`rotate(-90, ${viewBox.x}, ${viewBox.y})`}/>
-        {discardHMS ? (
-            <text
-                x={viewBox.x}
-                y={viewBox.y}
-                fill="#ffffff"
-                dy={560}
-                dx={-85}
-            >
-                {`${refDate.split(" ")[0]}`}
-            </text>
-        ) : (
-            <text
-                x={viewBox.x}
-                y={viewBox.y}
-                fill="#ffffff"
-                dy={560}
-                dx={-85}
-            >
-                {`${refDate.split(" ")[0]}`}
-                <tspan x={viewBox.x-75} dy="1.2em">
-                    {`${refDate.split(" ")[1]}`}
-                </tspan>
-            </text>
-        )}
-    </g>
+        <g>
+            {discardHMS ? (
+                <rect
+                    x={viewBox.x - 90}
+                    y={viewBox.y + 540}
+                    fill="#22c55e"
+                    width={90}
+                    height={30}
+                    stroke="#000000"
+                    strokeWidth="1"
+                />) : (
+                <rect
+                    x={viewBox.x - 90}
+                    y={viewBox.y + 540}
+                    fill="#22c55e"
+                    width={90}
+                    height={60}
+                    stroke="#000000"
+                    strokeWidth="1"
+                />)}
+            <line
+                x1={viewBox.x}
+                y1={viewBox.y}
+                x2={viewBox.x - 570}
+                y2={viewBox.y}
+                stroke="black"
+                transform={`rotate(-90, ${viewBox.x}, ${viewBox.y})`}/>
+            {discardHMS ? (
+                <text
+                    x={viewBox.x}
+                    y={viewBox.y}
+                    fill="#ffffff"
+                    dy={560}
+                    dx={-85}
+                >
+                    {`${refDate.split(" ")[0]}`}
+                </text>
+            ) : (
+                <text
+                    x={viewBox.x}
+                    y={viewBox.y}
+                    fill="#ffffff"
+                    dy={560}
+                    dx={-85}
+                >
+                    {`${refDate.split(" ")[0]}`}
+                    <tspan
+                        x={viewBox.x - 75}
+                        dy="1.2em">
+                        {`${refDate.split(" ")[1]}`}
+                    </tspan>
+                </text>
+            )}
+        </g>
     )
 };
 
@@ -1030,7 +1411,10 @@ const handleClickChart = (payload: React.MouseEvent<SVGCircleElement, MouseEvent
     desiredDepth = pl.payload.depth;
 }
 
-const Chart: React.FC<ChartPropsInc> = ({graphData, loadingData}) => {
+const Chart: React.FC<ChartPropsInc> = ({
+                                            graphData,
+                                            loadingData
+                                        }) => {
     let data: InclinometerData[][] = ChartDataPrep(graphData);
     let graphType: string = "A";
     let typeOfResult: string = "Cumulative displacements"
@@ -1044,34 +1428,34 @@ const Chart: React.FC<ChartPropsInc> = ({graphData, loadingData}) => {
     let positionXB: number = -700;
     let positionYB: number = 25;
 
-    if(data.length > 0 && data[0].length > 0){
-        if(data[0][0].field.split("")[1].toUpperCase() === "X"){
+    if (data.length > 0 && data[0].length > 0) {
+        if (data[0][0].field.split("")[1].toUpperCase() === "X") {
             graphType = "A"
-        }else{
+        } else {
             graphType = "B"
         }
         typeOfResult = data[0][0].typeOfResult;
         refDate = data[0][0].time;
         discardHMS = data[0][0].time.split(" ")[1] === "00:00:00"
         numberOfDates = data.length
-        if(discardHMS && numberOfDates > 22){
+        if (discardHMS && numberOfDates > 22) {
             overloadDates = true;
             let firstSlice = data.slice(0, 11)
-            let lastSlice = data.slice(numberOfDates-12, numberOfDates)
+            let lastSlice = data.slice(numberOfDates - 12, numberOfDates)
             datesData = [...firstSlice, ...lastSlice]
-        }else if(!discardHMS && numberOfDates > 12){
+        } else if (!discardHMS && numberOfDates > 12) {
             overloadDates = true;
             let firstSlice = data.slice(0, 6)
-            let lastSlice = data.slice(numberOfDates-7, numberOfDates)
+            let lastSlice = data.slice(numberOfDates - 7, numberOfDates)
             datesData = [...firstSlice, ...lastSlice]
-        }else{
+        } else {
             overloadDates = false;
         }
 
         let isWideLayout = numberOfDates > 16;
         let columnCount = isWideLayout ? Math.ceil(numberOfDates / 21) : 1;
 
-        switch(columnCount){
+        switch (columnCount) {
             case 1:
                 positionXA = -240;
                 positionYA = 25;
@@ -1099,118 +1483,11 @@ const Chart: React.FC<ChartPropsInc> = ({graphData, loadingData}) => {
     }
 
     return (
-        <div className="wrapper">
-            <ResponsiveContainer width="100%" height={640}>
-            {(graphData.length === 0 || loadingData) ? (
-                    <div
-                        style={{
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            height: '100%'
-                        }}>
-                        <SyncLoader
-                            color="#22C55E"/>
-                    </div>
-                )
-                : (
-                    <LineChart
-                        layout="vertical"
-                        margin={{
-                            top: 25,
-                            right: 10,
-                            left: 30,
-                            bottom: 55
-                        }}>
-                        <CartesianGrid strokeDasharray="3 3"/>
-                        <XAxis type="number" dataKey="displacement" orientation="top">
-                            <Label value={`${graphType} (mm)`} position="top" />
-                        </XAxis>
-                        <YAxis dataKey="depth" allowDataOverflow={true}>
-                            {graphType === "A" && <Label value="Depth (m)" position="left" angle={-90} />}
-                        </YAxis>
-                        {graphType === "A" && <Tooltip content={<CustomTooltip/>} position={{ x: positionXA, y: positionYA }}/>}
-                        {graphType === "B" && <Tooltip content={<CustomTooltip/>} position={{ x: positionXB, y: positionYB }}/>}
-                        {graphType === "A" && <Legend align="right" verticalAlign="top" layout="vertical" margin={{right: 50}} wrapperStyle={{ position: 'absolute', right: -35, top: 50 }} payload={
-                            (!overloadDates) ? (data.map((incData, i) => ({
-                            value: discardHMS ? incData[0].time.split(" ")[0] : (
-                            <>{incData[0].time.split(" ")[0]}
-                            <div>&emsp;&ensp;{incData[0].time.split(" ")[1]}</div>
-                            </>
-                            ),
-                            type: 'line',
-                            color: colorsArray[i]
-                        }))):((datesData.map((incData, i) => ({
-                                    value: discardHMS ? (i !== 10 ? (incData[0].time.split(" ")[0]): (<>{'...'}</>))
-                                        : ( i !== 6 ? (
-                                                <>{incData[0].time.split(" ")[0]}
-                                            <div>&emsp;&ensp;{incData[0].time.split(" ")[1]}</div>
-                                        </>
-                                    ): <>{'...'}</>),
-                                    type: 'line',
-                                    color:  discardHMS ? (i !== 10 ? colorsArray[i] : '000000') : (i !== 6 ? colorsArray[i]: '#000000')
-                                })))
-                            )
-                        }/>}
-                        {data.map((incData, i) =>
-                            (<Line name={`${incData[0].time.split(" ")[0]}`} key={`${incData[0].time}`} type="monotone"
-                                  dataKey="displacement" data={incData} stroke={colorsArray[i]} activeDot={{r: 8, onClick: (event, payload) => {handleClickChart(payload)} }} />
-                        ))}
-                        {typeOfResult === "Cumulative displacements" && <ReferenceLine x={0} stroke="#000000" label={<CustomLabel viewBox={{ x: 0, y: 0}} refDate={refDate} />}/>}
-                    </LineChart>
-
-            )}
-            </ResponsiveContainer>
-        </div>
-    );
-};
-
-const ChartTotal: React.FC<ChartPropsTotal> = ({ graphDataX, graphDataY, loadingData}) => {
-    let data: InclinometerData[][] = ChartDataPrepTotal(graphDataX, graphDataY);
-
-    return (
-        <div className="wrapper">
-            <ResponsiveContainer width="100%" height={640}>
-            {(graphDataX.length === 0 || loadingData) ? (
-                    <div
-                        style={{
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            height: '100%'
-                        }}>
-                        <SyncLoader
-                            color="#22C55E"/>
-                    </div>
-                )
-                : (
-                    <LineChart layout="vertical" margin={{top: 25, right: 10, left: 20, bottom: 55}} >
-                        <CartesianGrid strokeDasharray="3 3"/>
-                        <XAxis type="number" dataKey="displacement" orientation="top">
-                            <Label value={`Total (mm)`} position="top" />
-                        </XAxis>
-                        <YAxis dataKey="depth" >
-                            <Label value="Depth (m)" position="left" angle={-90} />
-                        </YAxis>
-                        <Tooltip content={<CustomTooltip/>}/>
-                        <Legend align="right" verticalAlign="top" layout="vertical" margin={{right: 50}} wrapperStyle={{ position: 'absolute', right: -35, top: 50 }}/>
-                        {data.map((incData, i) => (
-                            <Line name={`${incData[0].time.split(" ")[0]}`} key={`${incData[0].time}`} type="monotone"
-                                  dataKey="displacement" data={incData} stroke={colorsArray[i]} activeDot={{r: 8}}/>
-                        ))}
-                    </LineChart>
-            )}
-        </ResponsiveContainer>
-        </div>
-    );
-};
-
-const ChartTemp: React.FC<ChartProps> = ({ graphData, loadingData}) => {
-    let data: InclinometerData[][] = ChartDataPrep(graphData);
-
-    return (
-        <div className="wrapper" >
-            <ResponsiveContainer width="80%" height={600}>
+        <div
+            className="wrapper">
+            <ResponsiveContainer
+                width="100%"
+                height={640}>
                 {(graphData.length === 0 || loadingData) ? (
                         <div
                             style={{
@@ -1224,27 +1501,272 @@ const ChartTemp: React.FC<ChartProps> = ({ graphData, loadingData}) => {
                         </div>
                     )
                     : (
-                    <LineChart layout="vertical" margin={{ top: 25, right: 20, left: 10, bottom: 15 }}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" dataKey="value" orientation="top">
-                            <Label value="Temp (ºC)" position="top" />
-                        </XAxis>
-                        <YAxis dataKey="depth" >
-                            <Label value="Depth (m)" position="left" angle={-90} />
-                        </YAxis>
-                        <Tooltip content={<CustomTooltip/>}/>
-                        {data.map((incData, i) => (
-                            <Line name={`${incData[0].time.split(" ")[0]}`} key={`${incData[0].time}`}  type="monotone"
-                                  dataKey="value" data={incData} stroke={colorsArray[i]} activeDot={{ r: 8 }} />
-                        ))}
-                    </LineChart>
-            )}
+                        <LineChart
+                            layout="vertical"
+                            margin={{
+                                top: 25,
+                                right: 10,
+                                left: 30,
+                                bottom: 55
+                            }}>
+                            <CartesianGrid
+                                strokeDasharray="3 3"/>
+                            <XAxis
+                                type="number"
+                                dataKey="displacement"
+                                orientation="top">
+                                <Label
+                                    value={`${graphType} (mm)`}
+                                    position="top"/>
+                            </XAxis>
+                            <YAxis
+                                dataKey="depth"
+                                allowDataOverflow={true}>
+                                {graphType === "A" &&
+                                    <Label
+                                        value="Depth (m)"
+                                        position="left"
+                                        angle={-90}/>}
+                            </YAxis>
+                            {graphType === "A" &&
+                                <Tooltip
+                                    content={
+                                        <CustomTooltip/>}
+                                    position={{
+                                        x: positionXA,
+                                        y: positionYA
+                                    }}/>}
+                            {graphType === "B" &&
+                                <Tooltip
+                                    content={
+                                        <CustomTooltip/>}
+                                    position={{
+                                        x: positionXB,
+                                        y: positionYB
+                                    }}/>}
+                            {graphType === "A" &&
+                                <Legend
+                                    align="right"
+                                    verticalAlign="top"
+                                    layout="vertical"
+                                    margin={{right: 50}}
+                                    wrapperStyle={{
+                                        position: 'absolute',
+                                        right: -35,
+                                        top: 50
+                                    }}
+                                    payload={
+                                        (!overloadDates) ? (data.map((incData, i) => ({
+                                            value: discardHMS ? incData[0].time.split(" ")[0] : (
+                                                <>{incData[0].time.split(" ")[0]}
+                                                    <div>&emsp;&ensp;{incData[0].time.split(" ")[1]}</div>
+                                                </>
+                                            ),
+                                            type: 'line',
+                                            color: colorsArray[i]
+                                        }))) : ((datesData.map((incData, i) => ({
+                                                value: discardHMS ? (i !== 10 ? (incData[0].time.split(" ")[0]) : (<>{'...'}</>))
+                                                    : (i !== 6 ? (
+                                                        <>{incData[0].time.split(" ")[0]}
+                                                            <div>&emsp;&ensp;{incData[0].time.split(" ")[1]}</div>
+                                                        </>
+                                                    ) : <>{'...'}</>),
+                                                type: 'line',
+                                                color: discardHMS ? (i !== 10 ? colorsArray[i] : '000000') : (i !== 6 ? colorsArray[i] : '#000000')
+                                            })))
+                                        )
+                                    }/>}
+                            {data.map((incData, i) =>
+                                (
+                                    <Line
+                                        name={`${incData[0].time.split(" ")[0]}`}
+                                        key={`${incData[0].time}`}
+                                        type="monotone"
+                                        dataKey="displacement"
+                                        data={incData}
+                                        stroke={colorsArray[i]}
+                                        activeDot={{
+                                            r: 8,
+                                            onClick: (event, payload) => {
+                                                handleClickChart(payload)
+                                            }
+                                        }}/>
+                                ))}
+                            {typeOfResult === "Cumulative displacements" &&
+                                <ReferenceLine
+                                    x={0}
+                                    stroke="#000000"
+                                    label={
+                                        <CustomLabel
+                                            viewBox={{
+                                                x: 0,
+                                                y: 0
+                                            }}
+                                            refDate={refDate}/>}/>}
+                        </LineChart>
+
+                    )}
             </ResponsiveContainer>
         </div>
     );
 };
 
-const ChartClock: React.FC<ChartPropsClock> = ({ graphDataA, graphDataB, loadingData}) => {
+const ChartTotal: React.FC<ChartPropsTotal> = ({
+                                                   graphDataX,
+                                                   graphDataY,
+                                                   loadingData
+                                               }) => {
+    let data: InclinometerData[][] = ChartDataPrepTotal(graphDataX, graphDataY);
+
+    return (
+        <div
+            className="wrapper">
+            <ResponsiveContainer
+                width="100%"
+                height={640}>
+                {(graphDataX.length === 0 || loadingData) ? (
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                height: '100%'
+                            }}>
+                            <SyncLoader
+                                color="#22C55E"/>
+                        </div>
+                    )
+                    : (
+                        <LineChart
+                            layout="vertical"
+                            margin={{
+                                top: 25,
+                                right: 10,
+                                left: 20,
+                                bottom: 55
+                            }}>
+                            <CartesianGrid
+                                strokeDasharray="3 3"/>
+                            <XAxis
+                                type="number"
+                                dataKey="displacement"
+                                orientation="top">
+                                <Label
+                                    value={`Total (mm)`}
+                                    position="top"/>
+                            </XAxis>
+                            <YAxis
+                                dataKey="depth">
+                                <Label
+                                    value="Depth (m)"
+                                    position="left"
+                                    angle={-90}/>
+                            </YAxis>
+                            <Tooltip
+                                content={
+                                    <CustomTooltip/>}/>
+                            <Legend
+                                align="right"
+                                verticalAlign="top"
+                                layout="vertical"
+                                margin={{right: 50}}
+                                wrapperStyle={{
+                                    position: 'absolute',
+                                    right: -35,
+                                    top: 50
+                                }}/>
+                            {data.map((incData, i) => (
+                                <Line
+                                    name={`${incData[0].time.split(" ")[0]}`}
+                                    key={`${incData[0].time}`}
+                                    type="monotone"
+                                    dataKey="displacement"
+                                    data={incData}
+                                    stroke={colorsArray[i]}
+                                    activeDot={{r: 8}}/>
+                            ))}
+                        </LineChart>
+                    )}
+            </ResponsiveContainer>
+        </div>
+    );
+};
+
+const ChartTemp: React.FC<ChartProps> = ({
+                                             graphData,
+                                             loadingData
+                                         }) => {
+    let data: InclinometerData[][] = ChartDataPrep(graphData);
+
+    return (
+        <div
+            className="wrapper">
+            <ResponsiveContainer
+                width="80%"
+                height={600}>
+                {(graphData.length === 0 || loadingData) ? (
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                height: '100%'
+                            }}>
+                            <SyncLoader
+                                color="#22C55E"/>
+                        </div>
+                    )
+                    : (
+                        <LineChart
+                            layout="vertical"
+                            margin={{
+                                top: 25,
+                                right: 20,
+                                left: 10,
+                                bottom: 15
+                            }}>
+                            <CartesianGrid
+                                strokeDasharray="3 3"/>
+                            <XAxis
+                                type="number"
+                                dataKey="value"
+                                orientation="top">
+                                <Label
+                                    value="Temp (ºC)"
+                                    position="top"/>
+                            </XAxis>
+                            <YAxis
+                                dataKey="depth">
+                                <Label
+                                    value="Depth (m)"
+                                    position="left"
+                                    angle={-90}/>
+                            </YAxis>
+                            <Tooltip
+                                content={
+                                    <CustomTooltip/>}/>
+                            {data.map((incData, i) => (
+                                <Line
+                                    name={`${incData[0].time.split(" ")[0]}`}
+                                    key={`${incData[0].time}`}
+                                    type="monotone"
+                                    dataKey="value"
+                                    data={incData}
+                                    stroke={colorsArray[i]}
+                                    activeDot={{r: 8}}/>
+                            ))}
+                        </LineChart>
+                    )}
+            </ResponsiveContainer>
+        </div>
+    );
+};
+
+const ChartClock: React.FC<ChartPropsClock> = ({
+                                                   graphDataA,
+                                                   graphDataB,
+                                                   loadingData
+                                               }) => {
     let data: ABData[][] = ChartClockDataPrep(graphDataA, graphDataB);
 
 
@@ -1252,8 +1774,8 @@ const ChartClock: React.FC<ChartPropsClock> = ({ graphDataA, graphDataB, loading
         <div
             className="wrapper">
             <ResponsiveContainer
-            width="117%"
-            height={300}>
+                width="117%"
+                height={300}>
                 {(graphDataA.length === 0 || loadingData) ? (
                         <div
                             style={{
@@ -1267,61 +1789,68 @@ const ChartClock: React.FC<ChartPropsClock> = ({ graphDataA, graphDataB, loading
                         </div>
                     )
                     : (
-                    <LineChart
-                        margin={{
-                            top: 25,
-                            right: 10,
-                            left: 35,
-                            bottom: 20
-                        }}>
-                        <CartesianGrid
-                            strokeDasharray="3 3"/>
-                        <XAxis
-                            type="number"
-                            dataKey="a"
-                            axisLine={false} orientation="top">
-                            <Label
-                                value="A (mm)"
-                                position="top"/>
-                        </XAxis>
-                        <ReferenceLine
-                            y={0}
-                            stroke="#000000"/>
-                        <YAxis
-                            dataKey="b"
-                            axisLine={false}>
-                            <Label
-                                value="B (mm)"
-                                position="left"
-                                angle={-90}/>
-                        </YAxis>
-                        <ReferenceLine
-                            x={0}
-                            stroke="#000000" />
-                        <Tooltip
-                            content={
-                                <CustomTooltip/>}/>
-
-                        {data.map((d, i) => (
-                            <Line
-                                name={`${d[0].time.split(" ")[0]}`}
-                                key={`${d[0].time}`}
-                                type="linear"
+                        <LineChart
+                            margin={{
+                                top: 25,
+                                right: 10,
+                                left: 35,
+                                bottom: 20
+                            }}>
+                            <CartesianGrid
+                                strokeDasharray="3 3"/>
+                            <XAxis
+                                type="number"
+                                dataKey="a"
+                                axisLine={false}
+                                orientation="top">
+                                <Label
+                                    value="A (mm)"
+                                    position="top"/>
+                            </XAxis>
+                            <ReferenceLine
+                                y={0}
+                                stroke="#000000"/>
+                            <YAxis
                                 dataKey="b"
-                                data={d}
-                                stroke={colorsArray[i]}
-                                activeDot={{r: 8}}/>
-                        ))}
-                    </LineChart>
-            )}
+                                axisLine={false}>
+                                <Label
+                                    value="B (mm)"
+                                    position="left"
+                                    angle={-90}/>
+                            </YAxis>
+                            <ReferenceLine
+                                x={0}
+                                stroke="#000000"/>
+                            <Tooltip
+                                content={
+                                    <CustomTooltip/>}/>
+
+                            {data.map((d, i) => (
+                                <Line
+                                    name={`${d[0].time.split(" ")[0]}`}
+                                    key={`${d[0].time}`}
+                                    type="linear"
+                                    dataKey="b"
+                                    data={d}
+                                    stroke={colorsArray[i]}
+                                    activeDot={{r: 8}}/>
+                            ))}
+                        </LineChart>
+                    )}
             </ResponsiveContainer>
         </div>
     );
 };
 
-const ChartDetails: React.FC<ChartPropsDetails> = ({ graphData, initialMaxDepth, minDepth, maxDepth, loadingData}) => {
-    let maxD = initialMaxDepth  - minDepth;
-    let minD =  Math.abs(0 - (initialMaxDepth  - maxDepth));
+const ChartDetails: React.FC<ChartPropsDetails> = ({
+                                                       graphData,
+                                                       initialMaxDepth,
+                                                       minDepth,
+                                                       maxDepth,
+                                                       loadingData
+                                                   }) => {
+    let maxD = initialMaxDepth - minDepth;
+    let minD = Math.abs(0 - (initialMaxDepth - maxDepth));
 
     let data: InclinometerData[][] = ChartDataPrepDetails(graphData, maxD, minD);
     //let initialData: InclinometerData[][] = ChartDataPrep(graphData);
@@ -1334,7 +1863,7 @@ const ChartDetails: React.FC<ChartPropsDetails> = ({ graphData, initialMaxDepth,
     if (data.length > 0 && data[0].length > 0) {
         if (data[0][0].field.split("")[1].toUpperCase() === "X") {
             graphType = "A"
-        }else{
+        } else {
             graphType = "B"
         }
 
@@ -1343,8 +1872,11 @@ const ChartDetails: React.FC<ChartPropsDetails> = ({ graphData, initialMaxDepth,
 //domain={[minD, maxD]}
 //{data.map((date, i) => {}(`${date[i].time.split(" ")[0]}` ))}
     return (
-        <div className="wrapper" >
-            <ResponsiveContainer width="80%" height={320}>
+        <div
+            className="wrapper">
+            <ResponsiveContainer
+                width="80%"
+                height={320}>
                 {(graphData.length === 0 || loadingData) ? (
                         <div
                             style={{
@@ -1358,35 +1890,84 @@ const ChartDetails: React.FC<ChartPropsDetails> = ({ graphData, initialMaxDepth,
                         </div>
                     )
                     : (
-                    <LineChart margin={{ top: 25, right: 100, left: 15, bottom: 20 }}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="time" tickFormatter={(date) => {  return (discardHMS) ? (date.split(" ")[0]) : (date)}} allowDuplicatedCategory={false}>
-                            <Label value="Dates" position="bottom"/>
-                        </XAxis>
-                        <YAxis dataKey="displacement">
-                            <Label value={`${graphType} (mm)`} position="left" angle={-90} />
-                        </YAxis>
-                        {graphType === "A" && <Tooltip content={<CustomTooltipDetails/>} position={{ x: -400, y: 10 }}/>}
-                        {graphType === "B" && <Tooltip content={<CustomTooltipDetails/>} position={{ x: -400, y: -310 }}/>}
-                        {data.map((incData, i) => (
-                            <Line name={`${incData[0].depth}`} key={`${incData[0].depth}`}  type="monotone"
-                                  dataKey="displacement" data={incData} stroke={colorsArray[i]} activeDot={{ r: 8 }} />
-                        ))}
-                    </LineChart>
-            )}
+                        <LineChart
+                            margin={{
+                                top: 25,
+                                right: 100,
+                                left: 15,
+                                bottom: 20
+                            }}>
+                            <CartesianGrid
+                                strokeDasharray="3 3"/>
+                            <XAxis
+                                dataKey="time"
+                                tickFormatter={(date) => {
+                                    return (discardHMS) ? (date.split(" ")[0]) : (date)
+                                }}
+                                allowDuplicatedCategory={false}>
+                                <Label
+                                    value="Dates"
+                                    position="bottom"/>
+                            </XAxis>
+                            <YAxis
+                                dataKey="displacement">
+                                <Label
+                                    value={`${graphType} (mm)`}
+                                    position="left"
+                                    angle={-90}/>
+                            </YAxis>
+                            {graphType === "A" &&
+                                <Tooltip
+                                    content={
+                                        <CustomTooltipDetails/>}
+                                    position={{
+                                        x: -400,
+                                        y: 10
+                                    }}/>}
+                            {graphType === "B" &&
+                                <Tooltip
+                                    content={
+                                        <CustomTooltipDetails/>}
+                                    position={{
+                                        x: -400,
+                                        y: -310
+                                    }}/>}
+                            {data.map((incData, i) => (
+                                <Line
+                                    name={`${incData[0].depth}`}
+                                    key={`${incData[0].depth}`}
+                                    type="monotone"
+                                    dataKey="displacement"
+                                    data={incData}
+                                    stroke={colorsArray[i]}
+                                    activeDot={{r: 8}}/>
+                            ))}
+                        </LineChart>
+                    )}
             </ResponsiveContainer>
         </div>
     );
 };
 
-const ChartSoil: React.FC<ChartSoil> = ({ graphData, loadingData }) => {
+const ChartSoil: React.FC<ChartSoil> = ({
+                                            graphData,
+                                            loadingData
+                                        }) => {
     const maxY = Math.max(...graphData.map(soil => soil.depth));
-    const data = [{ depth: maxY, ...graphData.reduce((acc, soil) => ({ ...acc, [soil.name]: soil.depth }), {})}];
+    const data = [{
+        depth: maxY, ...graphData.reduce((acc, soil) => ({
+            ...acc,
+            [soil.name]: soil.depth
+        }), {})
+    }];
     const uniqueColors = Array.from(new Set(graphData.map(soil => soil.color)));
 
     return (
-        <div className="wrapper" >
-            <ResponsiveContainer width="50%" height={640}>
+        <div
+            className="wrapper">
+            <ResponsiveContainer
+                width="50%"
+                height={640}>
                 {(graphData.length === 0 || loadingData) ? (
                         <div
                             style={{
@@ -1400,24 +1981,67 @@ const ChartSoil: React.FC<ChartSoil> = ({ graphData, loadingData }) => {
                         </div>
                     )
                     : (
-                    <BarChart  data={data} margin={{ top: 50, right: 20, left: 20, bottom: 40 }}>
-                        <XAxis type="category" hide={true}/>
-                        <YAxis dataKey="depth" type="number" domain={[0, 32]} hide={true}/>
-                        <Tooltip content={<CustomTooltipSoil/>}/>
-                        <Bar key={`$3`} dataKey="Rock" stackId="stack" fill={uniqueColors[3]} >
-                            <LabelList dataKey="Rock"  position="inside" content={(props) => CustomLabelBarChart(props, "Rock")}/>
-                        </Bar>
-                        <Bar key={`$2`} dataKey="ZG2B" stackId="stack" fill={uniqueColors[2]} >
-                            <LabelList dataKey="Rock"  position="inside" content={(props) => CustomLabelBarChart(props, "ZG2B")}/>
-                        </Bar>
-                        <Bar key={`$1`} dataKey="ZG2A" stackId="stack" fill={uniqueColors[1]} >
-                            <LabelList dataKey="Rock"  position="inside" content={(props) => CustomLabelBarChart(props, "ZG2A")}/>
-                        </Bar>
-                        <Bar key={`$0`} dataKey="At" stackId="stack" fill={uniqueColors[0]} >
-                            <LabelList dataKey="Rock"  position="inside" content={(props) => CustomLabelBarChart(props, "At")}/>
-                        </Bar>
-                    </BarChart>
-            )}
+                        <BarChart
+                            data={data}
+                            margin={{
+                                top: 50,
+                                right: 20,
+                                left: 20,
+                                bottom: 40
+                            }}>
+                            <XAxis
+                                type="category"
+                                hide={true}/>
+                            <YAxis
+                                dataKey="depth"
+                                type="number"
+                                domain={[0, 32]}
+                                hide={true}/>
+                            <Tooltip
+                                content={
+                                    <CustomTooltipSoil/>}/>
+                            <Bar
+                                key={`$3`}
+                                dataKey="Rock"
+                                stackId="stack"
+                                fill={uniqueColors[3]}>
+                                <LabelList
+                                    dataKey="Rock"
+                                    position="inside"
+                                    content={(props) => CustomLabelBarChart(props, "Rock")}/>
+                            </Bar>
+                            <Bar
+                                key={`$2`}
+                                dataKey="ZG2B"
+                                stackId="stack"
+                                fill={uniqueColors[2]}>
+                                <LabelList
+                                    dataKey="Rock"
+                                    position="inside"
+                                    content={(props) => CustomLabelBarChart(props, "ZG2B")}/>
+                            </Bar>
+                            <Bar
+                                key={`$1`}
+                                dataKey="ZG2A"
+                                stackId="stack"
+                                fill={uniqueColors[1]}>
+                                <LabelList
+                                    dataKey="Rock"
+                                    position="inside"
+                                    content={(props) => CustomLabelBarChart(props, "ZG2A")}/>
+                            </Bar>
+                            <Bar
+                                key={`$0`}
+                                dataKey="At"
+                                stackId="stack"
+                                fill={uniqueColors[0]}>
+                                <LabelList
+                                    dataKey="Rock"
+                                    position="inside"
+                                    content={(props) => CustomLabelBarChart(props, "At")}/>
+                            </Bar>
+                        </BarChart>
+                    )}
             </ResponsiveContainer>
         </div>
     );
@@ -1449,15 +2073,330 @@ const ChartSoil: React.FC<ChartSoil> = ({graphData}) => {
     );
 };*/
 
+
+const ChartProfileA: React.FC<ChartPropsProfileInc> = ({
+                                            graphData,
+                                            loadingData,
+                                            maxDepthOverall,
+                                            maxDepthInc,
+                                            maxData,
+                                            inc,
+                                            leftChart
+                                        }) => {
+    let data: InclinometerData[][] = ChartDataPrep(graphData);
+    let graphType: string = "A";
+    let typeOfResult: string = "Cumulative displacements"
+    let refDate: string = "Ref Date";
+    let discardHMS: boolean = false;
+    let numberOfDates: number = 0;
+    let overloadDates: boolean = false;
+    let datesData: InclinometerData[][] = data;
+    let positionXA: number = -240;
+    let positionYA: number = 25;
+    let positionXB: number = -700;
+    let positionYB: number = 25;
+
+    if (data.length > 0 && data[0].length > 0) {
+        if (data[0][0].field.split("")[1].toUpperCase() === "X") {
+            graphType = "A"
+        } else {
+            graphType = "B"
+        }
+        typeOfResult = data[0][0].typeOfResult;
+        refDate = data[0][0].time;
+        discardHMS = data[0][0].time.split(" ")[1] === "00:00:00"
+        numberOfDates = data.length
+        if (discardHMS && numberOfDates > 22) {
+            overloadDates = true;
+            let firstSlice = data.slice(0, 11)
+            let lastSlice = data.slice(numberOfDates - 12, numberOfDates)
+            datesData = [...firstSlice, ...lastSlice]
+        } else if (!discardHMS && numberOfDates > 12) {
+            overloadDates = true;
+            let firstSlice = data.slice(0, 6)
+            let lastSlice = data.slice(numberOfDates - 7, numberOfDates)
+            datesData = [...firstSlice, ...lastSlice]
+        } else {
+            overloadDates = false;
+        }
+
+        let isWideLayout = numberOfDates > 16;
+        let columnCount = isWideLayout ? Math.ceil(numberOfDates / 21) : 1;
+
+        switch (columnCount) {
+            case 1:
+                positionXA = -240;
+                positionYA = 25;
+                positionXB = -700;
+                positionYB = 25;
+                break;
+            case 2:
+                positionXA = -310;
+                positionYA = 25;
+                positionXB = -770;
+                positionYB = 25;
+                break;
+            case 3:
+                positionXA = -380;
+                positionYA = 25;
+                positionXB = -840;
+                positionYB = 25;
+                break;
+            default:
+                positionXA = -240;
+                positionYA = 25;
+                positionXB = -700;
+                positionYB = 25;
+        }
+    }
+
+    return (
+        <div
+            className="wrapper">
+            <ResponsiveContainer
+                width={leftChart ? "100%": "60%"}
+                height={640}>
+                {(graphData.length === 0 || loadingData) ? (
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                height: '100%'
+                            }}>
+                            <SyncLoader
+                                color="#22C55E"/>
+                        </div>
+                    )
+                    : (
+                        <LineChart
+                            layout="vertical"
+                            margin={{
+                                top: 45,
+                                right: 0,
+                                left: leftChart ? 60: 0,
+                                bottom: 45
+                            }}>
+
+                            <XAxis
+                                type="number"
+                                dataKey="displacement"
+                                orientation="top"
+                                domain={[-maxData, maxData]}
+                                allowDataOverflow={true}
+                                hide
+                            >
+                                <Label
+                                    value={`${graphType} (mm)`}
+                                    position="top"/>
+                            </XAxis>
+                            <YAxis
+                                dataKey="depth"
+                                domain={[0, maxDepthOverall]}
+                                allowDataOverflow={true}
+                                hide
+                            >
+                                {graphType === "A" &&
+                                    <Label
+                                        value="Depth (m)"
+                                        position="left"
+                                        angle={-90}/>}
+                            </YAxis>
+                            {graphType === "A" &&
+                                <Tooltip
+                                    content={
+                                        <CustomTooltip/>}
+                                    position={{
+                                        x: positionXA,
+                                        y: positionYA
+                                    }}/>}
+                            {graphType === "B" &&
+                                <Tooltip
+                                    content={
+                                        <CustomTooltip/>}
+                                    position={{
+                                        x: positionXB,
+                                        y: positionYB
+                                    }}/>}
+                            {leftChart &&
+                                <Legend
+                                    align="right"
+                                    verticalAlign="top"
+                                    layout="vertical"
+                                    margin={{right: 50}}
+                                    wrapperStyle={{
+                                        position: 'absolute',
+                                        left: -65,
+                                        top: 50
+                                    }}
+                                    payload={
+                                        (!overloadDates) ? (data.map((incData, i) => ({
+                                            value: discardHMS ? incData[0].time.split(" ")[0] : (
+                                                <>{incData[0].time.split(" ")[0]}
+                                                    <div>&emsp;&ensp;{incData[0].time.split(" ")[1]}</div>
+                                                </>
+                                            ),
+                                            type: 'line',
+                                            color: colorsArray[i]
+                                        }))) : ((datesData.map((incData, i) => ({
+                                                value: discardHMS ? (i !== 10 ? (incData[0].time.split(" ")[0]) : (<>{'...'}</>))
+                                                    : (i !== 6 ? (
+                                                        <>{incData[0].time.split(" ")[0]}
+                                                            <div>&emsp;&ensp;{incData[0].time.split(" ")[1]}</div>
+                                                        </>
+                                                    ) : <>{'...'}</>),
+                                                type: 'line',
+                                                color: discardHMS ? (i !== 10 ? colorsArray[i] : '000000') : (i !== 6 ? colorsArray[i] : '#000000')
+                                            })))
+                                        )
+                                    }/>}
+                            {data.map((incData, i) =>
+                                (
+                                    <Line
+                                        name={`${incData[0].time.split(" ")[0]}`}
+                                        key={`${incData[0].time}`}
+                                        type="monotone"
+                                        dataKey="displacement"
+                                        data={incData}
+                                        stroke={colorsArray[i]}
+                                        activeDot={{
+                                            r: 8,
+                                            onClick: (event, payload) => {
+                                                handleClickChart(payload)
+                                            }
+                                        }}/>
+                                ))}
+                            {typeOfResult === "Cumulative displacements" &&
+                                <ReferenceLine
+                                    //x={0}
+                                    stroke="#000000"
+                                    segment={[{ x: 0, y: 0 }, { x: 0, y: maxDepthInc}]}
+                                    >
+                                    <Label
+                                    value={`I${inc}`}
+                                    position="top"
+                                    dy={-25}
+                                    />
+                                    <Label
+                                        value={'0 (m)'}
+                                        position="top"
+                                        dy={-5}
+                                    />
+                                    <Label
+                                        value={`${maxDepthInc} (m)`}
+                                        position="bottom"
+                                        dy={5}
+                                    />
+                                    </ReferenceLine>}
+                            {leftChart &&
+                                <ReferenceLine
+                                    //x={0}
+                                    stroke="#000000"
+                                    segment={[{
+                                        x: -maxData + 5.5,
+                                        y: maxDepthOverall - 10
+                                    }, {
+                                        x: -maxData + 5.5,
+                                        y: maxDepthOverall - 0.5
+                                    }]}
+                                >
+                                    <Label
+                                        value={`Depth (m)`}
+                                        position="left"
+                                        angle={-90}
+                                        dy={-30}
+                                        dx={-10}
+                                    />
+                                </ReferenceLine>
+                            }
+                            {leftChart &&
+                                <ReferenceLine
+                                    //x={0}
+                                    stroke="#000000"
+                                    segment={[{
+                                        x: -maxData +  5.5,
+                                        y: maxDepthOverall - 10
+                                    }, {
+                                        x: -maxData + 11,
+                                        y: maxDepthOverall - 9
+                                    }]}
+                                >
+                                </ReferenceLine>
+                            }
+                            {leftChart &&
+                                <ReferenceLine
+                                    //x={0}
+                                    stroke="#000000"
+                                    segment={[{
+                                        x: -maxData + 5.5,
+                                        y: maxDepthOverall - 10
+                                    }, {
+                                        x: -maxData,
+                                        y: maxDepthOverall - 9
+                                    }]}
+                                >
+                                </ReferenceLine>
+                            }
+                            {leftChart &&
+                                <ReferenceLine
+                                    //x={0}
+                                    stroke="#000000"
+                                    segment={[{
+                                        x: -maxData + 5.5,
+                                        y: maxDepthOverall-0.5
+                                    }, {
+                                        x: -maxData+140,
+                                        y: maxDepthOverall-0.5
+                                    }]}
+                                >
+                                    <Label
+                                        value={`A (m)`}
+                                        position="bottom"
+                                        dy={0}
+                                        dx={0}
+                                    />
+                                </ReferenceLine>}
+                            {leftChart &&
+                                <ReferenceLine
+                                    //x={0}
+                                    stroke="#000000"
+                                    segment={[{
+                                        x: -maxData+140,
+                                        y: maxDepthOverall-0.5
+                                    }, {
+                                        x: -maxData+130,
+                                        y: maxDepthOverall-1
+                                    }]}
+                                />}
+                            {leftChart &&
+                                <ReferenceLine
+                                    //x={0}
+                                    stroke="#000000"
+                                    segment={[{
+                                        x: -maxData+140,
+                                        y: maxDepthOverall-0.5
+                                    }, {
+                                        x: -maxData+130,
+                                        y: maxDepthOverall
+                                    }]}
+                                />}
+                        </LineChart>
+
+                    )}
+            </ResponsiveContainer>
+        </div>
+    );
+};
+
 const calculateTopValueSlider = (numSensors: number) => {
-    return numSensors/2-0.5;
+    return numSensors / 2 - 0.5;
 }
 
 const isDateChecked = (date: string, dates: string[]) => {
     let found: boolean = false;
 
-    dates.map(d =>{
-        if(d === date){
+    dates.map(d => {
+        if (d === date) {
             found = true;
         }
     })
@@ -1468,7 +2407,7 @@ const isDateChecked = (date: string, dates: string[]) => {
 const areAllDatesChecked = (numberOfDates: number, checkedDates: string[]) => {
     let found: boolean = false;
 
-    if(checkedDates.length === numberOfDates){
+    if (checkedDates.length === numberOfDates) {
         found = true;
     }
 
@@ -1489,13 +2428,13 @@ const calculateAngle = (angle: number) => {
 
 const calculateDisplacement = (inc: string, sensorID: string, cumulative: number, refDateData: InclinometerData[]) => {
     let auxCumulative = 0;
-    for(const item of refDateData){
-        if(item.inc === inc && item.sensorID === sensorID){
+    for (const item of refDateData) {
+        if (item.inc === inc && item.sensorID === sensorID) {
             auxCumulative = item.cumulative;
         }
     }
 
-    return cumulative-auxCumulative;
+    return cumulative - auxCumulative;
 }
 
 const getRefDateData = (refDate: string, array: InclinometerData[], field: string) => {
@@ -1522,22 +2461,22 @@ const getRefDateData = (refDate: string, array: InclinometerData[], field: strin
     for (let i = 0; i < numberOfInc; i++) {
         let cumulative: number = 0;
         for (const item of auxArray[i]) {
-            if(item.time === refDate && item.field === field){
+            if (item.time === refDate && item.field === field) {
                 let val = Math.abs(calculateAngle(item.value));
                 cumulative += val;
-               const updatedItem: InclinometerData = {
-                   inc: item.inc,
-                   sensorID: item.sensorID,
-                   field: item.field,
-                   measurement: item.measurement,
-                   time: item.time,
-                   depth: getDepth(auxArray[i], Number(item.inc), item.depth),
-                   value: val,
-                   cumulative: cumulative,
-                   displacement: 0,
-                   typeOfResult: item.typeOfResult
-               };
-               newRefArray.push(updatedItem);
+                const updatedItem: InclinometerData = {
+                    inc: item.inc,
+                    sensorID: item.sensorID,
+                    field: item.field,
+                    measurement: item.measurement,
+                    time: item.time,
+                    depth: getDepth(auxArray[i], Number(item.inc), item.depth),
+                    value: val,
+                    cumulative: cumulative,
+                    displacement: 0,
+                    typeOfResult: item.typeOfResult
+                };
+                newRefArray.push(updatedItem);
             }
         }
     }
@@ -1546,8 +2485,7 @@ const getRefDateData = (refDate: string, array: InclinometerData[], field: strin
 }
 
 
-
-const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateData: InclinometerData[], selectedResult: string)  =>{
+const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateData: InclinometerData[], selectedResult: string) => {
     let data: InclinometerData[][] = [];
     let returnData: InclinometerData[] = [];
 
@@ -1567,22 +2505,22 @@ const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateDa
     let tempArray: InclinometerData[] = []
 
 
-    for(let i = 0; i < array.length; i++){
-    //array.map(g => {
-        if(array[i].field === "aX"){
-            if(array[i].time === uniqueDates[counter]){
-               tempArray.push(array[i]);
-               if(i + 1 === array.length){
-                   data[counter] = tempArray;
-                   data[counter].sort((a, b) => {
-                       if (Number(a.inc) !== Number(b.inc)) {
-                           return Number(a.inc) - Number(b.inc);
-                       }
-                       return Number(a.sensorID) - Number(b.sensorID);
-                   });
-               }
-            }else if(counter <= numberOfDates){
-                if(array[i].time === uniqueDates[counter+1]){
+    for (let i = 0; i < array.length; i++) {
+        //array.map(g => {
+        if (array[i].field === "aX") {
+            if (array[i].time === uniqueDates[counter]) {
+                tempArray.push(array[i]);
+                if (i + 1 === array.length) {
+                    data[counter] = tempArray;
+                    data[counter].sort((a, b) => {
+                        if (Number(a.inc) !== Number(b.inc)) {
+                            return Number(a.inc) - Number(b.inc);
+                        }
+                        return Number(a.sensorID) - Number(b.sensorID);
+                    });
+                }
+            } else if (counter <= numberOfDates) {
+                if (array[i].time === uniqueDates[counter + 1]) {
                     data[counter] = tempArray;
                     data[counter].sort((a, b) => {
                         if (Number(a.inc) !== Number(b.inc)) {
@@ -1597,7 +2535,7 @@ const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateDa
                 }
             }
         }
-        if(i + 1 === array.length) {
+        if (i + 1 === array.length) {
             data[counter] = tempArray;
             data[counter].sort((a, b) => {
                 if (Number(a.inc) !== Number(b.inc)) {
@@ -1661,8 +2599,8 @@ const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateDa
     for (let i = 0; i < numberOfDates; i++) {//3numberOfDates
         let cumulative: number = 0;
         for (const item of data[i]) {
-            if(Number(item.inc) === selectedInc && item.field === "aX"){
-                if(selectedResult === results[0].name) {
+            if (Number(item.inc) === selectedInc && item.field === "aX") {
+                if (selectedResult === results[0].name) {
                     let val = Math.abs(calculateAngle(item.value));
                     cumulative += val;
                     const updatedItem: InclinometerData = {
@@ -1678,7 +2616,7 @@ const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateDa
                         typeOfResult: selectedResult
                     };
                     returnData.push(updatedItem);
-                }else if(selectedResult === results[1].name) {
+                } else if (selectedResult === results[1].name) {
                     let val = Math.abs(calculateAngle(item.value));
                     cumulative += val;
                     const updatedItem: InclinometerData = {
@@ -1694,7 +2632,7 @@ const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateDa
                         typeOfResult: selectedResult
                     };
                     returnData.push(updatedItem);
-                }else if(selectedResult === results[2].name) {
+                } else if (selectedResult === results[2].name) {
                     const updatedItem: InclinometerData = {
                         inc: item.inc,
                         sensorID: item.sensorID,
@@ -1708,7 +2646,7 @@ const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateDa
                         typeOfResult: selectedResult
                     };
                     returnData.push(updatedItem);
-                }else if(selectedResult === results[3].name) {
+                } else if (selectedResult === results[3].name) {
                     const updatedItem: InclinometerData = {
                         inc: item.inc,
                         sensorID: item.sensorID,
@@ -1722,7 +2660,7 @@ const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateDa
                         typeOfResult: selectedResult
                     };
                     returnData.push(updatedItem);
-                }else if(selectedResult === results[4].name){
+                } else if (selectedResult === results[4].name) {
                     const updatedItem: InclinometerData = {
                         inc: item.inc,
                         sensorID: item.sensorID,
@@ -1746,7 +2684,7 @@ const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateDa
     return returnData;
 }
 
-const getDataArrayY = (selectedInc: number, array: InclinometerData[], refDateData: InclinometerData[], selectedResult: string)  =>{
+const getDataArrayY = (selectedInc: number, array: InclinometerData[], refDateData: InclinometerData[], selectedResult: string) => {
 
     /*const auxDate: String = "2009-09-22 00:00:00"
     const auxDate2: String = "1984-09-11 00:00:00"
@@ -1797,12 +2735,12 @@ const getDataArrayY = (selectedInc: number, array: InclinometerData[], refDateDa
     let counter = 0;
     let tempArray: InclinometerData[] = []
 
-    for(let i = 0; i < array.length; i++){
+    for (let i = 0; i < array.length; i++) {
         //array.map(g => {
-        if(array[i].field === "aY"){
-            if(array[i].time === uniqueDates[counter]){
+        if (array[i].field === "aY") {
+            if (array[i].time === uniqueDates[counter]) {
                 tempArray.push(array[i]);
-                if(i + 1 === array.length){
+                if (i + 1 === array.length) {
                     data[counter] = tempArray;
                     data[counter].sort((a, b) => {
                         if (Number(a.inc) !== Number(b.inc)) {
@@ -1811,8 +2749,8 @@ const getDataArrayY = (selectedInc: number, array: InclinometerData[], refDateDa
                         return Number(a.sensorID) - Number(b.sensorID);
                     });
                 }
-            }else if(counter <= numberOfDates){
-                if(array[i].time === uniqueDates[counter+1]){
+            } else if (counter <= numberOfDates) {
+                if (array[i].time === uniqueDates[counter + 1]) {
                     data[counter] = tempArray;
                     data[counter].sort((a, b) => {
                         if (Number(a.inc) !== Number(b.inc)) {
@@ -1827,7 +2765,7 @@ const getDataArrayY = (selectedInc: number, array: InclinometerData[], refDateDa
                 }
             }
         }
-        if(i + 1 === array.length) {
+        if (i + 1 === array.length) {
             data[counter] = tempArray;
             data[counter].sort((a, b) => {
                 if (Number(a.inc) !== Number(b.inc)) {
@@ -1841,8 +2779,8 @@ const getDataArrayY = (selectedInc: number, array: InclinometerData[], refDateDa
     for (let i = 0; i < numberOfDates; i++) {
         let cumulative: number = 0;
         for (const item of data[i]) {
-            if(Number(item.inc) === selectedInc && item.field === "aY"){
-                if(selectedResult === results[0].name) {
+            if (Number(item.inc) === selectedInc && item.field === "aY") {
+                if (selectedResult === results[0].name) {
                     let val = Math.abs(calculateAngle(item.value));
                     cumulative += val;
                     const updatedItem: InclinometerData = {
@@ -1858,7 +2796,7 @@ const getDataArrayY = (selectedInc: number, array: InclinometerData[], refDateDa
                         typeOfResult: selectedResult
                     };
                     returnData.push(updatedItem);
-                }else if(selectedResult === results[1].name) {
+                } else if (selectedResult === results[1].name) {
                     let val = Math.abs(calculateAngle(item.value));
                     cumulative += val;
                     const updatedItem: InclinometerData = {
@@ -1874,7 +2812,7 @@ const getDataArrayY = (selectedInc: number, array: InclinometerData[], refDateDa
                         typeOfResult: selectedResult
                     };
                     returnData.push(updatedItem);
-                }else if(selectedResult === results[2].name) {
+                } else if (selectedResult === results[2].name) {
                     const updatedItem: InclinometerData = {
                         inc: item.inc,
                         sensorID: item.sensorID,
@@ -1888,7 +2826,7 @@ const getDataArrayY = (selectedInc: number, array: InclinometerData[], refDateDa
                         typeOfResult: selectedResult
                     };
                     returnData.push(updatedItem);
-                }else if(selectedResult === results[3].name) {
+                } else if (selectedResult === results[3].name) {
                     const updatedItem: InclinometerData = {
                         inc: item.inc,
                         sensorID: item.sensorID,
@@ -1902,7 +2840,7 @@ const getDataArrayY = (selectedInc: number, array: InclinometerData[], refDateDa
                         typeOfResult: selectedResult
                     };
                     returnData.push(updatedItem);
-                }else if(selectedResult === results[4].name){
+                } else if (selectedResult === results[4].name) {
                     const updatedItem: InclinometerData = {
                         inc: item.inc,
                         sensorID: item.sensorID,
@@ -1930,7 +2868,7 @@ const getFiveMostRecent = (data: InclinometerData[][]) => {
     let refDate = data[0];
     let revData = data.reverse();
 
-    for(let i = 0; i < 5; i++){
+    for (let i = 0; i < 5; i++) {
         newData.push(revData[i])
     }
     newData.push(refDate);
@@ -1944,7 +2882,7 @@ const getFiveMostRecentClock = (data: ABData[][]) => {
     let refDate = data[0];
     let revData = data.reverse();
 
-    for(let i = 0; i < 5; i++){
+    for (let i = 0; i < 5; i++) {
         newData.push(revData[i])
     }
     newData.push(refDate);
@@ -1984,7 +2922,7 @@ const filterTestData = (data: InclinometerData[]): InclinometerData[] => {
 
     data.map((d, index) => {
         const currentTimestamp = d.time;
-        if(d.field === "aX"){
+        if (d.field === "aX") {
             if (prevTimestampX !== null) {
                 const prevTimeComponents = prevTimestampX.split(":");
                 const currentTimeComponents = currentTimestamp.split(":");
@@ -1998,7 +2936,7 @@ const filterTestData = (data: InclinometerData[]): InclinometerData[] => {
                 if (timeDifference >= interval) {
                     filteredData.push(d);
                     prevTimestampX = currentTimestamp;
-                }else if(timeDifference === 0){
+                } else if (timeDifference === 0) {
                     filteredData.push(d);
                     prevTimestampX = currentTimestamp;
                 }
@@ -2006,7 +2944,7 @@ const filterTestData = (data: InclinometerData[]): InclinometerData[] => {
                 filteredData.push(d);
                 prevTimestampX = currentTimestamp;
             }
-        }else if(d.field === "aY"){
+        } else if (d.field === "aY") {
             if (prevTimestampY !== null) {
                 const prevTimeComponents = prevTimestampY.split(":");
                 const currentTimeComponents = currentTimestamp.split(":");
@@ -2020,7 +2958,7 @@ const filterTestData = (data: InclinometerData[]): InclinometerData[] => {
                 if (timeDifference >= interval) {
                     filteredData.push(d);
                     prevTimestampY = currentTimestamp;
-                }else if(timeDifference === 0){
+                } else if (timeDifference === 0) {
                     filteredData.push(d);
                     prevTimestampX = currentTimestamp;
                 }
@@ -2036,7 +2974,7 @@ const filterTestData = (data: InclinometerData[]): InclinometerData[] => {
 
 const exportSVG = (svg: SVGElement, graphName: string) => {
     const svgString = new XMLSerializer().serializeToString(svg);
-    const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const blob = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
 
     if (typeof window.saveAs === 'function') {
         window.saveAs(blob, 'chart-export.svg');
@@ -2050,7 +2988,7 @@ const exportSVG = (svg: SVGElement, graphName: string) => {
     }
 };
 
-const exportCSV = (data:InclinometerData[]) => {
+const exportCSV = (data: InclinometerData[]) => {
     /*const dataToExport = data;
 
     const csvString = parse(dataToExport);
@@ -2065,8 +3003,415 @@ const exportCSV = (data:InclinometerData[]) => {
     URL.revokeObjectURL(link.href);*/
 };
 
+/*
+ * PROFILE SECTION
+ */
 
-function ResultsVisualization(){
+function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
+    if (typeof b[orderBy] === 'number' && typeof a[orderBy] === 'number') {
+        if (Number(b[orderBy]) - Number(a[orderBy]) < 0) {
+            return -1;
+        }
+        if (Number(b[orderBy]) - Number(a[orderBy]) > 0) {
+            return 1;
+        }
+        return 0;
+    }else{
+        if (b[orderBy] < a[orderBy]) {
+            return -1;
+        }
+        if (b[orderBy] > a[orderBy]) {
+            return 1;
+        }
+        return 0;
+    }
+}
+
+type Order = 'asc' | 'desc';
+
+function getComparator<Key extends keyof any>(
+    order: Order,
+    orderBy: Key,
+): (
+    a: { [key in Key]: number | string },
+    b: { [key in Key]: number | string },
+) => number {
+    return order === 'desc'
+        ? (a, b) => descendingComparator(a, b, orderBy)
+        : (a, b) => -descendingComparator(a, b, orderBy);
+}
+
+function EnhancedTableHead(props: EnhancedTableProps) {
+    const { order, orderBy, rowCount, onRequestSort } =
+        props;
+    const createSortHandler =
+        (property: keyof TableData) => (event: React.MouseEvent<unknown>) => {
+            onRequestSort(event, property);
+        };
+
+    return (
+        <TableHead>
+            <TableRow>
+                {headCells.map((headCell) => (
+                    <TableCell
+                        key={headCell.id}
+                        align={'center'}//{headCell.numeric ? 'right' : 'left'}
+                        padding={'normal'}//{headCell.disablePadding ? 'none' : 'normal'}
+                        sortDirection={orderBy === headCell.id ? order : false}
+                        sx={{ backgroundColor: '#22c55e' }}
+                    >
+                        <TableSortLabel
+                            active={orderBy === headCell.id}
+                            direction={orderBy === headCell.id ? order : 'asc'}
+                            onClick={createSortHandler(headCell.id)}
+                        >
+                            {headCell.label}
+                            {orderBy === headCell.id ? (
+                                <Box component="span" sx={visuallyHidden}>
+                                    {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                                </Box>
+                            ) : null}
+                        </TableSortLabel>
+                    </TableCell>
+                ))}
+            </TableRow>
+        </TableHead>
+    );
+}
+
+
+function EnhancedTableHeadA(props: EnhancedTablePropsA) {
+    const { order, orderBy, rowCount, onRequestSort } =
+        props;
+    const createSortHandler =
+        (property: keyof TableDataA) => (event: React.MouseEvent<unknown>) => {
+            onRequestSort(event, property);
+        };
+
+    return (
+        <TableHead>
+            <TableRow>
+                {headCellsA.map((headCell) => (
+                    <TableCell
+                        key={headCell.id}
+                        align={'center'}//{headCell.numeric ? 'right' : 'left'}
+                        padding={'normal'}//{headCell.disablePadding ? 'none' : 'normal'}
+                        sortDirection={orderBy === headCell.id ? order : false}
+                        sx={{ backgroundColor: '#22c55e' }}
+                    >
+                        <TableSortLabel
+                            active={orderBy === headCell.id}
+                            direction={orderBy === headCell.id ? order : 'asc'}
+                            onClick={createSortHandler(headCell.id)}
+                        >
+                            {headCell.label}
+                            {orderBy === headCell.id ? (
+                                <Box component="span" sx={visuallyHidden}>
+                                    {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                                </Box>
+                            ) : null}
+                        </TableSortLabel>
+                    </TableCell>
+                ))}
+            </TableRow>
+        </TableHead>
+    );
+}
+
+
+function EnhancedTableHeadB(props: EnhancedTablePropsB) {
+    const { order, orderBy, rowCount, onRequestSort } =
+        props;
+    const createSortHandler =
+        (property: keyof TableDataB) => (event: React.MouseEvent<unknown>) => {
+            onRequestSort(event, property);
+        };
+
+    return (
+        <TableHead>
+            <TableRow>
+                {headCellsB.map((headCell) => (
+                    <TableCell
+                        key={headCell.id}
+                        align={'center'}//{headCell.numeric ? 'right' : 'left'}
+                        padding={'normal'}//{headCell.disablePadding ? 'none' : 'normal'}
+                        sortDirection={orderBy === headCell.id ? order : false}
+                        sx={{ backgroundColor: '#22c55e' }}
+                    >
+                        <TableSortLabel
+                            active={orderBy === headCell.id}
+                            direction={orderBy === headCell.id ? order : 'asc'}
+                            onClick={createSortHandler(headCell.id)}
+                        >
+                            {headCell.label}
+                            {orderBy === headCell.id ? (
+                                <Box component="span" sx={visuallyHidden}>
+                                    {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                                </Box>
+                            ) : null}
+                        </TableSortLabel>
+                    </TableCell>
+                ))}
+            </TableRow>
+        </TableHead>
+    );
+}
+
+const getTableValues = (selectedInc: number, arrayX: InclinometerData[], arrayY: InclinometerData[], refDateDataX: InclinometerData[], refDateDataY: InclinometerData[], selectedResult: string, selectedLocation: string) : InclinometerData[][] => {
+
+    let dataX: InclinometerData[][] = [];
+    let dataY: InclinometerData[][] = [];
+    //let dataTotal: InclinometerData[][] = [];
+    let returnData: InclinometerData[] = [];
+    let returnDataX: InclinometerData[] = [];
+    let returnDataY: InclinometerData[] = [];
+    let returnDataTotal: InclinometerData[] = [];
+    let returnDataArray: InclinometerData[][] = [];
+
+
+    const uniqueDates = getUniqueDates(arrayX)
+    const numberOfDates = uniqueDates.length;
+
+    arrayX.sort((date1, date2) => {
+        if (date1.time < date2.time) {
+            return -1;
+        } else if (date1.time > date2.time) {
+            return 1;
+        } else {
+            return 0;
+        }
+    })
+    arrayY.sort((date1, date2) => {
+        if (date1.time < date2.time) {
+            return -1;
+        } else if (date1.time > date2.time) {
+            return 1;
+        } else {
+            return 0;
+        }
+    })
+
+    let counterX = 0;
+    let tempArrayX: InclinometerData[] = []
+
+    for (let i = 0; i < arrayX.length; i++) {
+        //array.map(g => {
+        if (arrayX[i].field === "aX") {
+            if (arrayX[i].time === uniqueDates[counterX]) {
+                tempArrayX.push(arrayX[i]);
+                if (i + 1 === arrayX.length) {
+                    dataX[counterX] = tempArrayX;
+                    dataX[counterX].sort((a, b) => {
+                        if (Number(a.inc) !== Number(b.inc)) {
+                            return Number(a.inc) - Number(b.inc);
+                        }
+                        return Number(a.sensorID) - Number(b.sensorID);
+                    });
+                }
+            } else if (counterX <= numberOfDates) {
+                if (arrayX[i].time === uniqueDates[counterX + 1]) {
+                    dataX[counterX] = tempArrayX;
+                    dataX[counterX].sort((a, b) => {
+                        if (Number(a.inc) !== Number(b.inc)) {
+                            return Number(a.inc) - Number(b.inc);
+                        }
+                        return Number(a.sensorID) - Number(b.sensorID);
+                    });
+                    //.sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
+                    tempArrayX = [];
+                    tempArrayX.push(arrayX[i])
+                    counterX++;
+                }
+            }
+        }
+        if (i + 1 === arrayX.length) {
+            dataX[counterX] = tempArrayX;
+            dataX[counterX].sort((a, b) => {
+                if (Number(a.inc) !== Number(b.inc)) {
+                    return Number(a.inc) - Number(b.inc);
+                }
+                return Number(a.sensorID) - Number(b.sensorID);
+            });
+        }
+    }
+
+    let counterY = 0;
+    let tempArrayY: InclinometerData[] = []
+
+    for (let i = 0; i < arrayY.length; i++) {
+        //array.map(g => {
+        if (arrayY[i].field === "aY") {
+            if (arrayY[i].time === uniqueDates[counterY]) {
+                tempArrayY.push(arrayY[i]);
+                if (i + 1 === arrayY.length) {
+                    dataY[counterY] = tempArrayY;
+                    dataY[counterY].sort((a, b) => {
+                        if (Number(a.inc) !== Number(b.inc)) {
+                            return Number(a.inc) - Number(b.inc);
+                        }
+                        return Number(a.sensorID) - Number(b.sensorID);
+                    });
+                }
+            } else if (counterY <= numberOfDates) {
+                if (arrayY[i].time === uniqueDates[counterY + 1]) {
+                    dataY[counterY] = tempArrayY;
+                    dataY[counterY].sort((a, b) => {
+                        if (Number(a.inc) !== Number(b.inc)) {
+                            return Number(a.inc) - Number(b.inc);
+                        }
+                        return Number(a.sensorID) - Number(b.sensorID);
+                    });
+                    //.sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
+                    tempArrayY = [];
+                    tempArrayY.push(arrayY[i])
+                    counterY++;
+                }
+            }
+        }
+        if (i + 1 === arrayY.length) {
+            dataY[counterY] = tempArrayY;
+            dataY[counterY].sort((a, b) => {
+                if (Number(a.inc) !== Number(b.inc)) {
+                    return Number(a.inc) - Number(b.inc);
+                }
+                return Number(a.sensorID) - Number(b.sensorID);
+            });
+        }
+    }
+
+    let maxSensor = getNumberOfSensors(arrayX, selectedInc);
+
+    for (let i = 0; i < numberOfDates; i++) {
+        let cumulative: number = 0;
+        for (const item of dataX[i]) {
+            if (Number(item.inc) === selectedInc && item.field === "aX") {
+                if (selectedResult === resultsProfiles[0].name) {
+                    let val = Math.abs(calculateAngle(item.value));
+                    cumulative += val;
+                    const updatedItem: InclinometerData = {
+                        inc: item.inc,
+                        sensorID: item.sensorID,
+                        field: item.field,
+                        measurement: item.measurement,
+                        time: item.time,
+                        depth: getDepth(dataX[i], Number(item.inc), item.depth),
+                        value: val,
+                        cumulative: cumulative,
+                        displacement: calculateDisplacement(item.inc, item.sensorID, cumulative, refDateDataX),
+                        typeOfResult: selectedResult
+                    };
+                    if(maxSensor === Number(item.sensorID)){
+                        returnData.push(updatedItem);
+                        returnDataX.push(updatedItem);
+                    }
+                } else if (selectedResult === resultsProfiles[1].name) {
+                    if(maxSensor === Number(item.sensorID)){
+                        const updatedItem: InclinometerData = {
+                            inc: item.inc,
+                            sensorID: item.sensorID,
+                            field: item.field,
+                            measurement: item.measurement,
+                            time: item.time,
+                            depth: getDepth(dataX[i], Number(item.inc), item.depth),
+                            value: calculateAngle(item.value),
+                            cumulative: 0,
+                            displacement: calculateAngle(item.value),
+                            typeOfResult: selectedResult
+                        };
+                        returnData.push(updatedItem);
+                        returnDataX.push(updatedItem);
+                    }
+                }
+            }
+        }
+    }
+
+    for (let i = 0; i < numberOfDates; i++) {
+        let cumulativeY: number = 0;
+        for (const item of dataY[i]) {
+            if (Number(item.inc) === selectedInc && item.field === "aY") {
+                if (selectedResult === resultsProfiles[0].name) {
+                    let val = Math.abs(calculateAngle(item.value));
+                    cumulativeY += val;
+
+                    const updatedItem: InclinometerData = {
+                        inc: item.inc,
+                        sensorID: item.sensorID,
+                        field: item.field,
+                        measurement: item.measurement,
+                        time: item.time,
+                        depth: getDepth(dataY[i], Number(item.inc), item.depth),
+                        value: val,
+                        cumulative: cumulativeY,
+                        displacement: calculateDisplacement(item.inc, item.sensorID, cumulativeY, refDateDataY),
+                        typeOfResult: selectedResult
+                    };
+                    if(maxSensor === Number(item.sensorID)){
+                        returnData.push(updatedItem);
+                        returnDataY.push(updatedItem);
+                    }
+                } else if (selectedResult === resultsProfiles[1].name) {
+                    if(maxSensor === Number(item.sensorID)){
+                        const updatedItem: InclinometerData = {
+                            inc: item.inc,
+                            sensorID: item.sensorID,
+                            field: item.field,
+                            measurement: item.measurement,
+                            time: item.time,
+                            depth: getDepth(dataY[i], Number(item.inc), item.depth),
+                            value: calculateAngle(item.value),
+                            cumulative: 0,
+                            displacement: calculateAngle(item.value),
+                            typeOfResult: selectedResult
+                        };
+                        returnData.push(updatedItem);
+                        returnDataY.push(updatedItem);
+                    }
+                }
+            }
+        }
+    }
+
+    for (let i = 0; i < numberOfDates; i++) {
+        let tempData = returnData;
+        let found = false;
+        tempData.map(g => {
+            if (g.time === uniqueDates[i]) {
+                tempData.map(y => {
+                    if (g.sensorID === y.sensorID && g.time === y.time && g.field !== y.field && !found) {
+                        //g.field = "total"
+                        //g.displacement = calculateTotal(g.displacement, y.displacement);
+                        const updatedItem: InclinometerData = {
+                            inc: g.inc,
+                            sensorID: g.sensorID,
+                            field: "total",
+                            measurement: g.measurement,
+                            time: g.time,
+                            depth: getDepth(dataX[i], Number(g.inc), g.depth),
+                            value: calculateAngle(g.value),
+                            cumulative: 0,
+                            displacement: calculateTotal(g.displacement, y.displacement),
+                            typeOfResult: selectedResult
+                        };
+                        returnData.push(updatedItem);
+                        returnDataTotal.push(updatedItem);
+                        found = true;
+                    }
+                })
+            }
+        })
+    }
+
+    returnDataArray.push(returnData);
+    returnDataArray.push(returnDataX);
+    returnDataArray.push(returnDataY);
+    returnDataArray.push(returnDataTotal);
+
+    return returnDataArray;
+};
+
+
+function ResultsVisualization() {
 
     const [arrayInitialized, setArrayInitialized] = useState(false);
     const [dataArrayX, setDataArrayX] = useState<InclinometerData[]>([]);
@@ -2099,7 +3444,7 @@ function ResultsVisualization(){
     const [topValueSlider, setTopValueSlider] = useState<number>(32)
     const [lowerValueSlider, setLowerValueSlider] = useState<number>(0)
     const [stepValueSlider, setStepValueSlider] = useState<number>(5)
-    const [selectedValuesSlider, setSelectedValuesSlider] = useState<number[]>([0,32])
+    const [selectedValuesSlider, setSelectedValuesSlider] = useState<number[]>([0, 32])
 
     const [lastToggleRef, setLastToggleRef] = useState<number>(0);
     const [toggleIntervalRef, setToggleIntervalRef] = useState(false);
@@ -2112,7 +3457,7 @@ function ResultsVisualization(){
         setLoadingData(true)
         if (selectedMeasurement === "PK150_PK200") {
             fetchData();
-        }else if(selectedMeasurement === "PK250_PK300"){
+        } else if (selectedMeasurement === "PK250_PK300") {
             fetchTestData()
         }
     }, [selectedMeasurement]);
@@ -2126,17 +3471,17 @@ function ResultsVisualization(){
 
     useEffect(() => {
         if (!arrayInitialized && (dataArrayX.length > 0 || dataArrayY.length > 0)) {
-            setMaxDepthInc((getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer))/2)-0.5);
-            setMaxDepthGraph((getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer))/2)-0.5);
+            setMaxDepthInc((getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer)) / 2) - 0.5);
+            setMaxDepthGraph((getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer)) / 2) - 0.5);
             setMinDepthGraph(0);
 
-            setTopValueSlider((getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer))/2)-0.5);
+            setTopValueSlider((getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer)) / 2) - 0.5);
             setLowerValueSlider(0);
 
             setSelectedFirstDesiredDepth(0);
-            setSelectedLastDesiredDepth((getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer))/2)-0.5);
+            setSelectedLastDesiredDepth((getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer)) / 2) - 0.5);
             setOriginalFirstDesiredDepth(0);
-            setOriginalLastDesiredDepth((getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer))/2)-0.5);
+            setOriginalLastDesiredDepth((getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer)) / 2) - 0.5);
             //setSelectedAXChartData(getDataArrayX(1, dataArrayX, refDateDataX, selectedResults.name));
             //setSelectedAYChartData(getDataArrayY(1, dataArrayY, refDateDataY, selectedResults.name));
 
@@ -2189,7 +3534,7 @@ function ResultsVisualization(){
     }
 
     const defineInitialValues = (mappedData: InclinometerData[]) => {
-        if(selectedMeasurement === "PK250_PK300"){
+        if (selectedMeasurement === "PK250_PK300") {
             let auxRefDate = getRefDate(mappedData);
             setRefDate(auxRefDate);
             setRefDateDataX(getRefDateData(auxRefDate, mappedData, "aX"));
@@ -2221,21 +3566,21 @@ function ResultsVisualization(){
             setSelectedInclinometer(1);
 
 
-            setMaxDepthInc((getNumberOfSensors(newTestData, Number(1))/2)-0.5);
-            setMaxDepthGraph((getNumberOfSensors(newTestData, Number(1))/2)-0.5);
+            setMaxDepthInc((getNumberOfSensors(newTestData, Number(1)) / 2) - 0.5);
+            setMaxDepthGraph((getNumberOfSensors(newTestData, Number(1)) / 2) - 0.5);
             setMinDepthGraph(0);
 
-            setTopValueSlider((getNumberOfSensors(newTestData, Number(1))/2)-0.5);
+            setTopValueSlider((getNumberOfSensors(newTestData, Number(1)) / 2) - 0.5);
             setLowerValueSlider(0);
 
             setSelectedFirstDesiredDepth(0);
-            setSelectedLastDesiredDepth((getNumberOfSensors(newTestData, Number(1))/2)-0.5);
+            setSelectedLastDesiredDepth((getNumberOfSensors(newTestData, Number(1)) / 2) - 0.5);
             setOriginalFirstDesiredDepth(0);
-            setOriginalLastDesiredDepth((getNumberOfSensors(newTestData, Number(1))/2)-0.5);
+            setOriginalLastDesiredDepth((getNumberOfSensors(newTestData, Number(1)) / 2) - 0.5);
             handleStepSlider();
 
 
-        }else{
+        } else {
             let auxRefDate = getRefDate(mappedData);
             setRefDate(auxRefDate);
             setRefDateDataX(getRefDateData(auxRefDate, mappedData, "aX"));
@@ -2313,7 +3658,7 @@ function ResultsVisualization(){
 
     const handleSelectedResults = (type: string) => {
         let selectedType;
-        switch(type){
+        switch (type) {
             case results[0].name:
                 selectedType = results[0];
                 break;
@@ -2340,7 +3685,7 @@ function ResultsVisualization(){
     }
 
     useEffect(() => {
-        if(filteredDataArrayX.length === dataArrayX.length && filteredDataArrayX.length > 0 && defaultDatesGraph){
+        if (filteredDataArrayX.length === dataArrayX.length && filteredDataArrayX.length > 0 && defaultDatesGraph) {
             defaultCheckedDates();
         }
     }, [filteredDataArrayX]);
@@ -2364,7 +3709,7 @@ function ResultsVisualization(){
 
         let revDates = numberOfDates.reverse();
 
-        for(let i = 0; i < 5; i++){
+        for (let i = 0; i < 5; i++) {
             let newDateToAddX = revDataX.filter(item => item.time === revDates[i])
             let newDateToAddY = revDataY.filter(item => item.time === revDates[i])
             defaultDataX = defaultDataX.concat(newDateToAddX);
@@ -2392,10 +3737,10 @@ function ResultsVisualization(){
     const handleAllDatesCheck = () => {
         const areAllChecked = areAllDatesChecked(numberOfDates.length, checkedDates);
 
-        if(areAllChecked) {
+        if (areAllChecked) {
             setCheckedDates(initialCheckedDates);
             defaultCheckedDates();
-        }else{
+        } else {
             setCheckedDates(numberOfDates);
             setFilteredDataArrayX(dataArrayX)
             setFilteredDataArrayY(dataArrayY)
@@ -2418,14 +3763,14 @@ function ResultsVisualization(){
 
         setCheckedDates(updatedDates);
 
-        if(isChecked){
+        if (isChecked) {
             const updatedFilteredDataArrayX = filteredDataArrayX.filter(data => data.time !== value);
             const updatedFilteredDataArrayY = filteredDataArrayY.filter(data => data.time !== value);
             setFilteredDataArrayX(updatedFilteredDataArrayX)
             setFilteredDataArrayY(updatedFilteredDataArrayY)
             handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name)
             handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name)
-        }else if(!isChecked && !filteredDataArrayX.some(item => item.time === value)){
+        } else if (!isChecked && !filteredDataArrayX.some(item => item.time === value)) {
             const oldValuesX = dataArrayX.filter(item => item.time === value);
             const oldValuesY = dataArrayX.filter(item => item.time === value);
             const updatedFilteredDataArrayX = filteredDataArrayX.concat(oldValuesX);
@@ -2467,7 +3812,7 @@ function ResultsVisualization(){
         handleSelectedAXChartData(inc, selectedResults.name);
         handleSelectedAYChartData(inc, selectedResults.name);
         handleStepSlider();
-        let maxDepth = (getNumberOfSensors(filteredDataArrayX, inc)/2)-0.5;
+        let maxDepth = (getNumberOfSensors(filteredDataArrayX, inc) / 2) - 0.5;
 
         setMaxDepthInc(maxDepth);
         setTopValueSlider(maxDepth);
@@ -2494,8 +3839,8 @@ function ResultsVisualization(){
         setSelectedDepth(Number(desiredDepth));
     }, [desiredDepth]);
 
-    const handleStepSlider = () =>{
-        let maxDepth = (getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer))/2)-0.5;
+    const handleStepSlider = () => {
+        let maxDepth = (getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer)) / 2) - 0.5;
         setStepValueSlider(1);//100/Math.ceil(maxDepth));
     }
 
@@ -2548,7 +3893,7 @@ function ResultsVisualization(){
     };
 
     const handleFirstDateInterval = (year: number | undefined, month: number | undefined, day: number | undefined) => {
-        if(year !== undefined && month !== undefined && day !== undefined){
+        if (year !== undefined && month !== undefined && day !== undefined) {
             let date = year + "-" + month + "-" + day;
             setFilteredDataArrayX(getIntervalDates(dataArrayX, date, getMostRecentDate(filteredDataArrayX)));
             setFilteredDataArrayY(getIntervalDates(dataArrayY, date, getMostRecentDate(filteredDataArrayY)));
@@ -2558,7 +3903,7 @@ function ResultsVisualization(){
     };
 
     const handleLastDateInterval = (year: number | undefined, month: number | undefined, day: number | undefined) => {
-        if(year !== undefined && month !== undefined && day !== undefined){
+        if (year !== undefined && month !== undefined && day !== undefined) {
             let date = year + "-" + month + "-" + day;
             setFilteredDataArrayX(getIntervalDates(dataArrayX, getRefDate(filteredDataArrayX), date));
             setFilteredDataArrayY(getIntervalDates(dataArrayY, getRefDate(filteredDataArrayY), date));
@@ -2610,7 +3955,7 @@ function ResultsVisualization(){
         setSelectedFirstDesiredDepth(originalFirstDesiredDepth)
         setSelectedLastDesiredDepth(originalLastDesiredDepth)
         setSelectedValuesSlider([0, (getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer))/2)-0.5])*/
-        let maxDepth = (getNumberOfSensors(filteredDataArrayX, selectedInclinometer.valueOf())/2)-0.5;
+        let maxDepth = (getNumberOfSensors(filteredDataArrayX, selectedInclinometer.valueOf()) / 2) - 0.5;
         console.log(maxDepth)
         setMinDepthGraph(0)
         setLowerValueSlider(0)
@@ -2629,7 +3974,7 @@ function ResultsVisualization(){
         setSelectedFirstDesiredDepth(originalFirstDesiredDepth)
         setSelectedLastDesiredDepth(originalLastDesiredDepth)
         setSelectedValuesSlider([0, (getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer))/2)-0.5])*/
-        let maxDepth = (getNumberOfSensors(filteredDataArrayX, inc)/2)-0.5;
+        let maxDepth = (getNumberOfSensors(filteredDataArrayX, inc) / 2) - 0.5;
         console.log(maxDepth)
         setMinDepthGraph(0)
         setLowerValueSlider(0)
@@ -2680,32 +4025,32 @@ function ResultsVisualization(){
     const [selectedChartDataTemp, setSelectedChartDataTemp] = useState<InclinometerData[]>(auxDataTemp);
 
     const handleToogleTotalChart = () => {
-        if(toggleTotalChart){
+        if (toggleTotalChart) {
             handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name)
             setToggleTotalChart(false)
             setToggleTempChart(false)
-        }else{
+        } else {
             setToggleTotalChart(true)
         }
     };
 
     const handleToogleTempChart = () => {
-        if(toggleTempChart){
+        if (toggleTempChart) {
             setToggleTempChart(false)
-        }else{
+        } else {
             setToggleTempChart(true)
         }
     };
 
     const handleEarliestDate = (type: boolean) => {
         setToggleIntervalRef(type);
-            //set ref earliest date
+        //set ref earliest date
     };
 
     const handleToogleSelectDates = () => {
-        if(toggleSelectDates){
+        if (toggleSelectDates) {
             setToggleSelectDates(false)
-        }else{
+        } else {
             let uniqueD = getUniqueDates(filteredDataArrayX)
             setCheckedDates(uniqueD)
             /*console.log(checkedDates)
@@ -2720,18 +4065,18 @@ function ResultsVisualization(){
     };
 
     const handleToogleDepthInterval = () => {
-        if(toggleDepthInterval){
+        if (toggleDepthInterval) {
             setToggleDepthInterval(false)
-        }else{
+        } else {
             setToggleDepthInterval(true)
         }
     };
 
-    const handleToogleReference = (n: number) =>{
-       if(n === lastToggleRef){
-           return true;
-       }
-       return false;
+    const handleToogleReference = (n: number) => {
+        if (n === lastToggleRef) {
+            return true;
+        }
+        return false;
     }
 
     const handleGetClosestDate = (date: string) => {
@@ -2753,7 +4098,6 @@ function ResultsVisualization(){
     }
 
 
-
     const chartClock = useRef<HTMLDivElement>(null);
     const chartAXRef = useRef<HTMLDivElement>(null);
     const chartAYRef = useRef<HTMLDivElement>(null);
@@ -2768,7 +4112,7 @@ function ResultsVisualization(){
     const handleExportSVG = () => {
         let chartRef;
         let graphName;
-        switch (selectedGraphExport){
+        switch (selectedGraphExport) {
             case "A":
                 chartRef = chartAXRef;
                 graphName = "A"
@@ -2802,9 +4146,388 @@ function ResultsVisualization(){
         }
     };
 
+    /*
+     * PROFILES SECTION
+     */
+
+    const [selectedResultsProfiles, setSelectedResultsProfiles] = useState(resultsProfiles[0]);
+
+    const handleSelectedResultsProfiles = (type: string) => {
+        let selectedType;
+        switch (type) {
+            case results[0].name:
+                selectedType = results[0];
+                break;
+            case results[1].name:
+                selectedType = results[1];
+                break;
+            default:
+                selectedType = results[0];
+                break;
+        }
+
+        setSelectedResultsProfiles(selectedType)
+    }
+
+    const [profileInitialized, setProfileInitialized] = useState(false);
+    const [selectedProfile, setSelectedProfile] = useState(profiles[0]);
+    const [selectedOrthoDirection, setSelectedOrthoDirection] = useState(orthoDirection[0]);
+    const [selectedLocation, setSelectedLocation] = useState(locations[0]);
+    const [toggleArrows, setToggleArrows] = useState(false);
+    const [arrowsAPointValues, setArrowsAPointValues] = useState<InclinometerData[][]>([]);
+    const [arrowsBPointValues, setArrowsBPointValues] = useState<InclinometerData[][]>([]);
+    const [arrowsTotalPointValues, setArrowsTotalPointValues] = useState<InclinometerData[][]>([]);
+
+    const [profileIncChart, setProfileIncChart] = useState<number[]>([1,3,6,9]);
+    const [depthProfilesArray, setDepthProfilesArray] = useState<number[]>([31.5,39.5,51,34.5]);
+    const [maxProfileDepth, setMaxProfileDepth] = useState<number>(51);
+    const [maxProfileDisplacement, setMaxProfileDisplacement] = useState<number>(131.85);
+    const [selectedProfileArrayChartData, setSelectedProfileArrayChartData] = useState<InclinometerData[][]>([]);
+
+    const stageRef = useRef<Konva.Stage | null>(null);
+    const arrowLayerRef = useRef<Konva.Layer | null>(null);
+
+    useEffect(() => {
+        if(selectedVisualization.name === visualization[1].name && !profileInitialized){
+            updateTableData();
+            setTimeout(function() {
+                const stage = new Konva.Stage({
+                    container: 'konvaContainer',
+                    width: 600,
+                    height: 400
+                });
+                stageRef.current = stage;
+                setProfileInitialized(true)
+
+                let backgroundLayer = new Konva.Layer();
+                stage.add(backgroundLayer);
+
+                let backgroundImage = new Image();
+                backgroundImage.onload = function () {
+                    let background = new Konva.Image({
+                        image: backgroundImage,
+                        width: stage.width(),
+                        height: stage.height(),
+                    });
+                    backgroundLayer.add(background);
+
+                    let border = new Konva.Rect({
+                        x: 0,
+                        y: 0,
+                        width: stage.width(),
+                        height: stage.height(),
+                        stroke: 'black',
+                        strokeWidth: 2,
+                    });
+                    backgroundLayer.add(border);
+                    backgroundLayer.draw();
+                };
+                backgroundImage.src = '/profiles/imagePlan3.png';
+
+                let layer = new Konva.Layer({
+                    scaleX: 1,
+                    scaleY: 1,
+                    rotation: 5,
+                });
+                stage.add(layer);
+
+                let group = new Konva.Group({
+                    x: 30,
+                    rotation: 10,
+                    scaleX: 1,
+                });
+                layer.add(group);
+
+                let posCounter = 0;
+                for(let i = 0; i < 9; i++){
+                    let shape = new Konva.Circle({
+                        x: profilePosArray[posCounter],
+                        y: profilePosArray[posCounter+1],
+                        fill: 'red',
+                        radius: 5,
+                    });
+                    group.add(shape);
+                    posCounter += 2;
+                }
+                /*stage.on('click', function () {
+                    let pos = group.getRelativePointerPosition();
+                    if(pos !== null){
+                        let shape = new Konva.Circle({
+                            x: pos.x,
+                            y: pos.y,
+                            fill: 'red',
+                            radius: 5,
+                        });
+                        console.log(pos.x + " | " + pos.y)
+                        group.add(shape);
+                    }
+                });*/
+
+
+            },1);
+        }else if(selectedVisualization.name === visualization[0].name && profileInitialized){
+            setProfileInitialized(false)
+            if (stageRef.current) {
+                const stage = stageRef.current;
+                stage.destroy();
+                if(toggleArrows){
+                    handleToogleArrows()
+                }
+            }
+        }
+    }, [selectedVisualization]);
+
+
+    const [order, setOrder] = React.useState<Order>('asc');
+    const [orderBy, setOrderBy] = React.useState<keyof TableData>('inc');
+    //const [selected, setSelected] = React.useState<readonly number[]>([]);
+    const [page, setPage] = React.useState(0);
+    const [dense, setDense] = React.useState(false);
+    const [rowsPerPage, setRowsPerPage] = React.useState(5);
+
+    const [rows, setRows] = useState<TableData[]>([]);
+    const [rowsA, setRowsA] = useState<TableData[]>([]);
+    const [rowsB, setRowsB] = useState<TableData[]>([]);
+    const updateTableData = () => {
+        let newTableRows = [];
+        let newTableRowsA = [];
+        let newTableRowsB = [];
+        let uniqueDates: string[];
+        let counter = 1;
+        if(checkedDates.length === 0){
+            uniqueDates = initialCheckedDates;
+        }else{
+            uniqueDates = checkedDates;
+        }
+        let arrowsTotalPointValuesAux: InclinometerData[][] = [];
+        let arrowsAPointValuesAux: InclinometerData[][] = [];
+        let arrowsBPointValuesAux: InclinometerData[][] = [];
+
+        for (let i = 0; i < numberOfInc.length; i++){
+            let generatedData = getTableValues(Number(numberOfInc[i]), filteredDataArrayX, filteredDataArrayY, refDateDataX, refDateDataY, selectedResultsProfiles.name, 'Surface');
+            console.log(generatedData)
+            let mostRecentDate = ""
+            if(generatedData[1].length !== 0){
+                mostRecentDate = getMostRecentDate(generatedData[1]);
+            }
+            arrowsAPointValuesAux.push(generatedData[1].filter(item => item.time === mostRecentDate))
+            arrowsBPointValuesAux.push(generatedData[2].filter(item => item.time === mostRecentDate))
+            arrowsTotalPointValuesAux.push(generatedData[3].filter(item => item.time === mostRecentDate))
+
+            for(let j = 0; j < uniqueDates.length; j++){
+                let tempData = generatedData[0].filter(item => item.time === uniqueDates[j])
+                //console.log(tempData)
+                if(tempData.length > 0){
+                    let newData = createTableData(counter, Number(numberOfInc[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, 'Surface', Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
+                    let newDataA = createTableData(counter, Number(numberOfInc[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, 'Surface', Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
+                    let newDataB = createTableData(counter, Number(numberOfInc[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, 'Surface', Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
+                    counter++;
+                    newTableRows.push(newData)
+                    newTableRowsA.push(newDataA)
+                    newTableRowsB.push(newDataB)
+                }
+            }
+        }
+        setRows(newTableRows);
+        setRowsA(newTableRowsA);
+        setRowsB(newTableRowsB);
+        setArrowsAPointValues(arrowsAPointValuesAux);
+        setArrowsBPointValues(arrowsBPointValuesAux);
+        setArrowsTotalPointValues(arrowsTotalPointValuesAux);
+    }
+
+    useEffect(() => {
+        updateTableData();
+    }, [checkedDates]);
+
+    useEffect(() => {
+        if(selectedProfile.name !== "All" && selectedOrthoDirection.name === "A"){
+            let tempArray: InclinometerData[][] = [];
+            for (let i = 0; i < profileIncChart.length; i++) {
+                tempArray[i] = getDataArrayX(profileIncChart[i], filteredDataArrayX, refDateDataX, selectedResultsProfiles.name)
+            }
+            setSelectedProfileArrayChartData(tempArray)
+        }
+    }, [selectedProfile, checkedDates]);
+
+    // only for testing
+    /*const rows = [
+        createTableData(1, 'I1', 1, 2, 3, 90, 'SURFACE', 415.1, '2023-10-13'),
+        createTableData(2, 'I2', 2, 3, 5, 90, 'SURFACE', 425.1, '2023-10-23')
+    ];*/
+
+    /*const comparisonCharts = () => {
+        let maxDepth = 0;
+        let maxDisplacement = 0;
+        for(let i = 0; i < profileIncChart.length; i++){
+            if()
+            if(arrowData[i][0].depth - 0.5 > maxDepth){
+                maxDepth = arrowData[i][0].depth - 0.5
+            }
+            if(arrowData[i][0].displacement > maxDisplacement){
+                maxDisplacement = arrowData[i][0].displacement
+            }
+        }
+        setMaxProfileDepth(maxDepth);
+        setMaxProfileDisplacement(maxDisplacement);
+    }*/
+
+    const handleRequestSort = (
+        event: React.MouseEvent<unknown>,
+        property: keyof TableData,
+    ) => {
+        const isAsc = orderBy === property && order === 'asc';
+        setOrder(isAsc ? 'desc' : 'asc');
+        setOrderBy(property);
+    };
+
+    const handleRequestSortA = (
+        event: React.MouseEvent<unknown>,
+        property: keyof TableDataA,
+    ) => {
+        const isAsc = orderBy === property && order === 'asc';
+        setOrder(isAsc ? 'desc' : 'asc');
+        setOrderBy(property);
+    };
+
+    const handleRequestSortB = (
+        event: React.MouseEvent<unknown>,
+        property: keyof TableDataB,
+    ) => {
+        const isAsc = orderBy === property && order === 'asc';
+        setOrder(isAsc ? 'desc' : 'asc');
+        setOrderBy(property);
+    };
+
+    const handleChangePage = (event: unknown, newPage: number) => {
+        setPage(newPage);
+    };
+
+    const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setRowsPerPage(parseInt(event.target.value, 10));
+        setPage(0);
+    };
+
+    const handleChangeDense = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setDense(event.target.checked);
+    };
+
+    //const isSelected = (id: number) => selected.indexOf(id) !== -1;
+
+    const emptyRows =
+        page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;
+
+    const emptyRowsA =
+        page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rowsA.length) : 0;
+
+    const emptyRowsB =
+        page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rowsB.length) : 0;
+
+    const visibleRows = React.useMemo(
+        () => rows.slice().sort(getComparator(order, orderBy)).slice(
+            page * rowsPerPage,
+            page * rowsPerPage + rowsPerPage),
+        [order, orderBy, page, rowsPerPage],
+    );
+
+    const visibleRowsA = React.useMemo(
+        () => rowsA.slice().sort(getComparator(order, orderBy)).slice(
+            page * rowsPerPage,
+            page * rowsPerPage + rowsPerPage),
+        [order, orderBy, page, rowsPerPage],
+    );
+
+    const visibleRowsB = React.useMemo(
+        () => rowsB.slice().sort(getComparator(order, orderBy)).slice(
+            page * rowsPerPage,
+            page * rowsPerPage + rowsPerPage),
+        [order, orderBy, page, rowsPerPage],
+    );
+
+
+    const handleToogleArrows = () => {
+        if (toggleArrows) {
+            setToggleArrows(false)
+            if (stageRef.current && arrowLayerRef.current) {
+                const stage = stageRef.current;
+                const layer = arrowLayerRef.current;
+                layer.destroy();
+                arrowLayerRef.current = null;
+            }
+        } else {
+            setToggleArrows(true)
+            if(selectedProfile.name === "All") {
+                if (stageRef.current) {
+                    let stage = stageRef.current;
+                    let layer = new Konva.Layer({
+                        scaleX: 1,
+                        scaleY: 1,
+                        rotation: 5,
+                    });
+                    stage.add(layer);
+                    arrowLayerRef.current = layer;
+
+                    let group = new Konva.Group({
+                        x: 30,
+                        rotation: 10,
+                        scaleX: 1,
+                    });
+                    layer.add(group);
+
+                    let maxDepth = 0;
+                    let maxDisplacement = 0;
+                    let arrowData = arrowsTotalPointValues;
+                    for(let i = 0; i < numberOfInc.length; i++){
+                        if(arrowData[i][0].depth - 0.5 > maxDepth){
+                            maxDepth = arrowData[i][0].depth - 0.5
+                        }
+                        if(arrowData[i][0].displacement > maxDisplacement){
+                            maxDisplacement = arrowData[i][0].displacement
+                        }
+                    }
+                    const refPointX1 = 293.9759051572062;
+                    const refPointY1 = 137.467221651754;
+                    const refPointX2 = 320.0369757491928;
+                    const refPointY2 = 172.48439409197888;
+                    let posCounter = 0;
+
+                    for(let i = 0; i < numberOfInc.length; i++) {
+                        //let testValueX = ((x3-x1)*97.97)/100
+                        //let testValueY = ((y3-y1)*31.5)/51
+                        let refPointIncX1 = profilePosArray[posCounter]
+                        let refPointIncY1 = profilePosArray[posCounter+1]
+                        console.log(refPointIncX1 + " | " + refPointIncY1 )
+                        let newX = refPointIncX1 + ((refPointX2 - refPointX1) * arrowData[i][0].displacement) / maxDisplacement
+                        let newY = refPointIncY1 + ((refPointY2 - refPointY1) * (arrowData[i][0].depth-0.5)) / maxDepth
+
+                        let arrow = new Konva.Arrow({
+                            points: [refPointIncX1, refPointIncY1, newX, newY],
+                            pointerLength: 5,
+                            pointerWidth: 10,
+                            fill: 'black',
+                            stroke: 'black',
+                            strokeWidth: 3
+                        })
+                        group.add(arrow)
+                        posCounter += 2;
+                    }
+                }
+            }else if(selectedOrthoDirection.name === "A"){
+
+            }else if(selectedOrthoDirection.name === "B"){
+
+            }
+        }
+    };
+
+
     return (
         <div className="main-wrapper">
-            <div
+            { selectedVisualization.name === visualization[0].name ? (
+                /*
+                 * INCLINOMETER SECTION
+                 */
+                <div
                 className="row-container">
                 <div
                     className="column-container left-column">
@@ -4078,8 +5801,1090 @@ function ResultsVisualization(){
                         />
                     </div>
                 </div>
-            </div>
-            <div className="page-footer">
+            </div> ): (
+                /*
+                 * PROFILE SECTION
+                 */
+                <div
+                    className="row-container">
+                    <div
+                        className="column-container left-column-p">
+                        <div
+                            className="filter-container-typeViz">
+                            <Listbox
+                                value={selectedVisualization}
+                                onChange={setSelectedVisualization}>
+                                {({open}) => (
+                                    <>
+                                        <Listbox.Label
+                                            className="block text-lg font-medium leading-6 text-gray-900 text-left">Type
+                                            of
+                                            visualization</Listbox.Label>
+                                        <div
+                                            className="relative mt-2 ">
+                                            <Listbox.Button
+                                                className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                      <span
+                                          className="flex items-center">
+                                          <span
+                                              className="ml-3 block truncate">{selectedVisualization.name}</span>
+                                      </span>
+                                                <span
+                                                    className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                      <ChevronUpDownIcon
+                                          className="h-5 w-5 text-gray-400"
+                                          aria-hidden="true"/>
+                                      </span>
+                                            </Listbox.Button>
+                                            <Transition
+                                                show={open}
+                                                as={Fragment}
+                                                leave="transition ease-in duration-100"
+                                                leaveFrom="opacity-100"
+                                                leaveTo="opacity-0"
+                                            >
+                                                <Listbox.Options
+                                                    className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                    {visualization.map((viz) => (
+                                                        <Listbox.Option
+                                                            key={viz.id}
+                                                            className={({active}) =>
+                                                                classNames(
+                                                                    active ? 'bg-yellow-500 text-white' : 'text-gray-900',
+                                                                    'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                                )
+                                                            }
+                                                            value={viz}
+                                                        >
+                                                            {({
+                                                                  selected,
+                                                                  active
+                                                              }) => (
+                                                                <>
+                                                                    <div
+                                                                        className="flex items-center">
+                                                                <span
+                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
+                                                                >
+                            {viz.name}
+                          </span>
+                                                                    </div>
+
+                                                                    {selected ? (
+                                                                        <span
+                                                                            className={classNames(
+                                                                                active ? 'text-white' : 'text-green-600',
+                                                                                'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                            )}
+                                                                        >
+                            <CheckIcon
+                                className="h-5 w-5"
+                                aria-hidden="true"/>
+                          </span>
+                                                                    ) : null}
+                                                                </>
+                                                            )}
+                                                        </Listbox.Option>
+                                                    ))}
+                                                </Listbox.Options>
+                                            </Transition>
+                                        </div>
+                                    </>
+                                )}
+                            </Listbox>
+                        </div>
+                        <div
+                            className="filter-container-typeViz">
+                            <Listbox
+                                value={selectedResultsProfiles}
+                                onChange={(selectResultOption) => {
+                                    handleSelectedResultsProfiles(selectResultOption.name)
+                                }}>
+                                {({open}) => (
+                                    <>
+                                        <Listbox.Label
+                                            className="block text-lg font-medium leading-6 text-gray-900 text-left">Type
+                                            of
+                                            result</Listbox.Label>
+                                        <div
+                                            className="relative mt-2">
+                                            <Listbox.Button
+                                                className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                      <span
+                                          className="flex items-center">
+                                          <span
+                                              className="ml-3 block truncate">{selectedResultsProfiles.name}</span>
+                                      </span>
+                                                <span
+                                                    className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                      <ChevronUpDownIcon
+                                          className="h-5 w-5 text-gray-400"
+                                          aria-hidden="true"/>
+                                      </span>
+                                            </Listbox.Button>
+                                            <Transition
+                                                show={open}
+                                                as={Fragment}
+                                                leave="transition ease-in duration-100"
+                                                leaveFrom="opacity-100"
+                                                leaveTo="opacity-0"
+                                            >
+                                                <Listbox.Options
+                                                    className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                    {resultsProfiles.map((res) => (
+                                                        <Listbox.Option
+                                                            key={res.id}
+                                                            className={({active}) =>
+                                                                classNames(
+                                                                    active ? 'bg-yellow-500 text-white' : 'text-gray-900',
+                                                                    'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                                )
+                                                            }
+                                                            value={res}
+                                                        >
+                                                            {({
+                                                                  selected,
+                                                                  active
+                                                              }) => (
+                                                                <>
+                                                                    <div
+                                                                        className="flex items-center">
+                                                                <span
+                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
+                                                                >
+                            {res.name}
+                          </span>
+                                                                    </div>
+
+                                                                    {selected ? (
+                                                                        <span
+                                                                            className={classNames(
+                                                                                active ? 'text-white' : 'text-green-600',
+                                                                                'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                            )}
+                                                                        >
+                            <CheckIcon
+                                className="h-5 w-5"
+                                aria-hidden="true"/>
+                          </span>
+                                                                    ) : null}
+                                                                </>
+                                                            )}
+                                                        </Listbox.Option>
+                                                    ))}
+                                                </Listbox.Options>
+                                            </Transition>
+                                        </div>
+                                    </>
+                                )}
+                            </Listbox>
+                        </div>
+                        <div
+                            className="filter-container-typeViz">
+                            <Listbox
+                                value={selectedDatesTypes}
+                                onChange={(selectedOption) => {
+                                    setSelectedDatesTypes(selectedOption);
+                                    handleToogleSelectDates();
+                                }}>
+                                {({open}) => (
+                                    <>
+                                        <Listbox.Label
+                                            className="block text-lg font-medium leading-6 text-gray-900 text-left">Dates</Listbox.Label>
+                                        <div
+                                            className="relative mt-2">
+                                            <Listbox.Button
+                                                className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                      <span
+                                          className="flex items-center">
+                                          <span
+                                              className="ml-3 block truncate">{selectedDatesTypes.name}</span>
+                                      </span>
+                                                <span
+                                                    className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                      <ChevronUpDownIcon
+                                          className="h-5 w-5 text-gray-400"
+                                          aria-hidden="true"/>
+                                      </span>
+                                            </Listbox.Button>
+                                            <Transition
+                                                show={open}
+                                                as={Fragment}
+                                                leave="transition ease-in duration-100"
+                                                leaveFrom="opacity-100"
+                                                leaveTo="opacity-0"
+                                            >
+                                                <Listbox.Options
+                                                    className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                    {datesTypes.map((dat) => (
+                                                        <Listbox.Option
+                                                            key={dat.id}
+                                                            className={({active}) =>
+                                                                classNames(
+                                                                    active ? 'bg-yellow-500 text-white' : 'text-gray-900',
+                                                                    'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                                )
+                                                            }
+                                                            value={dat}
+                                                        >
+                                                            {({
+                                                                  selected,
+                                                                  active
+                                                              }) => (
+                                                                <>
+                                                                    <div
+                                                                        className="flex items-center">
+                                                                <span
+                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
+                                                                >{dat.name}</span>
+                                                                    </div>
+
+                                                                    {selected ? (
+                                                                        <span
+                                                                            className={classNames(
+                                                                                active ? 'text-white' : 'text-green-600',
+                                                                                'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                            )}
+                                                                        >
+                            <CheckIcon
+                                className="h-5 w-5"
+                                aria-hidden="true"/>
+                          </span>
+                                                                    ) : null}
+                                                                </>
+                                                            )}
+                                                        </Listbox.Option>
+                                                    ))}
+                                                </Listbox.Options>
+                                            </Transition>
+                                        </div>
+                                    </>
+                                )}
+                            </Listbox>
+                        </div>
+                        {!toggleSelectDates && (
+                            <div
+                                className="filter-container-typeViz">
+                                <div
+                                    className="column-container">
+                                    <div
+                                        className="pb-8 flex items-center">
+                                        <div
+                                            className="pr-2">
+                                            <Listbox>
+                                                <Listbox.Label
+                                                    className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">First</Listbox.Label>
+                                            </Listbox>
+                                        </div>
+                                        <DatePicker
+                                            oneTap
+                                            placeholder="YYYY-MM-DD"
+                                            style={{width: 190}}
+                                            onChange={(e) => {
+                                                handleFirstDateInterval(e?.getFullYear(), e?.getMonth(), e?.getDay())
+                                                if (lastToggleRef == 1) {
+                                                    if (e?.getFullYear() !== undefined && e?.getMonth() !== undefined && e?.getDay() !== undefined) {
+                                                        let date = e?.getFullYear() + "-" + e?.getMonth() + "-" + e?.getDay();
+                                                        let expectedDate = handleGetClosestDate(date);
+                                                        //handleRefDate(expectedDate);
+
+                                                    }
+                                                }
+                                            }}
+                                            onClean={handleFirstDateIntervalReset}
+                                        />
+                                    </div>
+                                    <div
+                                        className="flex items-center">
+                                        <div
+                                            className="pr-2">
+                                            <Listbox>
+                                                <Listbox.Label
+                                                    className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Last</Listbox.Label>
+                                            </Listbox>
+                                        </div>
+                                        <DatePicker
+                                            oneTap
+                                            placeholder="YYYY-MM-DD"
+                                            style={{width: 190}}
+                                            onChange={(e) => handleLastDateInterval(e?.getFullYear(), e?.getMonth(), e?.getDay())}
+                                            onClean={handleLastDateIntervalReset}
+                                        />
+                                    </div>
+                                    <div
+                                        className="relative inline-block pl-12 pt-5 w-30 mr-2 ml-2 align-middle select-none">
+                                        <button
+                                            type="button"
+                                            className="py-2 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                            onClick={handleResetDates}>Reset
+                                            dates
+                                        </button>
+                                    </div>
+                                </div>
+
+                            </div>)}
+                        {toggleSelectDates && (
+                            <div
+                                className="pl-6 pt-5">
+                                <div
+                                    id="dropdownSearch"
+                                    className="z-10 bg-white rounded-lg shadow w-60 dark:bg-green-500">
+                                    <div
+                                        className="p-3">
+                                        <label
+                                            htmlFor="input-group-search"
+                                            className="sr-only">Search</label>
+                                        <div
+                                            className="relative">
+                                            <div
+                                                className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                                                <svg
+                                                    className="w-4 h-4 text-gray-900"
+                                                    aria-hidden="true"
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    fill="none"
+                                                    viewBox="0 0 20 20">
+                                                    <path
+                                                        stroke="currentColor"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth="2"
+                                                        d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                                                </svg>
+                                            </div>
+                                            <input
+                                                type="text"
+                                                id="input-group-search"
+                                                className="bg-green-50 border border-gray-300 text-gray-950 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5"
+                                                placeholder="Search date"
+                                                value={searchTerm}
+                                                onChange={(e) => handleSearchChange(e.target.value)}/>
+                                        </div>
+                                    </div>
+                                    <ul className="h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700"
+                                        aria-labelledby="dropdownSearchButton">
+                                        {searchTerm ? filteredDates.map((date, index) => (
+                                            <li key={index}>
+                                                <div
+                                                    className="flex items-center p-2 rounded hover:bg-gray-100 ">
+                                                    <input
+                                                        id={`checkbox-item-${index}`}
+                                                        type="checkbox"
+                                                        value={`${date}`}
+                                                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 "
+                                                        checked={isDateChecked(date, checkedDates)}
+                                                        onChange={(e) => handleDateCheck(e.target.value)}
+                                                    />
+                                                    <label
+                                                        htmlFor={`checkbox-item-${index}`}
+                                                        className="w-full ms-2 text-sm font-medium text-gray-900 rounded">{date.split(" ")[1] === "00:00:00" ? date.split(" ")[0]: date}</label>
+                                                </div>
+                                            </li>
+                                        )) : (
+                                            <>
+                                                <li>
+                                                    <div className="flex items-center p-2 rounded hover:bg-gray-100">
+                                                        <input
+                                                            id="checkbox-all-dates"
+                                                            type="checkbox"
+                                                            value={'All dates'}
+                                                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                                            checked={areAllDatesChecked(numberOfDates.length, checkedDates)}
+                                                            onChange={handleAllDatesCheck}
+                                                        />
+                                                        <label htmlFor="checkbox-all-dates" className="w-full ms-2 text-sm font-medium text-white rounded hover:text-black">All Dates</label>
+                                                    </div>
+                                                </li>
+                                                {
+                                                    numberOfDates.map((date, index) => (
+                                                        <li key={index}>
+                                                            <div
+                                                                className="flex items-center p-2 rounded hover:bg-gray-100 ">
+                                                                <input
+                                                                    id={`checkbox-item-${index}`}
+                                                                    type="checkbox"
+                                                                    value={`${date}`}
+                                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 "
+                                                                    checked={isDateChecked(date, checkedDates)}
+                                                                    onChange={(e) => handleDateCheck(e.target.value)}
+                                                                />
+                                                                <label
+                                                                    htmlFor={`checkbox-item-${index}`}
+                                                                    className="w-full ms-2 text-sm font-medium text-white rounded hover:text-black">{date.split(" ")[1] === "00:00:00" ? date.split(" ")[0]: date}</label>
+                                                            </div>
+                                                        </li>
+                                                    ))}
+                                            </>
+                                        )}
+                                    </ul>
+
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <div>
+                        <div
+                            className="row-container left-column-profile">
+                            <div
+                                className="column-container middle-column">
+                                <div
+                                    className="middle-col-select">
+                                    <div
+                                        className="filter-container-typeViz">
+                                        <Listbox
+                                            value={selectedProfile}
+                                            onChange={(selectedOption) => {
+                                                setSelectedProfile(selectedOption);
+                                            }}>
+                                            {({open}) => (
+                                                <>
+                                                    <Listbox.Label
+                                                        className="block text-lg font-medium leading-6 text-gray-900 text-left">Profile</Listbox.Label>
+                                                    <div
+                                                        className="relative mt-2">
+                                                        <Listbox.Button
+                                                            className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                      <span
+                                          className="flex items-center">
+                                          <span
+                                              className="ml-3 block truncate">{selectedProfile.name}</span>
+                                      </span>
+                                                            <span
+                                                                className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                      <ChevronUpDownIcon
+                                          className="h-5 w-5 text-gray-400"
+                                          aria-hidden="true"/>
+                                      </span>
+                                                        </Listbox.Button>
+                                                        <Transition
+                                                            show={open}
+                                                            as={Fragment}
+                                                            leave="transition ease-in duration-100"
+                                                            leaveFrom="opacity-100"
+                                                            leaveTo="opacity-0"
+                                                        >
+                                                            <Listbox.Options
+                                                                className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                                {profiles.map((m) => (
+                                                                    <Listbox.Option
+                                                                        key={m.id}
+                                                                        className={({active}) =>
+                                                                            classNames(
+                                                                                active ? 'bg-yellow-500 text-white' : 'text-gray-900',
+                                                                                'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                                            )
+                                                                        }
+                                                                        value={m}
+                                                                    >
+                                                                        {({
+                                                                              selected,
+                                                                              active
+                                                                          }) => (
+                                                                            <>
+                                                                                <div
+                                                                                    className="flex items-center">
+                                                                <span
+                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
+                                                                >{m.name}</span>
+                                                                                </div>
+
+                                                                                {selected ? (
+                                                                                    <span
+                                                                                        className={classNames(
+                                                                                            active ? 'text-white' : 'text-green-600',
+                                                                                            'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                                        )}
+                                                                                    >
+                            <CheckIcon
+                                className="h-5 w-5"
+                                aria-hidden="true"/>
+                          </span>
+                                                                                ) : null}
+                                                                            </>
+                                                                        )}
+                                                                    </Listbox.Option>
+                                                                ))}
+                                                            </Listbox.Options>
+                                                        </Transition>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </Listbox>
+                                    </div>
+                                    {selectedProfile.name !== "All" && (
+                                        <div
+                                            className="filter-container-typeViz">
+                                            <Listbox
+                                                value={selectedOrthoDirection}
+                                                onChange={(selectedOption) => {
+                                                    setSelectedOrthoDirection(selectedOption);
+                                                }}>
+                                                {({open}) => (
+                                                    <>
+                                                        <Listbox.Label
+                                                            className="block text-lg font-medium leading-6 text-gray-900 text-left">Results</Listbox.Label>
+                                                        <div
+                                                            className="relative mt-2">
+                                                            <Listbox.Button
+                                                                className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                      <span
+                                          className="flex items-center">
+                                          <span
+                                              className="ml-3 block truncate">{selectedOrthoDirection.name}</span>
+                                      </span>
+                                                                <span
+                                                                    className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                      <ChevronUpDownIcon
+                                          className="h-5 w-5 text-gray-400"
+                                          aria-hidden="true"/>
+                                      </span>
+                                                            </Listbox.Button>
+                                                            <Transition
+                                                                show={open}
+                                                                as={Fragment}
+                                                                leave="transition ease-in duration-100"
+                                                                leaveFrom="opacity-100"
+                                                                leaveTo="opacity-0"
+                                                            >
+                                                                <Listbox.Options
+                                                                    className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                                    {orthoDirection.map((m) => (
+                                                                        <Listbox.Option
+                                                                            key={m.id}
+                                                                            className={({active}) =>
+                                                                                classNames(
+                                                                                    active ? 'bg-yellow-500 text-white' : 'text-gray-900',
+                                                                                    'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                                                )
+                                                                            }
+                                                                            value={m}
+                                                                        >
+                                                                            {({
+                                                                                  selected,
+                                                                                  active
+                                                                              }) => (
+                                                                                <>
+                                                                                    <div
+                                                                                        className="flex items-center">
+                                                                <span
+                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
+                                                                >{m.name}</span>
+                                                                                    </div>
+
+                                                                                    {selected ? (
+                                                                                        <span
+                                                                                            className={classNames(
+                                                                                                active ? 'text-white' : 'text-green-600',
+                                                                                                'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                                            )}
+                                                                                        >
+                            <CheckIcon
+                                className="h-5 w-5"
+                                aria-hidden="true"/>
+                          </span>
+                                                                                    ) : null}
+                                                                                </>
+                                                                            )}
+                                                                        </Listbox.Option>
+                                                                    ))}
+                                                                </Listbox.Options>
+                                                            </Transition>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </Listbox>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <div
+                                className="column-container right-column">
+                                <div
+                                    className="filter-container-ref">
+                                    <Listbox>
+                                        <Listbox.Label
+                                            className="block text-lg font-medium leading-6 text-gray-900 text-left pb-2">Reference</Listbox.Label>
+                                    </Listbox>
+
+                                    <ul className="items-center w-300 text-base font-medium text-gray-900 bg-white border border-gray-200 rounded-lg sm:flex dark:bg-green-500 dark:border-gray-700 dark:text-white">
+                                        <li className="w-full border-b border-gray-200 sm:border-b-0 sm:border-r dark:border-gray-600">
+                                            <div
+                                                className="flex items-center ps-3 pr-1">
+                                                <input
+                                                    id="earliestDate"
+                                                    type="radio"
+                                                    value="false"
+                                                    name="list-radio"
+                                                    checked={handleToogleReference(0)}
+                                                    onChange={(e) => {
+                                                        handleEarliestDate(false);
+                                                        handleResetRefDate()
+                                                        setLastToggleRef(0)
+                                                    }}
+                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 "/>
+                                                <label
+                                                    htmlFor="earliestDate"
+                                                    className="w-full py-3 ms-2 text-sm font-medium text-white-50 ">Earliest
+                                                    date</label>
+                                            </div>
+                                        </li>
+                                        <li className="w-full border-b border-gray-200 sm:border-b-0 sm:border-r dark:border-gray-600">
+                                            <div
+                                                className="flex items-center ps-3">
+                                                <input
+                                                    id="fromselectdate"
+                                                    type="radio"
+                                                    value="true"
+                                                    name="list-radio"
+                                                    checked={handleToogleReference(1)}
+                                                    onChange={(e) => {
+                                                        handleEarliestDate(true)
+                                                        setLastToggleRef(1)
+
+                                                    }}
+                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300  "/>
+                                                <label
+                                                    htmlFor="fromselectdate"
+                                                    className="w-full py-3 ms-2 text-sm font-medium text-white-50">Select<br/>date</label>
+                                            </div>
+                                        </li>
+                                        <li className="w-full dark:border-gray-600">
+                                            <div
+                                                className="flex items-center ps-3">
+                                                <input
+                                                    id="fromInterval"
+                                                    type="radio"
+                                                    value="true"
+                                                    name="list-radio"
+                                                    checked={handleToogleReference(2)}
+                                                    onChange={(e) => {
+                                                        handleEarliestDate(false)
+                                                        handleResetRefDate()
+                                                        setLastToggleRef(2)
+                                                        setSelectedDatesTypes(datesTypes[0]);
+                                                        if (toggleSelectDates) {
+                                                            handleToogleSelectDates();
+                                                        }
+                                                    }}
+                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300  "/>
+                                                <label
+                                                    htmlFor="fromInterval"
+                                                    className="w-full py-3 ms-2 text-sm font-medium text-white-50">From
+                                                    interval</label>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                    <div
+                                        className="pt-3">
+                                        {toggleIntervalRef ? (
+                                            <select
+                                                id="selectRefDateId"
+                                                onChange={(e) => handleRefDate(e.target.value)}
+                                                style={{
+                                                    padding: '8px',
+                                                    fontSize: '16px',
+                                                    borderRadius: '5px',
+                                                    border: '1px solid #ccc'
+                                                }}>
+                                                {numberOfDates.map(date => (
+                                                    <option
+                                                        key={date}
+                                                        value={date}>{date.split(" ")[0]}</option>
+                                                ))}
+                                            </select>) : (
+                                            <select
+                                                onChange={(e) => handleRefDate(e.target.value)}
+                                                style={{
+                                                    padding: '8px',
+                                                    fontSize: '16px',
+                                                    borderRadius: '5px',
+                                                    border: '1px solid #ccc'
+                                                }}
+                                                disabled>
+                                                <option
+                                                    key={earliestRefDate}
+                                                    value={earliestRefDate}>{earliestRefDate.split(" ")[0]}</option>
+
+                                            </select>
+                                        )}
+                                    </div>
+                                </div>
+                                <div
+                                    className="filter-container-elevation">
+                                    <Listbox
+                                        value={selectedLocation}
+                                        onChange={setSelectedLocation}>
+                                        {({open}) => (
+                                            <>
+                                                <Listbox.Label
+                                                    className="block text-lg font-medium leading-6 text-gray-900 text-left">Location</Listbox.Label>
+                                                <div
+                                                    className="relative mt-2">
+                                                    <Listbox.Button
+                                                        className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                      <span
+                                          className="flex items-center">
+                                          <span
+                                              className="ml-3 block truncate">{selectedLocation.name}</span>
+                                      </span>
+                                                        <span
+                                                            className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                      <ChevronUpDownIcon
+                                          className="h-5 w-5 text-gray-400"
+                                          aria-hidden="true"/>
+                                      </span>
+                                                    </Listbox.Button>
+                                                    <Transition
+                                                        show={open}
+                                                        as={Fragment}
+                                                        leave="transition ease-in duration-100"
+                                                        leaveFrom="opacity-100"
+                                                        leaveTo="opacity-0"
+                                                    >
+                                                        <Listbox.Options
+                                                            className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                            {locations.map((res) => (
+                                                                <Listbox.Option
+                                                                    key={res.id}
+                                                                    className={({active}) =>
+                                                                        classNames(
+                                                                            active ? 'bg-yellow-500 text-white' : 'text-gray-900',
+                                                                            'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                                        )
+                                                                    }
+                                                                    value={res}
+                                                                >
+                                                                    {({
+                                                                          selected,
+                                                                          active
+                                                                      }) => (
+                                                                        <>
+                                                                            <div
+                                                                                className="flex items-center">
+                                                                <span
+                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
+                                                                >
+                            {res.name}
+                          </span>
+                                                                            </div>
+
+                                                                            {selected ? (
+                                                                                <span
+                                                                                    className={classNames(
+                                                                                        active ? 'text-white' : 'text-green-600',
+                                                                                        'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                                    )}
+                                                                                >
+                            <CheckIcon
+                                className="h-5 w-5"
+                                aria-hidden="true"/>
+                          </span>
+                                                                            ) : null}
+                                                                        </>
+                                                                    )}
+                                                                </Listbox.Option>
+                                                            ))}
+                                                        </Listbox.Options>
+                                                    </Transition>
+                                                </div>
+                                            </>
+                                        )}
+                                    </Listbox>
+                                </div>
+                                <div
+                                    className="filter-container-typeInputsLocation">
+                                    <Listbox>
+                                        <Listbox.Label
+                                            className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Show
+                                            arrows</Listbox.Label>
+                                    </Listbox>
+                                    <div
+                                        className="relative inline-block w-10 mr-2 align-middle select-none">
+                                        <input
+                                            id="Green"
+                                            type="checkbox"
+                                            onChange={(e) => handleToogleArrows()}
+                                            className="checked:bg-green-500 outline-none focus:outline-none right-4 checked:right-0 duration-200 ease-in absolute block w-6 h-6 rounded-full bg-white border-4 border-green-500 appearance-none cursor-pointer"/>
+                                        <label
+                                            htmlFor="Green"
+                                            className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div
+                            id="konvaContainer"
+                            className="container-profile"></div>
+                        <div className="flex-charts-container">
+                        {(selectedProfile.name !== "All" && selectedOrthoDirection.name === "A") && selectedProfileArrayChartData.length > 0 &&(
+                            profileIncChart.map((inc, index) => (
+                                <div className="chart-wrapper2" key={index}>
+                                    <ChartProfileA
+                                        graphData={selectedProfileArrayChartData[index]}
+                                        loadingData={loadingData}
+                                        maxDepthOverall={maxProfileDepth}
+                                        maxDepthInc={depthProfilesArray[index]}
+                                        maxData={maxProfileDisplacement}
+                                        inc={inc}
+                                        leftChart={inc === 1}
+                                    />
+                                </div>))
+
+                        )}
+                        </div>
+                        {(selectedProfile.name !== "All" && selectedOrthoDirection.name === "B") && (
+                            <div>
+
+                            </div>
+                        )}
+                        <div
+                            className="filter-container-typeSummary">
+                            <Listbox>
+                            <Listbox.Label
+                                    className="block text-lg font-medium leading-6 text-gray-900 text-left pb-2">Summary
+                                    of
+                                    Results</Listbox.Label>
+                            </Listbox>
+                        </div>
+                        {selectedProfile.name === "All" && (
+                        <Box
+                            sx={{width: '100%'}}>
+                            <Paper
+                                sx={{
+                                    width: '100%',
+                                    mb: 2
+                                }}>
+                                <TableContainer>
+                                    <Table
+                                        sx={{minWidth: 750}}
+                                        aria-labelledby="tableTitle"
+                                        size={dense ? 'small' : 'medium'}
+                                    >
+                                        <EnhancedTableHead
+                                            order={order}
+                                            orderBy={orderBy}
+                                            onRequestSort={handleRequestSort}
+                                            rowCount={rows.length}
+                                        />
+                                        <TableBody>
+                                            {visibleRows.map((row, index) => {
+                                                const labelId = `enhanced-table-checkbox-${index}`;
+
+                                                return (
+                                                    <TableRow
+                                                        hover
+                                                        tabIndex={-1}
+                                                        key={row.id}
+                                                        sx={{cursor: 'pointer'}}
+                                                    >
+                                                        <TableCell
+                                                            component="th"
+                                                            id={labelId}
+                                                            scope="row"
+                                                            padding="none"
+                                                            align="center"
+                                                        >
+                                                            {row.inc}
+                                                        </TableCell>
+                                                        <TableCell
+                                                            align="center">{parseFloat(row.a.toFixed(2))}</TableCell>
+                                                        <TableCell
+                                                            align="center">{parseFloat(row.b.toFixed(2))}</TableCell>
+                                                        <TableCell
+                                                            align="center">{parseFloat(row.total.toFixed(2))}</TableCell>
+                                                        <TableCell
+                                                            align="center">{row.direction}</TableCell>
+                                                        <TableCell
+                                                            align="center">{row.node}</TableCell>
+                                                        <TableCell
+                                                            align="center">{row.level}</TableCell>
+                                                        <TableCell
+                                                            align="center">{row.date.split(" ")[0]}</TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                            {emptyRows > 0 && (
+                                                <TableRow
+                                                    style={{
+                                                        height: (dense ? 33 : 53) * emptyRows,
+                                                    }}
+                                                >
+                                                    <TableCell
+                                                        colSpan={6}/>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                                <TablePagination
+                                    rowsPerPageOptions={[5, 10, 25]}
+                                    component="div"
+                                    count={rows.length}
+                                    rowsPerPage={rowsPerPage}
+                                    page={page}
+                                    onPageChange={handleChangePage}
+                                    onRowsPerPageChange={handleChangeRowsPerPage}
+                                    //sx={{ backgroundColor: '#22c55e' }}
+                                />
+                            </Paper>
+                        </Box>)}
+                        {(selectedProfile.name !== "All" && selectedOrthoDirection.name === "A") && (
+                            <Box
+                                sx={{width: '100%'}}>
+                                <Paper
+                                    sx={{
+                                        width: '100%',
+                                        mb: 2
+                                    }}>
+                                    <TableContainer>
+                                        <Table
+                                            sx={{minWidth: 750}}
+                                            aria-labelledby="tableTitle"
+                                            size={dense ? 'small' : 'medium'}
+                                        >
+                                            <EnhancedTableHeadA
+                                                order={order}
+                                                orderBy={orderBy}
+                                                onRequestSort={handleRequestSortA}
+                                                rowCount={rowsA.length}
+                                            />
+                                            <TableBody>
+                                                {visibleRowsA.map((row, index) => {
+                                                    const labelId = `enhanced-table-checkbox-${index}`;
+
+                                                    return (
+                                                        <TableRow
+                                                            hover
+                                                            tabIndex={-1}
+                                                            key={row.id}
+                                                            sx={{cursor: 'pointer'}}
+                                                        >
+                                                            <TableCell
+                                                                component="th"
+                                                                id={labelId}
+                                                                scope="row"
+                                                                padding="none"
+                                                                align="center"
+                                                            >
+                                                                {row.inc}
+                                                            </TableCell>
+                                                            <TableCell
+                                                                align="center">{parseFloat(row.a.toFixed(2))}</TableCell>
+                                                            <TableCell
+                                                                align="center">{row.node}</TableCell>
+                                                            <TableCell
+                                                                align="center">{row.level}</TableCell>
+                                                            <TableCell
+                                                                align="center">{row.date.split(" ")[0]}</TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })}
+                                                {emptyRowsA > 0 && (
+                                                    <TableRow
+                                                        style={{
+                                                            height: (dense ? 33 : 53) * emptyRowsA,
+                                                        }}
+                                                    >
+                                                        <TableCell
+                                                            colSpan={6}/>
+                                                    </TableRow>
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                    <TablePagination
+                                        rowsPerPageOptions={[5, 10, 25]}
+                                        component="div"
+                                        count={rowsA.length}
+                                        rowsPerPage={rowsPerPage}
+                                        page={page}
+                                        onPageChange={handleChangePage}
+                                        onRowsPerPageChange={handleChangeRowsPerPage}
+                                        //sx={{ backgroundColor: '#22c55e' }}
+                                    />
+                                </Paper>
+                            </Box>)}
+                        {(selectedProfile.name !== "All" && selectedOrthoDirection.name === "B") && (
+                            <Box
+                                sx={{width: '100%'}}>
+                                <Paper
+                                    sx={{
+                                        width: '100%',
+                                        mb: 2
+                                    }}>
+                                    <TableContainer>
+                                        <Table
+                                            sx={{minWidth: 750}}
+                                            aria-labelledby="tableTitle"
+                                            size={dense ? 'small' : 'medium'}
+                                        >
+                                            <EnhancedTableHeadB
+                                                order={order}
+                                                orderBy={orderBy}
+                                                onRequestSort={handleRequestSortB}
+                                                rowCount={rows.length}
+                                            />
+                                            <TableBody>
+                                                {visibleRowsB.map((row, index) => {
+                                                    const labelId = `enhanced-table-checkbox-${index}`;
+
+                                                    return (
+                                                        <TableRow
+                                                            hover
+                                                            tabIndex={-1}
+                                                            key={row.id}
+                                                            sx={{cursor: 'pointer'}}
+                                                        >
+                                                            <TableCell
+                                                                component="th"
+                                                                id={labelId}
+                                                                scope="row"
+                                                                padding="none"
+                                                                align="center"
+                                                            >
+                                                                {row.inc}
+                                                            </TableCell>
+                                                            <TableCell
+                                                                align="center">{parseFloat(row.b.toFixed(2))}</TableCell>
+                                                            <TableCell
+                                                                align="center">{row.node}</TableCell>
+                                                            <TableCell
+                                                                align="center">{row.level}</TableCell>
+                                                            <TableCell
+                                                                align="center">{row.date.split(" ")[0]}</TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })}
+                                                {emptyRowsB > 0 && (
+                                                    <TableRow
+                                                        style={{
+                                                            height: (dense ? 33 : 53) * emptyRowsB,
+                                                        }}
+                                                    >
+                                                        <TableCell
+                                                            colSpan={6}/>
+                                                    </TableRow>
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                    <TablePagination
+                                        rowsPerPageOptions={[5, 10, 25]}
+                                        component="div"
+                                        count={rows.length}
+                                        rowsPerPage={rowsPerPage}
+                                        page={page}
+                                        onPageChange={handleChangePage}
+                                        onRowsPerPageChange={handleChangeRowsPerPage}
+                                        //sx={{ backgroundColor: '#22c55e' }}
+                                    />
+                                </Paper>
+                            </Box>)}
+                    </div>
+                </div>
+            )}
+            <div
+                className="page-footer">
             </div>
         </div>
 
