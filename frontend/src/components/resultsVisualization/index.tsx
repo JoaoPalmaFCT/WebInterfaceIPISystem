@@ -214,6 +214,7 @@ interface ChartPropsProfileInc {
     maxDepthInc: number;
     maxData: number;
     inc: number;
+    numberOfTotalInc: number;
     leftChart: boolean;
 }
 
@@ -747,6 +748,14 @@ const profiles = [
     {
         id: 2,
         name: 'Crest',
+    },
+    {
+        id: 3,
+        name: 'Mid-slope',
+    },
+    {
+        id: 4,
+        name: 'Toe',
     }
 ]
 
@@ -2081,6 +2090,7 @@ const ChartProfileA: React.FC<ChartPropsProfileInc> = ({
                                             maxDepthInc,
                                             maxData,
                                             inc,
+                                            numberOfTotalInc,
                                             leftChart
                                         }) => {
     let data: InclinometerData[][] = ChartDataPrep(graphData);
@@ -2102,6 +2112,7 @@ const ChartProfileA: React.FC<ChartPropsProfileInc> = ({
         } else {
             graphType = "B"
         }
+
         typeOfResult = data[0][0].typeOfResult;
         refDate = data[0][0].time;
         discardHMS = data[0][0].time.split(" ")[1] === "00:00:00"
@@ -2343,9 +2354,9 @@ const ChartProfileA: React.FC<ChartPropsProfileInc> = ({
                                     stroke="#000000"
                                     segment={[{
                                         x: -maxData + 5.5,
-                                        y: maxDepthOverall-0.5
+                                        y: maxDepthOverall-0.5,
                                     }, {
-                                        x: -maxData+140,
+                                        x: (numberOfTotalInc >= 4) ? -maxData+140 : ((numberOfTotalInc === 3 ) ? -maxData+110 : -maxData+90),
                                         y: maxDepthOverall-0.5
                                     }]}
                                 >
@@ -2361,10 +2372,10 @@ const ChartProfileA: React.FC<ChartPropsProfileInc> = ({
                                     //x={0}
                                     stroke="#000000"
                                     segment={[{
-                                        x: -maxData+140,
+                                        x: (numberOfTotalInc >= 4) ? -maxData+140 : ((numberOfTotalInc === 3 ) ? -maxData+110 : -maxData+90),
                                         y: maxDepthOverall-0.5
                                     }, {
-                                        x: -maxData+130,
+                                        x: (numberOfTotalInc >= 4) ? -maxData+130 : ((numberOfTotalInc === 3 ) ? -maxData+100 : -maxData+80),
                                         y: maxDepthOverall-1
                                     }]}
                                 />}
@@ -2373,10 +2384,10 @@ const ChartProfileA: React.FC<ChartPropsProfileInc> = ({
                                     //x={0}
                                     stroke="#000000"
                                     segment={[{
-                                        x: -maxData+140,
+                                        x: (numberOfTotalInc >= 4) ? -maxData+140 : ((numberOfTotalInc === 3 ) ? -maxData+110 : -maxData+90),
                                         y: maxDepthOverall-0.5
                                     }, {
-                                        x: -maxData+130,
+                                        x: (numberOfTotalInc >= 4) ? -maxData+130 : ((numberOfTotalInc === 3 ) ? -maxData+100 : -maxData+80),
                                         y: maxDepthOverall
                                     }]}
                                 />}
@@ -4181,11 +4192,14 @@ function ResultsVisualization() {
     const [profileIncChart, setProfileIncChart] = useState<number[]>([1,3,6,9]);
     const [depthProfilesArray, setDepthProfilesArray] = useState<number[]>([31.5,39.5,51,34.5]);
     const [maxProfileDepth, setMaxProfileDepth] = useState<number>(51);
-    const [maxProfileDisplacement, setMaxProfileDisplacement] = useState<number>(131.85);
-    const [selectedProfileArrayChartData, setSelectedProfileArrayChartData] = useState<InclinometerData[][]>([]);
+    const [maxProfileDisplacementX, setMaxProfileDisplacementX] = useState<number>(131.85);
+    const [maxProfileDisplacementY, setMaxProfileDisplacementY] = useState<number>(94.04);
+    const [selectedProfileArrayChartDataX, setSelectedProfileArrayChartDataX] = useState<InclinometerData[][]>([]);
+    const [selectedProfileArrayChartDataY, setSelectedProfileArrayChartDataY] = useState<InclinometerData[][]>([]);
 
     const stageRef = useRef<Konva.Stage | null>(null);
     const arrowLayerRef = useRef<Konva.Layer | null>(null);
+    const profileLineLayerRef = useRef<Konva.Layer | null>(null);
 
     useEffect(() => {
         if(selectedVisualization.name === visualization[1].name && !profileInitialized){
@@ -4288,6 +4302,7 @@ function ResultsVisualization() {
     const [rows, setRows] = useState<TableData[]>([]);
     const [rowsA, setRowsA] = useState<TableData[]>([]);
     const [rowsB, setRowsB] = useState<TableData[]>([]);
+
     const updateTableData = () => {
         let newTableRows = [];
         let newTableRowsA = [];
@@ -4303,52 +4318,128 @@ function ResultsVisualization() {
         let arrowsAPointValuesAux: InclinometerData[][] = [];
         let arrowsBPointValuesAux: InclinometerData[][] = [];
 
-        for (let i = 0; i < numberOfInc.length; i++){
-            let generatedData = getTableValues(Number(numberOfInc[i]), filteredDataArrayX, filteredDataArrayY, refDateDataX, refDateDataY, selectedResultsProfiles.name, 'Surface');
-            console.log(generatedData)
-            let mostRecentDate = ""
-            if(generatedData[1].length !== 0){
-                mostRecentDate = getMostRecentDate(generatedData[1]);
-            }
-            arrowsAPointValuesAux.push(generatedData[1].filter(item => item.time === mostRecentDate))
-            arrowsBPointValuesAux.push(generatedData[2].filter(item => item.time === mostRecentDate))
-            arrowsTotalPointValuesAux.push(generatedData[3].filter(item => item.time === mostRecentDate))
+        if(selectedProfile.name === "All"){
+            for (let i = 0; i < numberOfInc.length; i++){
+                let generatedData = getTableValues(Number(numberOfInc[i]), filteredDataArrayX, filteredDataArrayY, refDateDataX, refDateDataY, selectedResultsProfiles.name, 'Surface');
+                //console.log(generatedData)
+                let mostRecentDate = ""
+                if(generatedData[1].length !== 0){
+                    mostRecentDate = getMostRecentDate(generatedData[1]);
+                }
+                arrowsAPointValuesAux.push(generatedData[1].filter(item => item.time === mostRecentDate))
+                arrowsBPointValuesAux.push(generatedData[2].filter(item => item.time === mostRecentDate))
+                arrowsTotalPointValuesAux.push(generatedData[3].filter(item => item.time === mostRecentDate))
 
-            for(let j = 0; j < uniqueDates.length; j++){
-                let tempData = generatedData[0].filter(item => item.time === uniqueDates[j])
-                //console.log(tempData)
-                if(tempData.length > 0){
-                    let newData = createTableData(counter, Number(numberOfInc[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, 'Surface', Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
-                    let newDataA = createTableData(counter, Number(numberOfInc[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, 'Surface', Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
-                    let newDataB = createTableData(counter, Number(numberOfInc[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, 'Surface', Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
-                    counter++;
-                    newTableRows.push(newData)
-                    newTableRowsA.push(newDataA)
-                    newTableRowsB.push(newDataB)
+                for(let j = 0; j < uniqueDates.length; j++){
+                    let tempData = generatedData[0].filter(item => item.time === uniqueDates[j])
+                    //console.log(tempData)
+                    if(tempData.length > 0){
+                        let newData = createTableData(counter, Number(numberOfInc[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, 'Surface', Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
+                        let newDataA = createTableData(counter, Number(numberOfInc[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, 'Surface', Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
+                        let newDataB = createTableData(counter, Number(numberOfInc[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, 'Surface', Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
+                        counter++;
+                        newTableRows.push(newData)
+                        newTableRowsA.push(newDataA)
+                        newTableRowsB.push(newDataB)
+                    }
                 }
             }
+            setRows(newTableRows);
+            setRowsA(newTableRowsA);
+            setRowsB(newTableRowsB);
+            setArrowsAPointValues(arrowsAPointValuesAux);
+            setArrowsBPointValues(arrowsBPointValuesAux);
+            setArrowsTotalPointValues(arrowsTotalPointValuesAux);
+        }else {
+            for (let i = 0; i < profileIncChart.length; i++){
+                let generatedData = getTableValues(Number(profileIncChart[i]), filteredDataArrayX, filteredDataArrayY, refDateDataX, refDateDataY, selectedResultsProfiles.name, 'Surface');
+
+                let mostRecentDate = ""
+                if(generatedData[1].length !== 0){
+                    mostRecentDate = getMostRecentDate(generatedData[1]);
+                }
+                arrowsAPointValuesAux.push(generatedData[1].filter(item => item.time === mostRecentDate))
+                arrowsBPointValuesAux.push(generatedData[2].filter(item => item.time === mostRecentDate))
+                arrowsTotalPointValuesAux.push(generatedData[3].filter(item => item.time === mostRecentDate))
+
+                for(let j = 0; j < uniqueDates.length; j++){
+                    let tempData = generatedData[0].filter(item => item.time === uniqueDates[j])
+                    //console.log(tempData)
+                    if(tempData.length > 0){
+                        let newData = createTableData(counter, Number(profileIncChart[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, 'Surface', Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
+                        let newDataA = createTableData(counter, Number(profileIncChart[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, 'Surface', Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
+                        let newDataB = createTableData(counter, Number(profileIncChart[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, 'Surface', Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
+                        counter++;
+                        newTableRows.push(newData)
+                        newTableRowsA.push(newDataA)
+                        newTableRowsB.push(newDataB)
+                    }
+                }
+            }
+            setRows(newTableRows);
+            setRowsA(newTableRowsA);
+            setRowsB(newTableRowsB);
+            setArrowsAPointValues(arrowsAPointValuesAux);
+            setArrowsBPointValues(arrowsBPointValuesAux);
+            setArrowsTotalPointValues(arrowsTotalPointValuesAux);
         }
-        setRows(newTableRows);
-        setRowsA(newTableRowsA);
-        setRowsB(newTableRowsB);
-        setArrowsAPointValues(arrowsAPointValuesAux);
-        setArrowsBPointValues(arrowsBPointValuesAux);
-        setArrowsTotalPointValues(arrowsTotalPointValuesAux);
     }
 
-    useEffect(() => {
+    /*useEffect(() => {
         updateTableData();
     }, [checkedDates]);
-
+    */
     useEffect(() => {
+        updateTableData();
+
+        let profileInc: number[] = [];
+        if(selectedProfile.name === profiles[1].name){
+            setProfileIncChart([1,3,6,9])
+            setDepthProfilesArray([31.5,39.5,51,34.5])
+            profileInc = [1,3,6,9];
+        }else if(selectedProfile.name === profiles[2].name){
+            setProfileIncChart([2,4,10])
+            setDepthProfilesArray([14.5,26,20])
+            profileInc = [2,4,10];
+        }else if(selectedProfile.name === profiles[3].name){
+            setProfileIncChart([5,8])
+            setDepthProfilesArray([16.5,20.5])
+            profileInc = [5,8];
+        }
+
         if(selectedProfile.name !== "All" && selectedOrthoDirection.name === "A"){
             let tempArray: InclinometerData[][] = [];
-            for (let i = 0; i < profileIncChart.length; i++) {
-                tempArray[i] = getDataArrayX(profileIncChart[i], filteredDataArrayX, refDateDataX, selectedResultsProfiles.name)
+            for (let i = 0; i < profileInc.length; i++) {
+                tempArray[i] = getDataArrayX(profileInc[i], filteredDataArrayX, refDateDataX, selectedResultsProfiles.name)
             }
-            setSelectedProfileArrayChartData(tempArray)
+            setSelectedProfileArrayChartDataX(tempArray)
+
+        }else if(selectedProfile.name !== "All" && selectedOrthoDirection.name === "B"){
+            let tempArray: InclinometerData[][] = [];
+            for (let i = 0; i < profileInc.length; i++) {
+                tempArray[i] = getDataArrayY(profileInc[i], filteredDataArrayY, refDateDataY, selectedResultsProfiles.name)
+            }
+            setSelectedProfileArrayChartDataY(tempArray)
         }
-    }, [selectedProfile, checkedDates]);
+    }, [selectedProfile, checkedDates, selectedOrthoDirection]);
+
+    useEffect(() => {
+        let profileLine: number[] = [];
+        if(selectedProfile.name === profiles[1].name){
+            setProfileIncChart([1,3,6,9])
+            setDepthProfilesArray([31.5,39.5,51,34.5])
+            profileLine = [1,3,6,9];
+        }else if(selectedProfile.name === profiles[2].name){
+            setProfileIncChart([2,4,10])
+            setDepthProfilesArray([14.5,26,20])
+            profileLine = [2,4,10];
+        }else if(selectedProfile.name === profiles[3].name){
+            setProfileIncChart([5,8])
+            setDepthProfilesArray([16.5,20.5])
+            profileLine = [5,8];
+        }
+        handleToogleProfileLine(profileLine);
+    }, [selectedProfile]);
 
     // only for testing
     /*const rows = [
@@ -4427,22 +4518,26 @@ function ResultsVisualization() {
         () => rows.slice().sort(getComparator(order, orderBy)).slice(
             page * rowsPerPage,
             page * rowsPerPage + rowsPerPage),
-        [order, orderBy, page, rowsPerPage],
+        [rows, order, orderBy, page, rowsPerPage],
     );
 
     const visibleRowsA = React.useMemo(
         () => rowsA.slice().sort(getComparator(order, orderBy)).slice(
             page * rowsPerPage,
             page * rowsPerPage + rowsPerPage),
-        [order, orderBy, page, rowsPerPage],
+        [rowsA, order, orderBy, page, rowsPerPage],
     );
 
     const visibleRowsB = React.useMemo(
         () => rowsB.slice().sort(getComparator(order, orderBy)).slice(
             page * rowsPerPage,
             page * rowsPerPage + rowsPerPage),
-        [order, orderBy, page, rowsPerPage],
+        [rowsB, order, orderBy, page, rowsPerPage],
     );
+
+    useEffect(() => {
+
+    }, [rows]);
 
 
     const handleToogleArrows = () => {
@@ -4481,10 +4576,11 @@ function ResultsVisualization() {
                         if(arrowData[i][0].depth - 0.5 > maxDepth){
                             maxDepth = arrowData[i][0].depth - 0.5
                         }
-                        if(arrowData[i][0].displacement > maxDisplacement){
-                            maxDisplacement = arrowData[i][0].displacement
+                        if(Math.abs(arrowData[i][0].displacement) > maxDisplacement){
+                            maxDisplacement = Math.abs(arrowData[i][0].displacement)
                         }
                     }
+
                     const refPointX1 = 293.9759051572062;
                     const refPointY1 = 137.467221651754;
                     const refPointX2 = 320.0369757491928;
@@ -4496,7 +4592,6 @@ function ResultsVisualization() {
                         //let testValueY = ((y3-y1)*31.5)/51
                         let refPointIncX1 = profilePosArray[posCounter]
                         let refPointIncY1 = profilePosArray[posCounter+1]
-                        console.log(refPointIncX1 + " | " + refPointIncY1 )
                         let newX = refPointIncX1 + ((refPointX2 - refPointX1) * arrowData[i][0].displacement) / maxDisplacement
                         let newY = refPointIncY1 + ((refPointY2 - refPointY1) * (arrowData[i][0].depth-0.5)) / maxDepth
 
@@ -4512,14 +4607,232 @@ function ResultsVisualization() {
                         posCounter += 2;
                     }
                 }
-            }else if(selectedOrthoDirection.name === "A"){
+            }else if(selectedProfile.name !== "All" && selectedOrthoDirection.name === "A"){
+                if (stageRef.current) {
+                    let stage = stageRef.current;
+                    let layer = new Konva.Layer({
+                        scaleX: 1,
+                        scaleY: 1,
+                        rotation: 5,
+                    });
+                    stage.add(layer);
+                    arrowLayerRef.current = layer;
 
-            }else if(selectedOrthoDirection.name === "B"){
+                    let group = new Konva.Group({
+                        x: 30,
+                        rotation: 10,
+                        scaleX: 1,
+                    });
+                    layer.add(group);
 
+                    let maxDepth = 0.1;
+                    let maxDisplacement = 0.1;
+                    let arrowData = arrowsAPointValues;
+                    console.log(arrowData)
+                    for(let i = 0; i < profileIncChart.length; i++){
+                        if(depthProfilesArray[i] > maxDepth){
+                            maxDepth = depthProfilesArray[i]
+                        }
+                        if(arrowData[i] && arrowData[i][0]){
+                        if(Math.abs(arrowData[i][0].displacement) > maxDisplacement){
+                            maxDisplacement = Math.abs(arrowData[i][0].displacement)
+                        }}
+                    }
+
+                    let counter = 0;
+                    let counterArray: number[] = []
+                    for(let i = 0; i < numberOfInc.length; i++){
+                        for(let j = 0; j < profileIncChart.length; j++){
+                            if(Number(numberOfInc[i]) === profileIncChart[j]){
+                                counterArray.push(counter)
+                            }
+                        }
+                        counter += 2;
+                    }
+
+                    const refPointX1 = 293.9759051572062;
+                    const refPointY1 = 137.467221651754;
+                    const refPointX2 = 320.0369757491928;
+                    const refPointY2 = 172.48439409197888;
+                    let posCounter = 0;
+                    let nextInc = 0;
+
+                    for(let i = 0; i < numberOfInc.length; i++) {
+                        if(Number(numberOfInc[i]) === profileIncChart[nextInc]){
+
+                            let posValue = counterArray[posCounter]
+                            let refPointIncX1 = profilePosArray[posValue]
+                            let refPointIncY1 = profilePosArray[posValue+1]
+                            //console.log(" displ " + arrowData[nextInc][0].displacement + " | " +maxDisplacement + " | " + depthProfilesArray[nextInc] + " | " + maxDepth)
+                            let newX = refPointIncX1
+                            if(arrowData[nextInc] && arrowData[nextInc][0]) {
+                                let newX = refPointIncX1 + Number((((refPointX2 - refPointX1) * arrowData[nextInc][0].displacement) / maxDisplacement).toFixed(14))
+                            }
+                            let newY = refPointIncY1 + Number((((refPointY2 - refPointY1) * (depthProfilesArray[nextInc])) / maxDepth).toFixed(14))
+
+                            console.log(newX + " A| " + newY)
+                            let arrow = new Konva.Arrow({
+                                points: [refPointIncX1, refPointIncY1, newX, newY],
+                                pointerLength: 5,
+                                pointerWidth: 10,
+                                fill: 'black',
+                                stroke: 'black',
+                                strokeWidth: 3
+                            })
+                            group.add(arrow)
+                            posCounter++;
+                            nextInc++;
+                        }
+                    }
+                }
+            }else if(selectedProfile.name !== "All" && selectedOrthoDirection.name === "B"){
+                if (stageRef.current) {
+                    let stage = stageRef.current;
+                    let layer = new Konva.Layer({
+                        scaleX: 1,
+                        scaleY: 1,
+                        rotation: 5,
+                    });
+                    stage.add(layer);
+                    arrowLayerRef.current = layer;
+
+                    let group = new Konva.Group({
+                        x: 30,
+                        rotation: 10,
+                        scaleX: 1,
+                    });
+                    layer.add(group);
+
+                    let maxDepth = 0.1;
+                    let maxDisplacement = 0.1;
+                    let arrowData = arrowsBPointValues;
+                    console.log("B: " + arrowData)
+                    for(let i = 0; i < profileIncChart.length; i++){
+                        if(depthProfilesArray[i] > maxDepth){
+                            maxDepth = depthProfilesArray[i]
+                        }
+                        if(arrowData[i] && arrowData[i][0]){
+                        if (Math.abs(arrowData[i][0].displacement) > maxDisplacement) {
+                                maxDisplacement = Math.abs(arrowData[i][0].displacement)
+                        }}
+                    }
+
+                    let counter = 0;
+                    let counterArray: number[] = []
+                    for(let i = 0; i < numberOfInc.length; i++){
+                        for(let j = 0; j < profileIncChart.length; j++){
+                            if(Number(numberOfInc[i]) === profileIncChart[j]){
+                                counterArray.push(counter)
+                            }
+                        }
+                        counter += 2;
+                    }
+
+                    const refPointX1 = 293.9759051572062;
+                    const refPointY1 = 137.467221651754;
+                    const refPointX2 = 320.0369757491928;
+                    const refPointY2 = 172.48439409197888;
+                    let posCounter = 0;
+                    let nextInc = 0;
+
+                    for(let i = 0; i < numberOfInc.length; i++) {
+                        if(Number(numberOfInc[i]) === profileIncChart[nextInc]){
+
+                            let posValue = counterArray[posCounter]
+                            let refPointIncX1 = profilePosArray[posValue]
+                            let refPointIncY1 = profilePosArray[posValue+1]
+                            let newX = refPointIncX1;
+                            if(arrowData[nextInc] && arrowData[nextInc][0]) {
+                                newX = refPointIncX1 + Number((((refPointX2 - refPointX1) * arrowData[nextInc][0].displacement) / maxDisplacement).toFixed(14))
+                            }
+                            let newY = refPointIncY1 + Number((((refPointY2 - refPointY1) * (depthProfilesArray[nextInc])) / maxDepth).toFixed(14))
+                            console.log(newX + " B| " + newY)
+                            let arrow = new Konva.Arrow({
+                                points: [refPointIncX1, refPointIncY1, newX, newY],
+                                pointerLength: 5,
+                                pointerWidth: 10,
+                                fill: 'black',
+                                stroke: 'black',
+                                strokeWidth: 3
+                            })
+                            group.add(arrow)
+                            posCounter++;
+                            nextInc++;
+                        }
+                    }
+                }
             }
         }
     };
 
+    const handleToogleProfileLine = (profileLine: number[]) => {
+        if (selectedProfile.name !== "All") {
+            if (stageRef.current) {
+                let stage = stageRef.current;
+                if(profileLineLayerRef.current !== null){
+                    const oldLayer = profileLineLayerRef.current;
+                    oldLayer.destroy();
+                    profileLineLayerRef.current = null;
+                }
+
+                let layer = new Konva.Layer({
+                    scaleX: 1,
+                    scaleY: 1,
+                    rotation: 5,
+                });
+                stage.add(layer);
+                profileLineLayerRef.current = layer;
+
+                let group = new Konva.Group({
+                    x: 30,
+                    rotation: 10,
+                    scaleX: 1,
+                });
+                layer.add(group);
+
+                let incliLine: number[] = []
+                if(profileLine.length !== 0){
+                    incliLine = profileLine
+                }else{
+                    incliLine = profileIncChart
+                }
+
+                let pointsArray: number[]  = [];
+                for(let i = 0; i < numberOfInc.length; i++) {
+                    for(let j = 0; j < incliLine.length; j++) {
+                        if(Number(numberOfInc[i]) === incliLine[j]){
+                            pointsArray.push(profilePosArray[i*2])
+                            pointsArray.push(profilePosArray[i*2+1])
+                        }
+                    }
+                }
+
+                let arrayLength = pointsArray.length;
+                pointsArray.push(pointsArray[arrayLength-2]+100)
+                pointsArray.push(pointsArray[arrayLength-1]-25)
+                let auxPoint1 = pointsArray[0];
+                let auxPoint2 = pointsArray[1];
+                pointsArray.unshift(auxPoint1-100, auxPoint2+25)
+
+                let line = new Konva.Line({
+                    points: pointsArray,
+                    stroke: 'red',
+                    strokeWidth: 5,
+                    lineJoin: 'round',
+                    dash: [10, 10],
+                });
+
+                group.add(line);
+            }
+        } else {
+            if(stageRef.current && profileLineLayerRef.current){
+                 const stage = stageRef.current;
+                 const layer = profileLineLayerRef.current;
+                 layer.destroy();
+                 profileLineLayerRef.current = null;
+            }
+        }
+    };
 
     return (
         <div className="main-wrapper">
@@ -6616,21 +6929,38 @@ function ResultsVisualization() {
                             id="konvaContainer"
                             className="container-profile"></div>
                         <div className="flex-charts-container">
-                        {(selectedProfile.name !== "All" && selectedOrthoDirection.name === "A") && selectedProfileArrayChartData.length > 0 &&(
+                        {(selectedProfile.name !== "All" && selectedOrthoDirection.name === "A") && selectedProfileArrayChartDataX.length > 0 &&(
                             profileIncChart.map((inc, index) => (
                                 <div className="chart-wrapper2" key={index}>
                                     <ChartProfileA
-                                        graphData={selectedProfileArrayChartData[index]}
+                                        graphData={selectedProfileArrayChartDataX[index]}
                                         loadingData={loadingData}
                                         maxDepthOverall={maxProfileDepth}
                                         maxDepthInc={depthProfilesArray[index]}
-                                        maxData={maxProfileDisplacement}
+                                        maxData={maxProfileDisplacementX+2}
                                         inc={inc}
-                                        leftChart={inc === 1}
+                                        numberOfTotalInc={profileIncChart.length}
+                                        leftChart={index === 0}
                                     />
                                 </div>))
 
                         )}
+                            {(selectedProfile.name !== "All" && selectedOrthoDirection.name === "B") && selectedProfileArrayChartDataY.length > 0 &&(
+                                profileIncChart.map((inc, index) => (
+                                    <div className="chart-wrapper2" key={index}>
+                                        <ChartProfileA
+                                            graphData={selectedProfileArrayChartDataY[index]}
+                                            loadingData={loadingData}
+                                            maxDepthOverall={maxProfileDepth}
+                                            maxDepthInc={depthProfilesArray[index]}
+                                            maxData={maxProfileDisplacementY+2}
+                                            inc={inc}
+                                            numberOfTotalInc={profileIncChart.length}
+                                            leftChart={index === 0}
+                                        />
+                                    </div>))
+
+                            )}
                         </div>
                         {(selectedProfile.name !== "All" && selectedOrthoDirection.name === "B") && (
                             <div>
