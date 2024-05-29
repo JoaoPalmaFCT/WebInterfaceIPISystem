@@ -8,6 +8,17 @@ import { store } from './store'
 import { Container, Footer, Header } from "./components/layout";
 import Profile from "./components/profile";
 import LincsLogo from "./images/logo/Lincs-logo_Page 3_1.png"
+import {
+    Box,
+    List,
+    ListItem,
+    ListItemButton,
+    ListItemIcon,
+    ListItemText,
+    Divider,
+    Drawer,
+} from "@mui/material";
+import {Toc,SsidChart, Home, AccountCircle, Logout, Settings} from "@mui/icons-material";
 function App() {
   /*useEffect(() => {
     getData()//.catch(error => console.error('Error querying InfluxDB:', error));
@@ -16,6 +27,46 @@ function App() {
     //getDataFromLastYear()//.catch(error => console.error('Error querying InfluxDB:', error));
         //ResultsVisualization
   }, []);*/
+
+    const [open, setOpen] = React.useState(false);
+
+    const toggleDrawer = (newOpen: boolean) => () => {
+        setOpen(newOpen);
+    };
+
+    const DrawerList = (
+        <Box sx={{ width: 250, display: 'flex', flexDirection: 'column', height: '100%'  }} role="presentation" onClick={toggleDrawer(false)}>
+            <List>
+                {['Home', 'Monitoring Groups', 'Monitoring Profiles', 'Visualization of Results', 'Settings'].map((text, index) => (
+                    <ListItem key={text} disablePadding>
+                        <ListItemButton>
+                            <ListItemIcon>
+                                {index === 0 && <Home/>}
+                                {index === 1 && <Toc/>}
+                                {index === 2 && <Toc/>}
+                                {index === 3 && <SsidChart/>}
+                                {index === 4 && <Settings/>}
+                            </ListItemIcon>
+                            <ListItemText primary={text} />
+                        </ListItemButton>
+                    </ListItem>
+                ))}
+            </List>
+            <Box sx={{ flexGrow: 1 }} />
+            <List>
+                {['Profile', 'Logout'].map((text, index) => (
+                    <ListItem key={text} disablePadding>
+                        <ListItemButton>
+                            <ListItemIcon>
+                                {index % 2 === 0 ? <AccountCircle/> : <Logout/>}
+                            </ListItemIcon>
+                            <ListItemText primary={text} />
+                        </ListItemButton>
+                    </ListItem>
+                ))}
+            </List>
+        </Box>
+    );
 
   return (
       <Router>
@@ -27,19 +78,28 @@ function App() {
                           display: 'flex',
                           alignItems: 'center'
                       }}>
-                      <svg
+                      <div>
+                          <Drawer
+                              open={open}
+                              onClose={toggleDrawer(false)}>
+                              {DrawerList}
+                          </Drawer>
+                      </div>
+                      <div>
+                          <svg
                           xmlns="http://www.w3.org/2000/svg"
                           fill="none"
                           viewBox="0 0 24 24"
                           strokeWidth="1.5"
                           stroke="currentColor"
-                          className="w-6 h-6">
+                          className="w-6 h-6"
+                          onClick={toggleDrawer(true)}>
                           <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
                               d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
                       </svg>
-
+                      </div>
                       <img
                           src={LincsLogo}
                           alt="Lincs"
@@ -53,7 +113,7 @@ function App() {
               </Header>
               <Container>
                   <Routes>
-                  <Route
+                      <Route
                           path="/visualization"
                           element={
                               <ResultsVisualization/>}/>
