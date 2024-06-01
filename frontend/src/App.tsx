@@ -2,11 +2,13 @@ import React, { useEffect }  from 'react';
 import logo from './logo.svg';
 import './App.css';
 import ResultsVisualization, {   } from './components/resultsVisualization'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useNavigate } from 'react-router-dom';
 import { Provider } from 'react-redux'
 import { store } from './store'
 import { Container, Footer, Header } from "./components/layout";
 import Profile from "./components/profile";
+import MonitoringProfiles from "./components/monitoringProfiles";
+import SettingsPage from "./components/settings";
 import LincsLogo from "./images/logo/Lincs-logo_Page 3_1.png"
 import {
     Box,
@@ -18,7 +20,7 @@ import {
     Divider,
     Drawer,
 } from "@mui/material";
-import {Toc,SsidChart, Home, AccountCircle, Logout, Settings} from "@mui/icons-material";
+import {FormatListBulleted,SsidChart, Home, AccountCircle, Logout, Settings} from "@mui/icons-material";
 function App() {
   /*useEffect(() => {
     getData()//.catch(error => console.error('Error querying InfluxDB:', error));
@@ -34,16 +36,24 @@ function App() {
         setOpen(newOpen);
     };
 
-    const DrawerList = (
+    const DrawerList = () => {
+        const navigate = useNavigate();
+
+        return (
         <Box sx={{ width: 250, display: 'flex', flexDirection: 'column', height: '100%'  }} role="presentation" onClick={toggleDrawer(false)}>
             <List>
                 {['Home', 'Monitoring Groups', 'Monitoring Profiles', 'Visualization of Results', 'Settings'].map((text, index) => (
-                    <ListItem key={text} disablePadding>
+                    <ListItem key={text} disablePadding onClick={() => {
+                        if (index === 0) navigate('/');
+                        if (index === 2) navigate('/monitoringProfiles');
+                        if (index === 3) navigate('/visualization');
+                        if (index === 4) navigate('/settings');
+                    }}>
                         <ListItemButton>
                             <ListItemIcon>
                                 {index === 0 && <Home/>}
-                                {index === 1 && <Toc/>}
-                                {index === 2 && <Toc/>}
+                                {index === 1 && <FormatListBulleted/>}
+                                {index === 2 && <FormatListBulleted/>}
                                 {index === 3 && <SsidChart/>}
                                 {index === 4 && <Settings/>}
                             </ListItemIcon>
@@ -55,7 +65,9 @@ function App() {
             <Box sx={{ flexGrow: 1 }} />
             <List>
                 {['Profile', 'Logout'].map((text, index) => (
-                    <ListItem key={text} disablePadding>
+                    <ListItem key={text} disablePadding onClick={() => {
+                        if (index === 0) navigate('/profile');
+                    }}>
                         <ListItemButton>
                             <ListItemIcon>
                                 {index % 2 === 0 ? <AccountCircle/> : <Logout/>}
@@ -66,7 +78,7 @@ function App() {
                 ))}
             </List>
         </Box>
-    );
+    )};
 
   return (
       <Router>
@@ -82,7 +94,7 @@ function App() {
                           <Drawer
                               open={open}
                               onClose={toggleDrawer(false)}>
-                              {DrawerList}
+                              <DrawerList />
                           </Drawer>
                       </div>
                       <div>
@@ -114,9 +126,17 @@ function App() {
               <Container>
                   <Routes>
                       <Route
+                          path="/monitoringProfiles"
+                          element={
+                              <MonitoringProfiles/>}/>
+                      <Route
                           path="/visualization"
                           element={
                               <ResultsVisualization/>}/>
+                      <Route
+                          path="/settings"
+                          element={
+                              <SettingsPage/>}/>
                       <Route
                           path="/profile"
                           element={

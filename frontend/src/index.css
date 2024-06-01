@@ -202,3 +202,20 @@ code {
   display: flex;
   justify-content: center;
 }
+
+/* Monitoring Profiles */
+.filter-container-monitProfile{
+  padding-top: 30px;
+  flex: 1 1 auto;
+}
+
+.flex-grow {
+  flex: 1 1 auto;
+  flex-grow: 1;
+}
+
+.submit-button {
+  padding-top: 15px;
+  padding-left: 15px;
+  padding-right: 15px;
+}

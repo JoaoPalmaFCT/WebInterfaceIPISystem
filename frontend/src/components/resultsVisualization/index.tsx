@@ -43,7 +43,7 @@ import {
 } from '@heroicons/react/20/solid'
 import Slider
     from '@mui/material/Slider';
-import { parse } from 'papaparse';
+import * as Papa from 'papaparse';
 import { SyncLoader } from 'react-spinners';
 import Konva from 'konva';
 import { Stage } from 'konva/lib/Stage';
@@ -62,8 +62,12 @@ import {
     Paper,
     TablePagination,
     TableContainer,
-    TableBody
+    TableBody,
+    Modal,
+    Button,
+    IconButton
 } from '@mui/material';
+import {Clear} from "@mui/icons-material";
 import { visuallyHidden } from '@mui/utils';
 /*
  * INCLINOMETER DATA
@@ -172,6 +176,7 @@ interface ChartProps {
 interface ChartPropsInc {
     graphData: InclinometerData[];
     loadingData: boolean;
+    refDate: string;
     //colorArray: string[];
 }
 
@@ -198,9 +203,20 @@ interface ChartPropsDetails {
     //colorArray: string[];
 }
 
+interface ChartPropsDetailsTotal {
+    graphDataX: InclinometerData[];
+    graphDataY: InclinometerData[];
+    initialMaxDepth: number;
+    minDepth: number;
+    maxDepth: number;
+    loadingData: boolean;
+}
+
 interface ChartSoil {
     graphData: SoilData[];
     loadingData: boolean;
+    totalChart: boolean;
+    tempChart: boolean;
 }
 
 /*
@@ -770,6 +786,16 @@ const orthoDirection = [
     }
 ]
 
+const exportSelect = [
+    {
+        id: 1,
+        name: 'Results to csv',
+    },
+    {
+        id: 2,
+        name: 'Report',
+    }
+]
 
 let desiredDepth = 0;
 
@@ -1273,20 +1299,82 @@ const ChartDataPrepDetails = (graphData: InclinometerData[], maxD: number, minD:
     return data;
 }
 
-const ChartDataPrepDetailsX = (graphData: InclinometerData[][], depth: number): InclinometerData[][] => {
-    let newArray: InclinometerData[][] = [];
-    for (let i = 0; i < graphData.length; i++) {
+const ChartDataPrepDetailsTotal = (graphDataX: InclinometerData[], graphDataY: InclinometerData[], maxD: number, minD: number): InclinometerData[][] => {
+    /*let data: InclinometerData[][] = [];
+
+    const uniqueDates = getUniqueDates(graphDataX)
+    const numberOfDates = uniqueDates.length;
+
+    for (let i = 0; i < numberOfDates; i++) {
         let tempArray: InclinometerData[] = []
-        graphData.map(a => {
-            a.map(b => {
-                if (b.depth === depth) {
-                    tempArray.push(b);
+        graphDataX.map(g => {
+            if (g.time === uniqueDates[i]) {
+                graphDataY.map(y => {
+                    if (g.sensorID === y.sensorID && g.time === y.time) {
+                        g.field = "total"
+                        g.displacement = calculateTotal(g.displacement, y.displacement);
+                    }
+                })
+                tempArray.push(g)
+            }
+        })
+        data[i] = tempArray
+        data[i].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
+    }
+    return data;*/
+    let graphData: InclinometerData[] = []
+
+    const uniqueDates = getUniqueDates(graphDataX)
+    const numberOfDates = uniqueDates.length;
+    for (let i = 0; i < numberOfDates; i++) {
+        //let tempArray: InclinometerData[] = []
+        graphDataX.map(g => {
+            if (g.time === uniqueDates[i]) {
+                graphDataY.map(y => {
+                    if (g.sensorID === y.sensorID && g.time === y.time) {
+                        g.field = "total"
+                        g.displacement = calculateTotal(g.displacement, y.displacement);
+                    }
+                })
+                graphData.push(g)
+            }
+        })
+        //data[i] = tempArray
+       // data[i].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
+    }
+
+    let data: InclinometerData[][] = [];
+
+    if (graphData.length > 0) {
+        const uniqueDepths = getUniqueDepth(Number(graphData[0].inc), graphData)
+        const filteredDepths = uniqueDepths.filter(depth => depth >= minD && depth <= maxD);
+
+        for (let i = 0; i < filteredDepths.length; i++) {
+            let tempArray: InclinometerData[] = []
+            graphData.map(g => {
+                if (g.depth === filteredDepths[i]) {
+                    tempArray.push(g)
                 }
             })
-        })
-        newArray[i] = tempArray
+            data[i] = tempArray
+            data[i].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
+        }
     }
-    return newArray;
+    /*const uniqueDates = getUniqueDates(graphData);
+    const numberOfDates = uniqueDates.length;
+
+    for (let i = 0; i < numberOfDates; i++) {
+        let tempArray: InclinometerData[] = []
+        graphData.map(g => {
+            if (g.time === uniqueDates[i]) {
+                tempArray.push(g)
+            }
+        })
+        data[i] = tempArray
+        data[i].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
+    }
+*/
+    return data;
 }
 
 const ChartClockDataPrep = (graphDataA: InclinometerData[], graphDataB: InclinometerData[]): ABData[][] => {
@@ -1422,12 +1510,13 @@ const handleClickChart = (payload: React.MouseEvent<SVGCircleElement, MouseEvent
 
 const Chart: React.FC<ChartPropsInc> = ({
                                             graphData,
-                                            loadingData
+                                            loadingData,
+                                            refDate
                                         }) => {
     let data: InclinometerData[][] = ChartDataPrep(graphData);
     let graphType: string = "A";
     let typeOfResult: string = "Cumulative displacements"
-    let refDate: string = "Ref Date";
+    //let refDate: string = "Ref Date";
     let discardHMS: boolean = false;
     let numberOfDates: number = 0;
     let overloadDates: boolean = false;
@@ -1444,7 +1533,7 @@ const Chart: React.FC<ChartPropsInc> = ({
             graphType = "B"
         }
         typeOfResult = data[0][0].typeOfResult;
-        refDate = data[0][0].time;
+        //refDate = data[0][0].time;
         discardHMS = data[0][0].time.split(" ")[1] === "00:00:00"
         numberOfDates = data.length
         if (discardHMS && numberOfDates > 22) {
@@ -1778,6 +1867,7 @@ const ChartClock: React.FC<ChartPropsClock> = ({
                                                }) => {
     let data: ABData[][] = ChartClockDataPrep(graphDataA, graphDataB);
 
+    /*<Tooltip content={<CustomTooltip/>}/>*/
 
     return (
         <div
@@ -1830,9 +1920,6 @@ const ChartClock: React.FC<ChartPropsClock> = ({
                             <ReferenceLine
                                 x={0}
                                 stroke="#000000"/>
-                            <Tooltip
-                                content={
-                                    <CustomTooltip/>}/>
 
                             {data.map((d, i) => (
                                 <Line
@@ -1842,7 +1929,8 @@ const ChartClock: React.FC<ChartPropsClock> = ({
                                     dataKey="b"
                                     data={d}
                                     stroke={colorsArray[i]}
-                                    activeDot={{r: 8}}/>
+                                    dot={false}
+                                    />
                             ))}
                         </LineChart>
                     )}
@@ -1958,9 +2046,106 @@ const ChartDetails: React.FC<ChartPropsDetails> = ({
     );
 };
 
+const ChartDetailsTotal: React.FC<ChartPropsDetailsTotal> = ({
+                                                       graphDataX,
+                                                       graphDataY,
+                                                       initialMaxDepth,
+                                                       minDepth,
+                                                       maxDepth,
+                                                       loadingData
+                                                   }) => {
+    let maxD = initialMaxDepth - minDepth;
+    let minD = Math.abs(0 - (initialMaxDepth - maxDepth));
+
+    let data: InclinometerData[][] = ChartDataPrepDetailsTotal(graphDataX, graphDataY, maxD, minD);
+    //let initialData: InclinometerData[][] = ChartDataPrep(graphData);
+    //let data: InclinometerData[][] = ChartDataPrepDetailsX(initialData, depth);
+
+    //console.log(data)
+    let graphType: string = "A";
+    let discardHMS: boolean = false;
+
+    if (data.length > 0 && data[0].length > 0) {
+        graphType = "Total"
+
+        discardHMS = data[0][0].time.split(" ")[1] === "00:00:00"
+    }
+//domain={[minD, maxD]}
+//{data.map((date, i) => {}(`${date[i].time.split(" ")[0]}` ))}
+    return (
+        <div
+            className="wrapper">
+            <ResponsiveContainer
+                width="80%"
+                height={320}>
+                {(graphDataX.length === 0 || loadingData) ? (
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                height: '100%'
+                            }}>
+                            <SyncLoader
+                                color="#22C55E"/>
+                        </div>
+                    )
+                    : (
+                        <LineChart
+                            margin={{
+                                top: 25,
+                                right: 100,
+                                left: 15,
+                                bottom: 20
+                            }}>
+                            <CartesianGrid
+                                strokeDasharray="3 3"/>
+                            <XAxis
+                                dataKey="time"
+                                tickFormatter={(date) => {
+                                    return (discardHMS) ? (date.split(" ")[0]) : (date)
+                                }}
+                                allowDuplicatedCategory={false}>
+                                <Label
+                                    value="Dates"
+                                    position="bottom"/>
+                            </XAxis>
+                            <YAxis
+                                dataKey="displacement">
+                                <Label
+                                    value={`${graphType} (mm)`}
+                                    position="left"
+                                    angle={-90}/>
+                            </YAxis>
+                            <Tooltip
+                                content={
+                                    <CustomTooltipDetails/>}
+                                position={{
+                                    x: -400,
+                                    y: -250
+                                }}/>
+                            {data.map((incData, i) => (
+                                <Line
+                                    name={`${incData[0].depth}`}
+                                    key={`${incData[0].depth}`}
+                                    type="monotone"
+                                    dataKey="displacement"
+                                    data={incData}
+                                    stroke={colorsArray[i]}
+                                    activeDot={{r: 8}}/>
+                            ))}
+                        </LineChart>
+                    )}
+            </ResponsiveContainer>
+        </div>
+    );
+};
+
 const ChartSoil: React.FC<ChartSoil> = ({
                                             graphData,
-                                            loadingData
+                                            loadingData,
+                                            totalChart,
+                                            tempChart
                                         }) => {
     const maxY = Math.max(...graphData.map(soil => soil.depth));
     const data = [{
@@ -1975,7 +2160,7 @@ const ChartSoil: React.FC<ChartSoil> = ({
         <div
             className="wrapper">
             <ResponsiveContainer
-                width="50%"
+                width={(totalChart && !tempChart) ? "25%" :"40%"}
                 height={640}>
                 {(graphData.length === 0 || loadingData) ? (
                         <div
@@ -1994,8 +2179,8 @@ const ChartSoil: React.FC<ChartSoil> = ({
                             data={data}
                             margin={{
                                 top: 50,
-                                right: 20,
-                                left: 20,
+                                right: 0,
+                                left: 0,
                                 bottom: 40
                             }}>
                             <XAxis
@@ -2361,7 +2546,7 @@ const ChartProfileA: React.FC<ChartPropsProfileInc> = ({
                                     }]}
                                 >
                                     <Label
-                                        value={`A (m)`}
+                                        value={graphType === 'A' ? `A (mm)` : `B (mm)` }
                                         position="bottom"
                                         dy={0}
                                         dx={0}
@@ -2999,7 +3184,25 @@ const exportSVG = (svg: SVGElement, graphName: string) => {
     }
 };
 
-const exportCSV = (data: InclinometerData[]) => {
+const exportCSV = (data: InclinometerData[], filename: string) => {
+    // Convert data to CSV format
+    const csv = Papa.unparse(data);
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+
+        document.body.appendChild(link);
+
+        link.click();
+
+        document.body.removeChild(link);
+    }
     /*const dataToExport = data;
 
     const csvString = parse(dataToExport);
@@ -3013,6 +3216,130 @@ const exportCSV = (data: InclinometerData[]) => {
 
     URL.revokeObjectURL(link.href);*/
 };
+
+interface PopupProps {
+    open: boolean;
+    handleClose: () => void;
+}
+
+const PopupCSV: React.FC<PopupProps> = ({ open, handleClose }) => {
+
+    const [selectedExport, setSelectedExport] = useState(exportSelect[0])
+
+
+    return (
+        <Modal
+            open={open}
+            onClose={handleClose}
+            aria-labelledby="modal-title"
+            aria-describedby="modal-description"
+        >
+            <Box sx={{
+                position: 'absolute' as 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 400,
+                bgcolor: 'background.paper',
+                border: '2px solid #000',
+                boxShadow: 24,
+                p: 4,
+                '& .close-button': {
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                },
+            }}>
+                <IconButton className="close-button" aria-label="close" onClick={handleClose}>
+                    <Clear />
+                </IconButton>
+                <div
+                    className="filter-container-elevation">
+                    <Listbox
+                        value={selectedExport}
+                        onChange={setSelectedExport}>
+                        {({open}) => (
+                            <>
+                                <Listbox.Label
+                                    className="block text-lg font-medium leading-6 text-gray-900 text-left">Export results</Listbox.Label>
+                                <div
+                                    className="relative mt-2">
+                                    <Listbox.Button
+                                        className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                      <span
+                                          className="flex items-center">
+                                          <span
+                                              className="ml-3 block truncate">{selectedExport.name}</span>
+                                      </span>
+                                        <span
+                                            className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                      <ChevronUpDownIcon
+                                          className="h-5 w-5 text-gray-400"
+                                          aria-hidden="true"/>
+                                      </span>
+                                    </Listbox.Button>
+                                    <Transition
+                                        show={open}
+                                        as={Fragment}
+                                        leave="transition ease-in duration-100"
+                                        leaveFrom="opacity-100"
+                                        leaveTo="opacity-0"
+                                    >
+                                        <Listbox.Options
+                                            className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                            {exportSelect.map((res) => (
+                                                <Listbox.Option
+                                                    key={res.id}
+                                                    className={({active}) =>
+                                                        classNames(
+                                                            active ? 'bg-yellow-500 text-white' : 'text-gray-900',
+                                                            'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                        )
+                                                    }
+                                                    value={res}
+                                                >
+                                                    {({
+                                                          selected,
+                                                          active
+                                                      }) => (
+                                                        <>
+                                                            <div
+                                                                className="flex items-center">
+                                                                <span
+                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
+                                                                >
+                            {res.name}
+                          </span>
+                                                            </div>
+
+                                                            {selected ? (
+                                                                <span
+                                                                    className={classNames(
+                                                                        active ? 'text-white' : 'text-green-600',
+                                                                        'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                    )}
+                                                                >
+                            <CheckIcon
+                                className="h-5 w-5"
+                                aria-hidden="true"/>
+                          </span>
+                                                            ) : null}
+                                                        </>
+                                                    )}
+                                                </Listbox.Option>
+                                            ))}
+                                        </Listbox.Options>
+                                    </Transition>
+                                </div>
+                            </>
+                        )}
+                    </Listbox>
+                </div>
+            </Box>
+        </Modal>
+    );
+};
+
 
 /*
  * PROFILE SECTION
@@ -4157,6 +4484,16 @@ function ResultsVisualization() {
         }
     };
 
+    const [open, setOpen] = useState(false);
+
+    const handleOpen = () => setOpen(true);
+    const handleClose = () => setOpen(false);
+
+    const handleExportCSV = () => {
+        //if(selectedAXChartData !== [])
+        //    exportCSV(selectedAXChartData, "AData");
+    }
+
     /*
      * PROFILES SECTION
      */
@@ -4166,14 +4503,14 @@ function ResultsVisualization() {
     const handleSelectedResultsProfiles = (type: string) => {
         let selectedType;
         switch (type) {
-            case results[0].name:
-                selectedType = results[0];
+            case resultsProfiles[0].name:
+                selectedType = resultsProfiles[0];
                 break;
-            case results[1].name:
-                selectedType = results[1];
+            case resultsProfiles[1].name:
+                selectedType = resultsProfiles[1];
                 break;
             default:
-                selectedType = results[0];
+                selectedType = resultsProfiles[0];
                 break;
         }
 
@@ -4421,7 +4758,7 @@ function ResultsVisualization() {
             }
             setSelectedProfileArrayChartDataY(tempArray)
         }
-    }, [selectedProfile, checkedDates, selectedOrthoDirection]);
+    }, [selectedProfile, checkedDates, selectedOrthoDirection, selectedResultsProfiles]);
 
     useEffect(() => {
         let profileLine: number[] = [];
@@ -6001,6 +6338,15 @@ function ResultsVisualization() {
                                     </button>
                                 </div>
                             </div>
+                            <div
+                                className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
+                            <button type="button"
+                                    className="py-2 px-4  bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                    onClick={handleOpen}>
+                                Export data
+                            </button>
+                            </div>
+                            <PopupCSV open={open} handleClose={handleClose} />
                         </div>
                     </div>
 
@@ -6047,6 +6393,7 @@ function ResultsVisualization() {
                                     <Chart
                                         graphData={selectedAXChartData}
                                         loadingData={loadingData}
+                                        refDate={refDate}
                                     />
                                 </div>
                                 <div
@@ -6055,6 +6402,7 @@ function ResultsVisualization() {
                                     <Chart
                                         graphData={selectedAYChartData}
                                         loadingData={loadingData}
+                                        refDate={refDate}
                                     />
                                 </div>
                             </>
@@ -6091,10 +6439,13 @@ function ResultsVisualization() {
                             ref={chartSoil}>
                             <ChartSoil
                                 graphData={soilData}
-                                loadingData={loadingData}/>
+                                loadingData={loadingData}
+                                totalChart={toggleTotalChart}
+                                tempChart={toggleTempChart}/>
                         </div>
                     </div>
-
+                    {!toggleTotalChart ? (
+                        <>
                     <div>
                         <ChartDetails
                             graphData={selectedAXChartData}
@@ -6113,6 +6464,21 @@ function ResultsVisualization() {
                             loadingData={loadingData}
                         />
                     </div>
+                        </>
+                    ) : (
+                        <>
+                            <div>
+                                <ChartDetailsTotal
+                                    graphDataX={selectedAXChartData}
+                                    graphDataY={selectedAYChartData}
+                                    initialMaxDepth={maxDepthInc}
+                                    minDepth={minDepthGraph}
+                                    maxDepth={maxDepthGraph}
+                                    loadingData={loadingData}
+                                />
+                        </div>
+                        </>
+                        )}
                 </div>
             </div> ): (
                 /*
