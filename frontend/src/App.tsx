@@ -6,6 +6,7 @@ import { BrowserRouter as Router, Route, Routes, useNavigate } from 'react-route
 import { Provider } from 'react-redux'
 import { store } from './store'
 import { Container, Footer, Header } from "./components/layout";
+import HomeScreen from "./components/home";
 import Profile from "./components/profile";
 import MonitoringProfiles from "./components/monitoringProfiles";
 import SettingsPage from "./components/settings";
@@ -125,6 +126,10 @@ function App() {
               </Header>
               <Container>
                   <Routes>
+                      <Route
+                          path="/"
+                          element={
+                              <HomeScreen/>}/>
                       <Route
                           path="/monitoringProfiles"
                           element={

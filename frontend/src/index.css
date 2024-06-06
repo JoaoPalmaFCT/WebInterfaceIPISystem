@@ -219,3 +219,47 @@ code {
   padding-left: 15px;
   padding-right: 15px;
 }
+
+.submit-selected-button {
+  padding-top: 15px;
+  padding-left: 70%;
+}
+
+.new-button {
+  padding-top: 15px;
+}
+
+.full-screen {
+  min-height: calc(100vh - 156px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.filter-container-typeOfProfile{
+  padding-bottom: 5%;
+  padding-left: 0%;
+  padding-right: 30%;
+  padding-top: 0%;
+  width: 350px;
+}
+
+.tableAndContainer{
+  display: flex;
+}
+
+.tableAndContainerT{
+  flex: 1;
+  margin-right: 16px;
+  padding-left: 30px;
+}
+
+.tableAndContainerC{
+  flex: 1;
+}
+
+.export-data{
+  padding-top: 10%;
+  padding-bottom: 22%;
+  padding-left: 33%;
+}

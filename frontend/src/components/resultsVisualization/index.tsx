@@ -5171,6 +5171,8 @@ function ResultsVisualization() {
         }
     };
 
+    const [selectedExport, setSelectedExport] = useState(exportSelect[0])
+
     return (
         <div className="main-wrapper">
             { selectedVisualization.name === visualization[0].name ? (
@@ -6290,63 +6292,174 @@ function ResultsVisualization() {
                                         className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"/>
                                 </div>
                             </div>
-                            <div
-                                className="filter-container-typeViz">
-                                <Listbox>
-                                    <Listbox.Label
-                                        className="pb-4 block text-lg font-medium leading-6 text-gray-900 text-left">Graph
-                                        to
-                                        export</Listbox.Label>
-                                </Listbox>
-                                <select
-                                    onChange={(e) => handleSelectedGraphExport(e.target.value)}
-                                    style={{
-                                        padding: '8px',
-                                        fontSize: '16px',
-                                        borderRadius: '5px',
-                                        border: '1px solid #ccc'
-                                    }}>
-                                    {!toggleTotalChart && (
-                                        <option
-                                            key={"A"}
-                                            value={"A"}>A
-                                        </option>)};
-                                    {!toggleTempChart && (
-                                        <option
-                                            key={"B"}
-                                            value={"B"}>B
-                                        </option>)}
-                                    {toggleTotalChart && (
-                                        <option
-                                            key={"TOTAL"}
-                                            value={"TOTAL"}>Total
-                                        </option>)}
-                                    {toggleTempChart && (
-                                        <option
-                                            key={"TEMP"}
-                                            value={"TEMP"}>Temp
-                                        </option>)}
-
-                                </select>
+                            <div className="export-data">
                                 <div
                                     className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
-                                    <button
-                                        type="button"
+                                <button type="button"
                                         className="py-2 px-4  bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                                        onClick={handleExportSVG}>Export
-                                        SVG
-                                    </button>
+                                        onClick={handleOpen}>
+                                    Export data
+                                </button>
                                 </div>
                             </div>
-                            <div
-                                className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
-                            <button type="button"
-                                    className="py-2 px-4  bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                                    onClick={handleOpen}>
-                                Export data
-                            </button>
-                            </div>
-                            <PopupCSV open={open} handleClose={handleClose} />
+                            <Modal
+                                open={open}
+                                onClose={handleClose}
+                                aria-labelledby="modal-title"
+                                aria-describedby="modal-description"
+                            >
+                                <Box sx={{
+                                    position: 'absolute' as 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: 400,
+                                    bgcolor: 'background.paper',
+                                    border: '2px solid #000',
+                                    boxShadow: 24,
+                                    p: 4,
+                                    '& .close-button': {
+                                        position: 'absolute',
+                                        top: 8,
+                                        right: 8,
+                                    },
+                                }}>
+                                    <IconButton className="close-button" aria-label="close" onClick={handleClose}>
+                                        <Clear />
+                                    </IconButton>
+                                    <div
+                                        className="filter-container-elevation">
+                                        <Listbox
+                                            value={selectedExport}
+                                            onChange={setSelectedExport}>
+                                            {({open}) => (
+                                                <>
+                                                    <Listbox.Label
+                                                        className="block text-lg font-medium leading-6 text-gray-900 text-left">Export
+                                                        results</Listbox.Label>
+                                                    <div
+                                                        className="relative mt-2">
+                                                        <Listbox.Button
+                                                            className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                      <span
+                                          className="flex items-center">
+                                          <span
+                                              className="ml-3 block truncate">{selectedExport.name}</span>
+                                      </span>
+                                                            <span
+                                                                className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                      <ChevronUpDownIcon
+                                          className="h-5 w-5 text-gray-400"
+                                          aria-hidden="true"/>
+                                      </span>
+                                                        </Listbox.Button>
+                                                        <Transition
+                                                            show={open}
+                                                            as={Fragment}
+                                                            leave="transition ease-in duration-100"
+                                                            leaveFrom="opacity-100"
+                                                            leaveTo="opacity-0"
+                                                        >
+                                                            <Listbox.Options
+                                                                className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                                {exportSelect.map((res) => (
+                                                                    <Listbox.Option
+                                                                        key={res.id}
+                                                                        className={({active}) =>
+                                                                            classNames(
+                                                                                active ? 'bg-yellow-500 text-white' : 'text-gray-900',
+                                                                                'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                                            )
+                                                                        }
+                                                                        value={res}
+                                                                    >
+                                                                        {({
+                                                                              selected,
+                                                                              active
+                                                                          }) => (
+                                                                            <>
+                                                                                <div
+                                                                                    className="flex items-center">
+                                                                <span
+                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
+                                                                >
+                            {res.name}
+                          </span>
+                                                                                </div>
+
+                                                                                {selected ? (
+                                                                                    <span
+                                                                                        className={classNames(
+                                                                                            active ? 'text-white' : 'text-green-600',
+                                                                                            'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                                        )}
+                                                                                    >
+                            <CheckIcon
+                                className="h-5 w-5"
+                                aria-hidden="true"/>
+                          </span>
+                                                                                ) : null}
+                                                                            </>
+                                                                        )}
+                                                                    </Listbox.Option>
+                                                                ))}
+                                                            </Listbox.Options>
+                                                        </Transition>
+                                                    </div>
+                                                    <div
+                                                        className="filter-container-typeViz">
+                                                        <Listbox>
+                                                            <Listbox.Label
+                                                                className="pb-4 block text-lg font-medium leading-6 text-gray-900 text-left">Graph
+                                                                to
+                                                                export</Listbox.Label>
+                                                        </Listbox>
+                                                        <select
+                                                            onChange={(e) => handleSelectedGraphExport(e.target.value)}
+                                                            style={{
+                                                                padding: '8px',
+                                                                fontSize: '16px',
+                                                                borderRadius: '5px',
+                                                                border: '1px solid #ccc'
+                                                            }}>
+                                                            {!toggleTotalChart && (
+                                                                <option
+                                                                    key={"A"}
+                                                                    value={"A"}>A
+                                                                </option>)};
+                                                            {!toggleTempChart && (
+                                                                <option
+                                                                    key={"B"}
+                                                                    value={"B"}>B
+                                                                </option>)}
+                                                            {toggleTotalChart && (
+                                                                <option
+                                                                    key={"TOTAL"}
+                                                                    value={"TOTAL"}>Total
+                                                                </option>)}
+                                                            {toggleTempChart && (
+                                                                <option
+                                                                    key={"TEMP"}
+                                                                    value={"TEMP"}>Temp
+                                                                </option>)}
+
+                                                        </select>
+                                                        <div
+                                                            className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
+                                                            <button
+                                                                type="button"
+                                                                className="py-2 px-4  bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                                                onClick={handleExportSVG}>Export
+                                                                SVG
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </Listbox>
+                                    </div>
+                                </Box>
+                            </Modal>
                         </div>
                     </div>
 
@@ -6356,19 +6469,21 @@ function ResultsVisualization() {
                             className="filter-container-slider">
                             <div
                                 className="container-slider">
-                                <Slider sx={{
-                                    '& .MuiSlider-thumb': {
-                                        color: "#22c55e"
-                                    },
-                                    '& .MuiSlider-track': {
-                                        color: "#15803d"
-                                    },
-                                    '& .MuiSlider-rail': {
-                                        color: "#86efac"
-                                    },
-                                    '& .MuiSlider-active': {
-                                        color: "#15803d"
-                                    }}}
+                                <Slider
+                                    sx={{
+                                        '& .MuiSlider-thumb': {
+                                            color: "#22c55e"
+                                        },
+                                        '& .MuiSlider-track': {
+                                            color: "#15803d"
+                                        },
+                                        '& .MuiSlider-rail': {
+                                            color: "#86efac"
+                                        },
+                                        '& .MuiSlider-active': {
+                                            color: "#15803d"
+                                        }
+                                    }}
                                     //getAriaLabel={() => 'Temperature range'}
                                     orientation="vertical"
                                     min={lowerValueSlider}
@@ -6378,7 +6493,8 @@ function ResultsVisualization() {
                                     value={selectedValuesSlider}
                                     onChange={handleSliderChange}
                                     valueLabelDisplay="on"
-                                    valueLabelFormat={value => <div>{`${Math.abs(maxDepthInc-value)} (m)`}</div>}
+                                    valueLabelFormat={value =>
+                                        <div>{`${Math.abs(maxDepthInc - value)} (m)`}</div>}
                                     disableSwap
                                     //getAriaValueText={valuetext}
                                 />

@@ -23,13 +23,35 @@ import {
     MenuItem,
     SelectChangeEvent,
     Theme,
-    useTheme, Chip, OutlinedInput, Alert, AlertTitle, Slide
+    useTheme, Chip, OutlinedInput, Alert, AlertTitle, Slide, Button
 } from "@mui/material";
-import React, {Fragment, useEffect, useState} from "react";
+import React, {
+    Fragment,
+    useEffect,
+    useRef,
+    useState
+} from "react";
 import {visuallyHidden} from "@mui/utils";
-import {Clear, Delete, FilterList} from "@mui/icons-material";
-import {Listbox} from "@headlessui/react";
+import {
+    Clear,
+    Delete,
+    FilterList,
+    CheckBoxOutlineBlankRounded,
+    CheckBoxRounded,
+    CloudUpload,
+    ArrowBack,
+    NavigateBefore,
+    NavigateNext,
+    Place
+} from "@mui/icons-material";
+import { styled } from '@mui/material/styles';
+import {
+    Listbox,
+    Transition
+} from "@headlessui/react";
 import {CheckIcon, ChevronUpDownIcon} from "@heroicons/react/20/solid";
+import Konva
+    from "konva";
 
 
 const testData = [createData(1, 'Profiles1', 2, 40),
@@ -39,7 +61,50 @@ const testIncValues = ['PK150_200', 10, "PK250_300", 30];
 
 const testMeasurements = ['PK150_200', "PK250_300"];
 
-interface MonitoringProfiles {
+const typeOfProfile = [
+    {
+        id: 1,
+        name: 'Plan',
+    },
+    {
+        id: 2,
+        name: 'Cross section',
+    }
+]
+
+
+interface MonitoringProfile {
+    id: number;
+    group: string;
+    name: string;
+    description: string;
+    typeOfProfile: string;
+    hasImage: boolean;
+    imagedAttached: string;
+}
+
+function createDataMP(
+    id: number,
+    group: string,
+    name: string,
+    description: string,
+    typeOfProfile: string,
+    hasImage: boolean,
+    imagedAttached: string
+): MonitoringProfile {
+    return {
+        id,
+        group,
+        name,
+        description,
+        typeOfProfile,
+        hasImage,
+        imagedAttached
+    };
+}
+
+
+interface MonitoringProfileGroup {
     id: number;
     group: string;
     measurements: number;
@@ -47,13 +112,13 @@ interface MonitoringProfiles {
     inclinometers: number;
 }
 
-function createDataMP(
+function createDataMPG(
     id: number,
     group: string,
     measurements: number,
     measurementsList: string[],
     inclinometers: number,
-): MonitoringProfiles {
+): MonitoringProfileGroup {
     return {
         id,
         group,
@@ -85,6 +150,31 @@ function createData(
     };
 }
 
+interface MPPC {
+    id: number;
+    groupMP: string;
+    inc: number;
+    hasPoint: boolean;
+    pickPoint: number[];
+}
+
+function createDataMPPC(
+    id: number,
+    groupMP: string,
+    inc: number,
+    hasPoint: boolean,
+    pickPoint: number[]
+): MPPC {
+    return {
+        id,
+        groupMP,
+        inc,
+        hasPoint,
+        pickPoint
+    };
+}
+
+
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
     if (b[orderBy] < a[orderBy]) {
         return -1;
@@ -101,8 +191,8 @@ function getComparator<Key extends keyof any>(
     order: Order,
     orderBy: Key,
 ): (
-    a: { [key in Key]: number | string },
-    b: { [key in Key]: number | string },
+    a: { [key in Key]: number | string | boolean | number[]},
+    b: { [key in Key]: number | string | boolean | number[]},
 ) => number {
     return order === 'desc'
         ? (a, b) => descendingComparator(a, b, orderBy)
@@ -164,7 +254,7 @@ function EnhancedTableHead(props: EnhancedTableProps) {
                         checked={rowCount > 0 && numSelected === rowCount}
                         onChange={onSelectAllClick}
                         inputProps={{
-                            'aria-label': 'select all desserts',
+                            'aria-label': 'select all groups',
                         }}
                     />
                 </TableCell>
@@ -197,9 +287,172 @@ function EnhancedTableHead(props: EnhancedTableProps) {
 
 interface EnhancedTableToolbarProps {
     numSelected: number;
+    onDelete: () => void;
 }
 
 function EnhancedTableToolbar(props: EnhancedTableToolbarProps) {
+    const { numSelected, onDelete } = props;
+
+    return (
+        <Toolbar
+            sx={{
+                pl: { sm: 2 },
+                pr: { xs: 1, sm: 1 },
+                ...(numSelected > 0 && {
+                    bgcolor: (theme) =>
+                        alpha(theme.palette.primary.main, theme.palette.action.activatedOpacity),
+                }),backgroundColor: '#16a34a'
+            }}
+        >
+            {numSelected > 0 ? (
+                <Typography
+                    sx={{ flex: '1 1 100%' }}
+                    color="white"
+                    variant="subtitle1"
+                    component="div"
+                >
+                    {numSelected} selected
+                </Typography>
+            ) : (
+                <Typography
+                    sx={{ flex: '1 1 100%'}}
+                    variant="h6"
+                    id="tableTitle"
+                    component="div"
+                    color="white"
+                >
+                    Select groups from existing monitoring profiles
+                </Typography>
+            )}
+            {numSelected > 0 && (
+                <Tooltip title="Delete selected groups">
+                    <IconButton onClick={onDelete}>
+                        <Delete/>
+                    </IconButton>
+                </Tooltip>
+            )}
+        </Toolbar>
+    );
+}
+
+// Selected Groups
+
+const VisuallyHiddenInput = styled('input')({
+    clip: 'rect(0 0 0 0)',
+    clipPath: 'inset(50%)',
+    height: 1,
+    overflow: 'hidden',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    whiteSpace: 'nowrap',
+    width: 1,
+});
+
+interface HeadCellMP {
+    disablePadding: boolean;
+    id: keyof MonitoringProfile;
+    label: string;
+    numeric: boolean;
+}
+
+const headCellsMP: readonly HeadCellMP[] = [
+    {
+        id: 'id',
+        numeric: true,
+        disablePadding: true,
+        label: 'Code',
+    },
+    {
+        id: 'group',
+        numeric: false,
+        disablePadding: false,
+        label: 'Group',
+    },
+    {
+        id: 'name',
+        numeric: false,
+        disablePadding: false,
+        label: 'Name',
+    },
+    {
+        id: 'description',
+        numeric: false,
+        disablePadding: false,
+        label: 'Description',
+    },
+    {
+        id: 'typeOfProfile',
+        numeric: false,
+        disablePadding: false,
+        label: 'Type Of Profile',
+    },
+    {
+        id: 'hasImage',
+        numeric: false,
+        disablePadding: false,
+        label: 'No Image',
+    },
+    {
+        id: 'imagedAttached',
+        numeric: false,
+        disablePadding: false,
+        label: 'Attach image',
+    },
+];
+
+interface EnhancedTablePropsMP {
+    //numSelected: number;
+    onRequestSort: (event: React.MouseEvent<unknown>, property: keyof MonitoringProfile) => void;
+    //onSelectAllClick: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    order: Order;
+    orderBy: string;
+    rowCount: number;
+}
+
+function EnhancedTableHeadMP(props: EnhancedTablePropsMP) {
+    const { order, orderBy, rowCount, onRequestSort } =
+        props;
+    const createSortHandlerMP =
+        (property: keyof MonitoringProfile) => (event: React.MouseEvent<unknown>) => {
+            onRequestSort(event, property);
+        };
+
+    return (
+        <TableHead>
+            <TableRow>
+                {headCellsMP.map((headCell) => (
+                    <TableCell
+                        key={headCell.id}
+                        align='left'//{headCell.numeric ? 'center' : 'left'}
+                        padding='normal'//{headCell.disablePadding ? 'none' : 'normal'}
+                        sortDirection={orderBy === headCell.id ? order : false}
+                        sx={{ backgroundColor: '#22c55e' }}
+                    >
+                        <TableSortLabel
+                            active={orderBy === headCell.id}
+                            direction={orderBy === headCell.id ? order : 'asc'}
+                            onClick={createSortHandlerMP(headCell.id)}
+                        >
+                            {headCell.label}
+                            {orderBy === headCell.id ? (
+                                <Box component="span" sx={visuallyHidden}>
+                                    {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                                </Box>
+                            ) : null}
+                        </TableSortLabel>
+                    </TableCell>
+                ))}
+            </TableRow>
+        </TableHead>
+    );
+}
+
+interface EnhancedTableToolbarPropsMP {
+    numSelected: number;
+}
+
+function EnhancedTableToolbarMP(props: EnhancedTableToolbarPropsMP) {
     const { numSelected } = props;
 
     return (
@@ -216,7 +469,7 @@ function EnhancedTableToolbar(props: EnhancedTableToolbarProps) {
             {numSelected > 0 ? (
                 <Typography
                     sx={{ flex: '1 1 100%' }}
-                    color="inherit"
+                    color="white"
                     variant="subtitle1"
                     component="div"
                 >
@@ -224,16 +477,17 @@ function EnhancedTableToolbar(props: EnhancedTableToolbarProps) {
                 </Typography>
             ) : (
                 <Typography
-                    sx={{ flex: '1 1 100%' }}
+                    sx={{ flex: '1 1 100%'}}
                     variant="h6"
-                    id="tableTitle"
+                    id="tableTitle2"
                     component="div"
+                    color="white"
                 >
-                    Select from existing monitoring profiles
+                    Set monitoring profiles
                 </Typography>
             )}
             {numSelected > 0 && (
-                <Tooltip title="Delete">
+                <Tooltip title="Delete selected monitoring profiles">
                     <IconButton>
                         <Delete/>
                     </IconButton>
@@ -242,6 +496,140 @@ function EnhancedTableToolbar(props: EnhancedTableToolbarProps) {
         </Toolbar>
     );
 }
+
+// MP Position correction
+
+
+interface HeadCellMPPC {
+    disablePadding: boolean;
+    id: keyof MPPC;
+    label: string;
+    numeric: boolean;
+}
+
+const headCellsMPPC: readonly HeadCellMPPC[] = [
+    {
+        id: 'id',
+        numeric: true,
+        disablePadding: true,
+        label: 'Code',
+    },
+    {
+        id: 'groupMP',
+        numeric: false,
+        disablePadding: false,
+        label: 'Measurement',
+    },
+    {
+        id: 'inc',
+        numeric: true,
+        disablePadding: false,
+        label: 'Inclinometer',
+    },
+    {
+        id: 'hasPoint',
+        numeric: false,
+        disablePadding: false,
+        label: 'Position Adjusted',
+    },
+    {
+        id: 'pickPoint',
+        numeric: false,
+        disablePadding: false,
+        label: 'Position Correction',
+    }
+];
+
+interface EnhancedTablePropsMPPC {
+    //numSelected: number;
+    onRequestSort: (event: React.MouseEvent<unknown>, property: keyof MPPC) => void;
+    //onSelectAllClick: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    order: Order;
+    orderBy: string;
+    rowCount: number;
+}
+
+function EnhancedTableHeadMPPC(props: EnhancedTablePropsMPPC) {
+    const { order, orderBy, rowCount, onRequestSort } =
+        props;
+    const createSortHandlerMPPC =
+        (property: keyof MPPC) => (event: React.MouseEvent<unknown>) => {
+            onRequestSort(event, property);
+        };
+
+    return (
+        <TableHead>
+            <TableRow>
+                {headCellsMPPC.map((headCell) => (
+                    <TableCell
+                        key={headCell.id}
+                        align='left'//{headCell.numeric ? 'center' : 'left'}
+                        padding='normal'//{headCell.disablePadding ? 'none' : 'normal'}
+                        sortDirection={orderBy === headCell.id ? order : false}
+                        sx={{ backgroundColor: '#22c55e' }}
+                    >
+                        <TableSortLabel
+                            active={orderBy === headCell.id}
+                            direction={orderBy === headCell.id ? order : 'asc'}
+                            onClick={createSortHandlerMPPC(headCell.id)}
+                        >
+                            {headCell.label}
+                            {orderBy === headCell.id ? (
+                                <Box component="span" sx={visuallyHidden}>
+                                    {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                                </Box>
+                            ) : null}
+                        </TableSortLabel>
+                    </TableCell>
+                ))}
+            </TableRow>
+        </TableHead>
+    );
+}
+
+interface EnhancedTableToolbarPropsMPPC {
+    numSelected: number;
+}
+
+function EnhancedTableToolbarMPPC(props: EnhancedTableToolbarPropsMPPC) {
+    const { numSelected } = props;
+
+    return (
+        <Toolbar
+            sx={{
+                pl: { sm: 2 },
+                pr: { xs: 1, sm: 1 },
+                ...(numSelected > 0 && {
+                    bgcolor: (theme) =>
+                        alpha(theme.palette.primary.main, theme.palette.action.activatedOpacity),
+                }),backgroundColor: '#16a34a'
+            }}
+        >
+            {numSelected > 0 ? (
+                <Typography
+                    sx={{ flex: '1 1 100%' }}
+                    color="white"
+                    variant="subtitle1"
+                    component="div"
+                >
+                    {numSelected} selected
+                </Typography>
+            ) : (
+                <Typography
+                    sx={{ flex: '1 1 100%'}}
+                    variant="h6"
+                    id="tableTitle2"
+                    component="div"
+                    color="white"
+                >
+                    Inclinometers belonging to profile and position adjustment
+                </Typography>
+            )}
+        </Toolbar>
+    );
+}
+
+
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -273,14 +661,31 @@ function MonitoringProfiles() {
     const [dense, setDense] = React.useState(false);
     const [rowsPerPage, setRowsPerPage] = React.useState(5);
     const [rows, setRows] = React.useState<ExistingMonitoringProfiles[]>([]);
-    const [monitoringProfiles, setMonitoringProfiles] = React.useState<MonitoringProfiles[]>([]);
+    const [monitoringProfiles, setMonitoringProfiles] = React.useState<MonitoringProfileGroup[]>([]);
+    const [orderMP, setOrderMP] = React.useState<Order>('asc');
+    const [orderByMP, setOrderByMP] = React.useState<keyof MonitoringProfile>('id');
+    const [selectedMP, setSelectedMP] = React.useState<readonly number[]>([]);
+    const [pageMP, setPageMP] = React.useState(0);
+    const [denseMP, setDenseMP] = React.useState(false);
+    const [rowsPerPageMP, setRowsPerPageMP] = React.useState(5);
+    const [rowsMP, setRowsMP] = React.useState<MonitoringProfile[]>([]);
+    const [monitoringProfilesTableData, setMonitoringProfilesTableData] = React.useState<MonitoringProfile[]>([]);
 
     useEffect(() => {
         setRows([createData(1, 'Profiles1', 2, 10),
             createData(2, 'Profiles2', 1, 30)]);
-        setMonitoringProfiles([createDataMP(1, 'Profiles1', 2, ['PK150_200', 'PK250_300'], 10),
-            createDataMP(2, 'Profiles2', 1, ['PK250_300'], 30)]);
+        setMonitoringProfiles([createDataMPG(1, 'Profiles1', 2, ['PK150_200', 'PK250_300'], 10),
+            createDataMPG(2, 'Profiles2', 1, ['PK250_300'], 30)]);
+        setMonitoringProfilesTableData([createDataMP(1, 'Profiles1', 'All','All inclinometers in the dam (Plan)', typeOfProfile[0].name, true, '/profiles/imagePlan3.png'),
+            createDataMP(2, 'Profiles1', 'Crest', 'Profile along the crest in the downstream site', typeOfProfile[1].name, false, '/profiles/NoImageFound.png'),
+            createDataMP(3, 'Profiles1', 'P5', 'Profile P5', typeOfProfile[1].name, false, '/profiles/NoImageFound.png'),
+            createDataMP(4, 'Profiles2', 'P7', 'Profile P6', typeOfProfile[1].name, false, '/profiles/NoImageFound.png')
+        ]);
+
+
     }, [page]);
+
+    // Monitoring profile groups
 
     const handleRequestSort = (
         event: React.MouseEvent<unknown>,
@@ -345,6 +750,78 @@ function MonitoringProfiles() {
         [rows, order, orderBy, page, rowsPerPage],
     );
 
+    const handleDelete = () => {
+        const newRows = rows.filter((row) => !selected.includes(row.id));
+        setRows(newRows);
+        setSelected([]);
+        setCheckedGroups([]);
+    };
+
+    // Selected Monitoring profile groups
+
+    const handleRequestSortMP = (
+        event: React.MouseEvent<unknown>,
+        property: keyof MonitoringProfile,
+    ) => {
+        const isAsc = orderByMP === property && orderMP === 'asc';
+        setOrderMP(isAsc ? 'desc' : 'asc');
+        setOrderByMP(property);
+    };
+
+    const handleSelectAllClickMP = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.checked) {
+            const newSelected = rowsMP.map((n) => n.id);
+            setSelectedMP(newSelected);
+            return;
+        }
+        setSelectedMP([]);
+    };
+
+    const handleClickMP = (event: React.MouseEvent<unknown>, id: number) => {
+        const selectedIndex = selected.indexOf(id);
+        let newSelected: readonly number[] = [];
+
+        if (selectedIndex === -1) {
+            newSelected = newSelected.concat(selected, id);
+        } else if (selectedIndex === 0) {
+            newSelected = newSelected.concat(selected.slice(1));
+        } else if (selectedIndex === selected.length - 1) {
+            newSelected = newSelected.concat(selected.slice(0, -1));
+        } else if (selectedIndex > 0) {
+            newSelected = newSelected.concat(
+                selected.slice(0, selectedIndex),
+                selected.slice(selectedIndex + 1),
+            );
+        }
+        setSelectedMP(newSelected);
+    };
+
+    const handleChangePageMP = (event: unknown, newPage: number) => {
+        setPageMP(newPage);
+    };
+
+    const handleChangeRowsPerPageMP = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setRowsPerPageMP(parseInt(event.target.value, 10));
+        setPageMP(0);
+    };
+
+    const handleChangeDenseMP = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setDenseMP(event.target.checked);
+    };
+
+    const isSelectedMP = (id: number) => selectedMP.indexOf(id) !== -1;
+
+    // Avoid a layout jump when reaching the last page with empty rows.
+    const emptyRowsMP =
+        pageMP > 0 ? Math.max(0, (1 + pageMP) * rowsPerPageMP - rowsMP.length) : 0;
+
+    const visibleRowsMP = React.useMemo(
+        () => rowsMP.slice().sort(getComparator(orderMP, orderByMP)).slice(
+            pageMP * rowsPerPageMP,
+            pageMP * rowsPerPageMP + rowsPerPageMP),
+        [rowsMP, orderMP, orderByMP, pageMP, rowsPerPageMP],
+    );
+
     const [openNew, setOpenNew] = useState(false);
     const [openEdit, setOpenEdit] = useState(false);
 
@@ -372,7 +849,7 @@ function MonitoringProfiles() {
         setSelectedInclinometersEdit(0)
         setSelectedMeasurementsEdit([])
         setSelectedGroupEdit('')
-        setSelectedMPEdit(createDataMP(0, '', 0, [], 0))
+        setSelectedMPEdit(createDataMPG(0, '', 0, [], 0))
 
         setOpenEdit(false)
     };
@@ -397,15 +874,21 @@ function MonitoringProfiles() {
     const [alertSuccessEditVisible, setAlertSuccessEditVisible] = useState(false);
     const [alertFailedVisible, setAlertFailedVisible] = useState(false);
     const [alertFailedSelectVisible, setAlertFailedSelectVisible] = useState(false);
+    const [alertWrongFileType, setAlertWrongFileType] = useState(false);
+    const [alertNothingSelected, setAlertNothingSelected] = useState(false);
+    const [warningNoMoreProfiles, setWarningNoMoreProfiles] = useState(false);
 
-    const [selectedMPEdit, setSelectedMPEdit] = useState<MonitoringProfiles>(createDataMP(0, '', 0, [], 0));
+    const [selectedMPEdit, setSelectedMPEdit] = useState<MonitoringProfileGroup>(createDataMPG(0, '', 0, [], 0));
     const [selectedGroupEdit, setSelectedGroupEdit] = useState<string>('');
     const [selectedMeasurementsEdit, setSelectedMeasurementsEdit] = useState<string[]>([]);
     const [selectedInclinometersEdit, setSelectedInclinometersEdit] = useState<number>(0);
-    const [selectedMPEditOld, setSelectedMPEditOld] = useState<MonitoringProfiles>(createDataMP(0, '', 0, [], 0));
+    const [selectedMPEditOld, setSelectedMPEditOld] = useState<MonitoringProfileGroup>(createDataMPG(0, '', 0, [], 0));
     const [selectedGroupEditOld, setSelectedGroupEditOld] = useState<string>('');
     const [selectedMeasurementsEditOld, setSelectedMeasurementsEditOld] = useState<string[]>([]);
     const [selectedInclinometersEditOld, setSelectedInclinometersEditOld] = useState<number>(0);
+
+    const [checkedGroups, setCheckedGroups] = useState<number[]>([])
+    const [groupSelected, setGroupSelected] = useState<boolean>(false);
 
     useEffect(() => {
         if(selectedMeasurements.length !== 0){
@@ -478,7 +961,7 @@ function MonitoringProfiles() {
             let tempRows = rows;
             let tempMP = monitoringProfiles;
             tempRows.push(createData(rows.length + 1, groupName, selectedMeasurements.length, selectedInclinometers));
-            tempMP.push(createDataMP(monitoringProfiles.length + 1, groupName, selectedMeasurements.length, selectedMeasurements, selectedInclinometers));
+            tempMP.push(createDataMPG(monitoringProfiles.length + 1, groupName, selectedMeasurements.length, selectedMeasurements, selectedInclinometers));
             setRows(tempRows);
             setMonitoringProfiles(tempMP)
             handleCloseNew()
@@ -529,7 +1012,7 @@ function MonitoringProfiles() {
             }, 5000);
         }else{
             let tempCreateData = createData(rows.length + 1, selectedGroupEdit, selectedMeasurementsEdit.length, selectedInclinometersEdit);
-            let tempCreateDataMP = createDataMP(monitoringProfiles.length + 1, selectedGroupEdit, selectedMeasurementsEdit.length, selectedMeasurementsEdit, selectedInclinometersEdit);
+            let tempCreateDataMP = createDataMPG(monitoringProfiles.length + 1, selectedGroupEdit, selectedMeasurementsEdit.length, selectedMeasurementsEdit, selectedInclinometersEdit);
             console.log(tempCreateData)
             for(let i = 0; i < tempRows.length; i++){
                 if(tempRows[i].group === selectedMPEdit.group){
@@ -548,463 +1031,1497 @@ function MonitoringProfiles() {
         }
     };
 
+    useEffect(() => {
+        if(checkedGroups.length === 0){
+            setGroupSelected(false);
+        }
+    }, [checkedGroups]);
+
+    const handleSubmitGroups = () => {
+        if(checkedGroups.length === 0){
+            setGroupSelected(false);
+            setAlertNothingSelected(true);
+            setTimeout(() => {
+                setAlertNothingSelected(false);
+            }, 5000);
+        }else{
+            setGroupSelected(true);
+            let tempRows = []
+            let checkedGroupsSet = new Set(checkedGroups);
+
+            for (let i = 0; i < rows.length; i++) {
+                if (checkedGroupsSet.has(rows[i].id)) {
+                    for(let j = 0; j < monitoringProfilesTableData.length; j++) {
+                        if(monitoringProfilesTableData[j].group === rows[i].group){
+                            tempRows.push(monitoringProfilesTableData[j]);
+                        }
+                    }
+                }
+            }
+
+            setRowsMP(tempRows);
+        }
+    }
+
+    // Detailed view
+
+    const [detailedView, setDetailedView] = React.useState(false);
+    const [selectedDetailedProfile, setSelectedDetailedProfile] = React.useState<string>('Profile1: All');
+    const [selectedDetailedProfileID, setSelectedDetailedProfileID] = React.useState<number>(0);
+    const [selectedTypeOfProfile, setSelectedTypeOfProfile] = React.useState(typeOfProfile[0]);
+
+    const [orderMPPC, setOrderMPPC] = React.useState<Order>('asc');
+    const [orderByMPPC, setOrderByMPPC] = React.useState<keyof MPPC>('id');
+    const [selectedMPPC, setSelectedMPPC] = React.useState<readonly number[]>([]);
+    const [pageMPPC, setPageMPPC] = React.useState(0);
+    const [denseMPPC, setDenseMPPC] = React.useState(false);
+    const [rowsPerPageMPPC, setRowsPerPageMPPC] = React.useState(5);
+    const [rowsMPPC, setRowsMPPC] = React.useState<MPPC[]>([]);
+    const [MPPCTableData, setMPPCTableData] = React.useState<MPPC[]>([]);
+
+    const stageRef = useRef<Konva.Stage | null>(null);
+    const pointsLayerRef = useRef<Konva.Layer | null>(null);
+    const [positionsArray, setPositionsArray] = React.useState<number[]>([]);
+    const [replaceValues, setReplaceValues] = React.useState(false);
+
+    useEffect(() => {
+        setMPPCTableData([createDataMPPC(0, 'PK150_200', 1, true, [296.2878194833505, 137.46244130721217]),
+            createDataMPPC(1, 'PK150_200', 2, false, []),
+            createDataMPPC(2, 'PK150_200', 3, false, []),
+            createDataMPPC(3, 'PK150_200', 4, false, []),
+            createDataMPPC(4, 'PK150_200', 5, false, []),
+            createDataMPPC(5, 'PK150_200', 6, false, []),
+            createDataMPPC(6, 'PK150_200', 8, false, []),
+            createDataMPPC(7, 'PK150_200', 9, false, []),
+            createDataMPPC(8, 'PK150_200', 10, false, [])])
+        setRowsMPPC(MPPCTableData)
+    }, [detailedView]);
+
+    useEffect(() => {
+        for(let i = 0; i < MPPCTableData.length; i++){
+            if(!MPPCTableData[i].hasPoint && MPPCTableData[i].pickPoint.length !== 0){
+                MPPCTableData[i].hasPoint = true;
+                setRowsMPPC(MPPCTableData)
+            }
+        }
+    }, [rowsMPPC, MPPCTableData, positionsArray, replaceValues]);
+
+    useEffect(() => {
+        if(positionsArray.length === 0){
+            setPositionsArray([296.2878194833505, 137.46244130721217, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0])
+        }else if(stageRef.current && pointsLayerRef.current && replaceValues){
+            let stage = stageRef.current;
+
+            if (pointsLayerRef) {
+                pointsLayerRef.current.destroy();
+            }
+
+            let layer = new Konva.Layer({
+                scaleX: 1,
+                scaleY: 1,
+                rotation: 5,
+            });
+
+            stage.add(layer);
+
+            pointsLayerRef.current = layer;
+
+            //let layer = pointsLayerRef.current;
+
+            let group = new Konva.Group({
+                x: 30,
+                rotation: 10,
+                scaleX: 1,
+            });
+            layer.add(group);
+
+            let posCounter = 0;
+            for(let i = 0; i < 9; i++){
+                if(positionsArray[posCounter] !== 0 || positionsArray[posCounter+1] !== 0){
+                    let shape = new Konva.Circle({
+                        x: positionsArray[posCounter],
+                        y: positionsArray[posCounter+1],
+                        fill: 'red',
+                        radius: 5,
+                    });
+                    group.add(shape);
+                }
+                posCounter += 2;
+            }
+            setReplaceValues(false);
+        }
+    }, [MPPCTableData, positionsArray, replaceValues]);
+
+    useEffect(() => {
+        if(detailedView) {
+            let tempData = monitoringProfilesTableData;
+            let selectedData = tempData.filter(d => d.id === selectedDetailedProfileID+1)
+
+            setTimeout(function () {
+                if (stageRef.current) {
+                    const stage = stageRef.current;
+                    stage.destroy();
+                }
+
+                const stage = new Konva.Stage({
+                    container: 'konvaContainer',
+                    width: 600,
+                    height: 400
+                });
+                stageRef.current = stage;
+
+                let backgroundLayer = new Konva.Layer();
+                stage.add(backgroundLayer);
+
+                let backgroundImage = new Image();
+                backgroundImage.onload = function () {
+                    let background = new Konva.Image({
+                        image: backgroundImage,
+                        width: stage.width(),
+                        height: stage.height(),
+                    });
+                    backgroundLayer.add(background);
+
+                    let border = new Konva.Rect({
+                        x: 0,
+                        y: 0,
+                        width: stage.width(),
+                        height: stage.height(),
+                        stroke: 'black',
+                        strokeWidth: 2,
+                    });
+                    backgroundLayer.add(border);
+                    backgroundLayer.draw();
+                };
+                backgroundImage.src = selectedData[0].imagedAttached;//'/profiles/imagePlan3.png';
+
+                let layer = new Konva.Layer({
+                    scaleX: 1,
+                    scaleY: 1,
+                    rotation: 5,
+                });
+                stage.add(layer);
+
+                let group = new Konva.Group({
+                    x: 30,
+                    rotation: 10,
+                    scaleX: 1,
+                });
+                layer.add(group);
+
+                if (selectedData[0].imagedAttached !== '/profiles/NoImageFound.png') {
+
+                    let posCounter = 0;
+                    for (let i = 0; i < 9; i++) {
+                        if (positionsArray[posCounter] !== 0 || positionsArray[posCounter + 1] !== 0) {
+                            let shape = new Konva.Circle({
+                                x: positionsArray[posCounter],
+                                y: positionsArray[posCounter + 1],
+                                fill: 'red',
+                                radius: 5,
+                            });
+                            group.add(shape);
+                        }
+                        posCounter += 2;
+                    }
+                }
+                pointsLayerRef.current = layer;
+            }, 1);
+        }else{
+            if (stageRef.current) {
+                const stage = stageRef.current;
+                stage.destroy();
+            }
+        }
+    }, [selectedDetailedProfile, detailedView]);
+
+    const handlePickPoint = (rowId: number) => {
+        if (stageRef.current && pointsLayerRef.current) {
+            let stage = stageRef.current;
+            /*let layer = new Konva.Layer({
+                scaleX: 1,
+                scaleY: 1,
+                rotation: 5,
+            });
+            stage.add(layer);*/
+            let layer = pointsLayerRef.current;
+
+            let group = new Konva.Group({
+                x: 30,
+                rotation: 10,
+                scaleX: 1,
+            });
+            layer.add(group);
+
+            let clicked = false;
+
+            stage.on('click', function () {
+                if (!clicked) {
+                    let pos = group.getRelativePointerPosition();
+                    if (pos !== null) {
+                        let shape = new Konva.Circle({
+                            x: pos.x,
+                            y: pos.y,
+                            fill: 'red',
+                            radius: 5,
+                        });
+                        console.log(pos.x + " | " + pos.y)
+                        group.add(shape);
+
+                        let tempPosArray = positionsArray;
+                        let tempTableData = MPPCTableData;
+                        let rowData = MPPCTableData[rowId]
+
+                        tempPosArray[rowId*2] = pos.x
+                        tempPosArray[rowId*2+1] = pos.y
+
+                        tempTableData[rowId] = createDataMPPC(rowId, rowData.groupMP, rowData.inc, true, [pos.x,pos.y]);
+
+                        setMPPCTableData(tempTableData);
+                        setRowsMPPC(tempTableData)
+                        setPositionsArray(tempPosArray);
+                        clicked = true;
+                        setReplaceValues(true)
+                    }
+                }
+            })
+        }
+    }
+
+    const handleBackButton = () => {
+        setDetailedView(false);
+    }
+
+    const handleClickProfile = (rowID: number) => {
+        setDetailedView(true);
+        let group = rowsMP[rowID-1].group;
+        let name = rowsMP[rowID-1].name;
+        setSelectedDetailedProfile(group.concat(": ",name));
+        setSelectedDetailedProfileID(rowID-1);
+    }
+
+    const handlePrevious = () => {
+        if(rowsMP.length <= 1){
+            setWarningNoMoreProfiles(true);
+            setTimeout(() => {
+                setWarningNoMoreProfiles(false);
+            }, 5000);
+        }else if(selectedDetailedProfileID - 1 >= 0){
+            let group = rowsMP[selectedDetailedProfileID-1].group;
+            let name = rowsMP[selectedDetailedProfileID-1].name;
+            setSelectedDetailedProfile(group.concat(": ",name));
+            setSelectedDetailedProfileID(selectedDetailedProfileID-1);
+        }else if(selectedDetailedProfileID - 1 < 0){
+            let group = rowsMP[rowsMP.length-1].group;
+            let name = rowsMP[rowsMP.length-1].name;
+            setSelectedDetailedProfile(group.concat(": ",name));
+            setSelectedDetailedProfileID(rowsMP.length-1);
+        }
+    }
+
+    const handleNext = () => {
+        if(rowsMP.length <= 1){
+            setWarningNoMoreProfiles(true);
+            setTimeout(() => {
+                setWarningNoMoreProfiles(false);
+            }, 5000);
+        }else if(selectedDetailedProfileID + 1 < rowsMP.length){
+            let group = rowsMP[selectedDetailedProfileID+1].group;
+            let name = rowsMP[selectedDetailedProfileID+1].name;
+            setSelectedDetailedProfile(group.concat(": ",name));
+            setSelectedDetailedProfileID(selectedDetailedProfileID+1);
+        }else if(selectedDetailedProfileID + 1 >= rowsMP.length){
+            let group = rowsMP[0].group;
+            let name = rowsMP[0].name;
+            setSelectedDetailedProfile(name);
+            setSelectedDetailedProfile(group.concat(": ",name));
+            setSelectedDetailedProfileID(0);
+        }
+    }
+
+
+    const handleRequestSortMPPC = (
+        event: React.MouseEvent<unknown>,
+        property: keyof MPPC,
+    ) => {
+        const isAsc = orderByMPPC === property && orderMPPC === 'asc';
+        setOrderMPPC(isAsc ? 'desc' : 'asc');
+        setOrderByMPPC(property);
+    };
+
+    const handleSelectAllClickMPPC = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.checked) {
+            const newSelected = rowsMPPC.map((n) => n.id);
+            setSelectedMPPC(newSelected);
+            return;
+        }
+        setSelectedMPPC([]);
+    };
+
+    const handleClickMPPC = (event: React.MouseEvent<unknown>, id: number) => {
+        const selectedIndex = selected.indexOf(id);
+        let newSelected: readonly number[] = [];
+
+        if (selectedIndex === -1) {
+            newSelected = newSelected.concat(selected, id);
+        } else if (selectedIndex === 0) {
+            newSelected = newSelected.concat(selected.slice(1));
+        } else if (selectedIndex === selected.length - 1) {
+            newSelected = newSelected.concat(selected.slice(0, -1));
+        } else if (selectedIndex > 0) {
+            newSelected = newSelected.concat(
+                selected.slice(0, selectedIndex),
+                selected.slice(selectedIndex + 1),
+            );
+        }
+        setSelectedMPPC(newSelected);
+    };
+
+    const handleChangePageMPPC = (event: unknown, newPage: number) => {
+        setPageMPPC(newPage);
+    };
+
+    const handleChangeRowsPerPageMPPC = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setRowsPerPageMPPC(parseInt(event.target.value, 10));
+        setPageMPPC(0);
+    };
+
+    const handleChangeDenseMPPC = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setDenseMPPC(event.target.checked);
+    };
+
+    const isSelectedMPPC = (id: number) => selectedMPPC.indexOf(id) !== -1;
+
+    const emptyRowsMPPC =
+        pageMPPC > 0 ? Math.max(0, (1 + pageMPPC) * rowsPerPageMPPC - rowsMPPC.length) : 0;
+
+    const visibleRowsMPPC = React.useMemo(
+        () => rowsMPPC.slice().sort(getComparator(orderMPPC, orderByMPPC)).slice(
+            pageMPPC * rowsPerPageMPPC,
+            pageMPPC * rowsPerPageMPPC + rowsPerPageMPPC),
+        [MPPCTableData,replaceValues,rowsMPPC, orderMPPC, orderByMPPC, pageMPPC, rowsPerPageMPPC],
+    );
+
+
+
     return (
-        <div className="main-wrapper">
+        <div
+            className="main-wrapper full-screen">
             {alertSuccessVisible && (
-                <Slide direction="left" in={alertSuccessVisible} mountOnEnter unmountOnExit>
-                <Box sx={{ position: 'fixed', top: 16, right: 16, zIndex: 9999 }}>
-                    <Alert severity="success"  sx={{ alignItems: 'center' }}>
-                        <AlertTitle sx={{ textAlign: 'left' }}>Success</AlertTitle>
-                        The monitoring profile was successfully added.
-                    </Alert>
-                </Box>
+                <Slide
+                    direction="left"
+                    in={alertSuccessVisible}
+                    mountOnEnter
+                    unmountOnExit>
+                    <Box
+                        sx={{
+                            position: 'fixed',
+                            top: 16,
+                            right: 16,
+                            zIndex: 9999
+                        }}>
+                        <Alert
+                            severity="success"
+                            sx={{alignItems: 'center'}}>
+                            <AlertTitle
+                                sx={{textAlign: 'left'}}>Success</AlertTitle>
+                            The
+                            monitoring
+                            profile
+                            was
+                            successfully
+                            added.
+                        </Alert>
+                    </Box>
                 </Slide>
             )}
             {alertSuccessEditVisible && (
-                <Slide direction="left" in={alertSuccessEditVisible} mountOnEnter unmountOnExit>
-                    <Box sx={{ position: 'fixed', top: 16, right: 16, zIndex: 9999 }}>
-                        <Alert severity="success"  sx={{ alignItems: 'center' }}>
-                            <AlertTitle sx={{ textAlign: 'left' }}>Success</AlertTitle>
-                            The monitoring profile was successfully updated.
+                <Slide
+                    direction="left"
+                    in={alertSuccessEditVisible}
+                    mountOnEnter
+                    unmountOnExit>
+                    <Box
+                        sx={{
+                            position: 'fixed',
+                            top: 16,
+                            right: 16,
+                            zIndex: 9999
+                        }}>
+                        <Alert
+                            severity="success"
+                            sx={{alignItems: 'center'}}>
+                            <AlertTitle
+                                sx={{textAlign: 'left'}}>Success</AlertTitle>
+                            The
+                            monitoring
+                            profile
+                            was
+                            successfully
+                            updated.
                         </Alert>
                     </Box>
                 </Slide>
             )}
             {alertFailedVisible && (
-                <Slide direction="left" in={alertFailedVisible} mountOnEnter unmountOnExit>
-                <Box sx={{ position: 'fixed', top: 16, right: 16, zIndex: 9999 }}>
-                    <Alert severity="error"  sx={{ alignItems: 'center' }}>
-                        <AlertTitle sx={{ textAlign: 'left' }}>Error</AlertTitle>
-                        Some values may be missing. Please fill all the required fields.
-                    </Alert>
-                </Box>
-                </Slide>
-            )}
-            {alertFailedSelectVisible && (
-                <Slide direction="left" in={alertFailedSelectVisible} mountOnEnter unmountOnExit>
-                    <Box sx={{ position: 'fixed', top: 16, right: 16, zIndex: 9999 }}>
-                        <Alert severity="error"  sx={{ alignItems: 'center' }}>
-                            <AlertTitle sx={{ textAlign: 'left' }}>Error</AlertTitle>
-                            Choose the desired monitoring profile in order to edit the fields.
+                <Slide
+                    direction="left"
+                    in={alertFailedVisible}
+                    mountOnEnter
+                    unmountOnExit>
+                    <Box
+                        sx={{
+                            position: 'fixed',
+                            top: 16,
+                            right: 16,
+                            zIndex: 9999
+                        }}>
+                        <Alert
+                            severity="error"
+                            sx={{alignItems: 'center'}}>
+                            <AlertTitle
+                                sx={{textAlign: 'left'}}>Error</AlertTitle>
+                            Some
+                            values
+                            may
+                            be
+                            missing.
+                            Please
+                            fill
+                            all
+                            the
+                            required
+                            fields.
                         </Alert>
                     </Box>
                 </Slide>
             )}
-            <div className="">
-            <div
-                className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
-                <button type="button"
-                        className="py-2 px-4  bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                        onClick={handleOpenNew}>
-                    New
-                </button>
-            </div>
-                <Modal
-                    open={openNew}
-                    onClose={handleCloseNew}
-                    aria-labelledby="modal-title"
-                    aria-describedby="modal-description"
-                >
-                    <Box sx={{
-                        position: 'absolute' as 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        width: 400,
-                        bgcolor: 'background.paper',
-                        border: '2px solid #000',
-                        boxShadow: 24,
-                        p: 4,
-                        borderRadius: 2,
-                        '& .close-button': {
-                            position: 'absolute',
-                            top: 8,
-                            right: 8,
-                        },
-                    }}>
-                        <IconButton className="close-button" aria-label="close" onClick={handleCloseNew}>
-                            <Clear />
-                        </IconButton>
-                        <div className='pt-1 pl-10 pb-5'>
-                            <Listbox>
-                                <Listbox.Label
-                                    className="pr-1 text-2xl font-medium leading-6 text-gray-900 text-left">Add monitoring profile</Listbox.Label>
-                            </Listbox>
-                        </div>
-                        {!missingFieldGroupName ? (
-                            <>
-                                <TextField
-                                    required
-                                    id="outlined-required"
-                                    label="Group Name"
-                                    onChange={(e) => handleGroupName(e.target.value)}
-                                    sx={{ mt: 2, mb: 2, ml: 2, width: 300 }}
-                                />
-                            </>
-                        ) : (
-                            <>
-                                <TextField
-                                    error
-                                    id="outlined-error-text"
-                                    label="Group Name *"
-                                    sx={{ mt: 2, ml: 2, width: 300 }}
-                                />
-                                <Box sx={{ color: 'red', mt: 1, ml: 2 }}>
-                                    Missing group name.
-                                </Box>
-                            </>
-                        )}
-                        {!missingFieldMeasurements ? (
-                            <>
-                        <FormControl sx={{ mt: 2, mb: 2, ml: 2, width: 300 }}>
-                            <InputLabel id="multiple-chip-label">Measurements *</InputLabel>
-                            <Select
-                                labelId="multiple-chip-label"
-                                id="multiple-chip"
-                                multiple
-                                value={selectedMeasurements}
-                                onChange={handleChange}
-                                input={<OutlinedInput id="select-multiple-chip" label="Measurements *" />}
-                                renderValue={(selected) => (
-                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                        {selected.map((value) => (
-                                            <Chip key={value} label={value} />
-                                        ))}
+            {alertFailedSelectVisible && (
+                <Slide
+                    direction="left"
+                    in={alertFailedSelectVisible}
+                    mountOnEnter
+                    unmountOnExit>
+                    <Box
+                        sx={{
+                            position: 'fixed',
+                            top: 16,
+                            right: 16,
+                            zIndex: 9999
+                        }}>
+                        <Alert
+                            severity="error"
+                            sx={{alignItems: 'center'}}>
+                            <AlertTitle
+                                sx={{textAlign: 'left'}}>Error</AlertTitle>
+                            Choose
+                            the
+                            desired
+                            monitoring
+                            profile
+                            in
+                            order
+                            to
+                            edit
+                            the
+                            fields.
+                        </Alert>
+                    </Box>
+                </Slide>
+            )}
+            {alertNothingSelected && (
+                <Slide
+                    direction="left"
+                    in={alertNothingSelected}
+                    mountOnEnter
+                    unmountOnExit>
+                    <Box
+                        sx={{
+                            position: 'fixed',
+                            top: 16,
+                            right: 16,
+                            zIndex: 9999
+                        }}>
+                        <Alert
+                            severity="error"
+                            sx={{alignItems: 'center'}}>
+                            <AlertTitle
+                                sx={{textAlign: 'left'}}>Error</AlertTitle>
+                            No
+                            selection
+                            detected.
+                            Please
+                            select
+                            the
+                            groups
+                            first
+                            in
+                            order
+                            to
+                            set
+                            the
+                            monitoring
+                            profiles.
+                        </Alert>
+                    </Box>
+                </Slide>
+            )}
+            {alertWrongFileType && (
+                <Slide
+                    direction="left"
+                    in={alertWrongFileType}
+                    mountOnEnter
+                    unmountOnExit>
+                    <Box
+                        sx={{
+                            position: 'fixed',
+                            top: 16,
+                            right: 16,
+                            zIndex: 9999
+                        }}>
+                        <Alert
+                            severity="error"
+                            sx={{alignItems: 'center'}}>
+                            <AlertTitle
+                                sx={{textAlign: 'left'}}>Error</AlertTitle>
+                            The system does not support the type of file that you tried to upload. Please check if the file type is one of the supported types: .png | .svg | .jpg | .jpeg
+                        </Alert>
+                    </Box>
+                </Slide>
+            )}
+            {warningNoMoreProfiles && (
+                <Slide
+                    direction="left"
+                    in={warningNoMoreProfiles}
+                    mountOnEnter
+                    unmountOnExit>
+                    <Box
+                        sx={{
+                            position: 'fixed',
+                            top: 16,
+                            right: 16,
+                            zIndex: 9999
+                        }}>
+                        <Alert
+                            severity="warning"
+                            sx={{alignItems: 'center'}}>
+                            <AlertTitle
+                                sx={{textAlign: 'left'}}>Warning</AlertTitle>
+                            There is only one monitoring profile selected.
+                        </Alert>
+                    </Box>
+                </Slide>
+            )}
+            {!detailedView ? (
+            <>
+                <div
+                    className="new-button">
+                    <div
+                        className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
+                        <button
+                            type="button"
+                            className="py-2 px-4  bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                            onClick={handleOpenNew}>
+                            New
+                        </button>
+                    </div>
+                    <Modal
+                        open={openNew}
+                        onClose={handleCloseNew}
+                        aria-labelledby="modal-title"
+                        aria-describedby="modal-description"
+                    >
+                        <Box
+                            sx={{
+                                position: 'absolute' as 'absolute',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                width: 400,
+                                bgcolor: 'background.paper',
+                                border: '2px solid #000',
+                                boxShadow: 24,
+                                p: 4,
+                                borderRadius: 2,
+                                '& .close-button': {
+                                    position: 'absolute',
+                                    top: 8,
+                                    right: 8,
+                                },
+                            }}>
+                            <IconButton
+                                className="close-button"
+                                aria-label="close"
+                                onClick={handleCloseNew}>
+                                <Clear/>
+                            </IconButton>
+                            <div
+                                className='pt-1 pl-10 pb-5'>
+                                <Listbox>
+                                    <Listbox.Label
+                                        className="pr-1 text-2xl font-medium leading-6 text-gray-900 text-left">Add
+                                        monitoring
+                                        profile</Listbox.Label>
+                                </Listbox>
+                            </div>
+                            {!missingFieldGroupName ? (
+                                <>
+                                    <TextField
+                                        required
+                                        id="outlined-required"
+                                        label="Group Name"
+                                        onChange={(e) => handleGroupName(e.target.value)}
+                                        sx={{
+                                            mt: 2,
+                                            mb: 2,
+                                            ml: 2,
+                                            width: 300
+                                        }}
+                                    />
+                                </>
+                            ) : (
+                                <>
+                                    <TextField
+                                        error
+                                        id="outlined-error-text"
+                                        label="Group Name *"
+                                        sx={{
+                                            mt: 2,
+                                            ml: 2,
+                                            width: 300
+                                        }}
+                                    />
+                                    <Box
+                                        sx={{
+                                            color: 'red',
+                                            mt: 1,
+                                            ml: 2
+                                        }}>
+                                        Missing
+                                        group
+                                        name.
                                     </Box>
-                                )}
-                                MenuProps={MenuProps}
-                            >
-                                {testMeasurements.map((m) => (
-                                    <MenuItem
-                                        key={m}
-                                        value={m}
-                                        style={getStyles(m, selectedMeasurements, theme)}
-                                    >
-                                        {m}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                            </>
-                        ) : (
-                            <>
-                                <FormControl error sx={{ mt: 2, mb: 2, ml: 2, width: 300 }}>
-                                    <InputLabel id="multiple-chip-label">Measurements *</InputLabel>
+                                </>
+                            )}
+                            {!missingFieldMeasurements ? (
+                                <>
+                                    <FormControl
+                                        sx={{
+                                            mt: 2,
+                                            mb: 2,
+                                            ml: 2,
+                                            width: 300
+                                        }}>
+                                        <InputLabel
+                                            id="multiple-chip-label">Measurements
+                                            *</InputLabel>
+                                        <Select
+                                            labelId="multiple-chip-label"
+                                            id="multiple-chip"
+                                            multiple
+                                            value={selectedMeasurements}
+                                            onChange={handleChange}
+                                            input={
+                                                <OutlinedInput
+                                                    id="select-multiple-chip"
+                                                    label="Measurements *"/>}
+                                            renderValue={(selected) => (
+                                                <Box
+                                                    sx={{
+                                                        display: 'flex',
+                                                        flexWrap: 'wrap',
+                                                        gap: 0.5
+                                                    }}>
+                                                    {selected.map((value) => (
+                                                        <Chip
+                                                            key={value}
+                                                            label={value}/>
+                                                    ))}
+                                                </Box>
+                                            )}
+                                            MenuProps={MenuProps}
+                                        >
+                                            {testMeasurements.map((m) => (
+                                                <MenuItem
+                                                    key={m}
+                                                    value={m}
+                                                    style={getStyles(m, selectedMeasurements, theme)}
+                                                >
+                                                    {m}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </>
+                            ) : (
+                                <>
+                                    <FormControl
+                                        error
+                                        sx={{
+                                            mt: 2,
+                                            mb: 2,
+                                            ml: 2,
+                                            width: 300
+                                        }}>
+                                        <InputLabel
+                                            id="multiple-chip-label">Measurements
+                                            *</InputLabel>
+                                        <Select
+                                            labelId="multiple-chip-label"
+                                            id="multiple-chip"
+                                            multiple
+                                            value={selectedMeasurements}
+                                            onChange={handleChange}
+                                            input={
+                                                <OutlinedInput
+                                                    id="select-multiple-chip"
+                                                    label="Measurements *"/>}
+                                            renderValue={(selected) => (
+                                                <Box
+                                                    sx={{
+                                                        display: 'flex',
+                                                        flexWrap: 'wrap',
+                                                        gap: 0.5
+                                                    }}>
+                                                    {selected.map((value) => (
+                                                        <Chip
+                                                            key={value}
+                                                            label={value}/>
+                                                    ))}
+                                                </Box>
+                                            )}
+                                            MenuProps={MenuProps}
+                                        >
+                                            {testMeasurements.map((m) => (
+                                                <MenuItem
+                                                    key={m}
+                                                    value={m}
+                                                    style={getStyles(m, selectedMeasurements, theme)}
+                                                >
+                                                    {m}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                        <Box
+                                            sx={{
+                                                color: 'red',
+                                                mt: 1
+                                            }}>
+                                            Missing
+                                            measurement(s).
+                                        </Box>
+                                    </FormControl>
+                                </>
+                            )}
+                            <TextField
+                                disabled
+                                id="outlined-disabled"
+                                label={selectedInclinometers === 0 ? 'Inclinometers' : selectedInclinometers.toString()}
+                                sx={{
+                                    mt: 2,
+                                    mb: 2,
+                                    ml: 2,
+                                    width: selectedInclinometers === 0 ? 130 : ((selectedInclinometers < 100) ? 50 : 60)
+                                }}
+                            />
+                            {errorMessage && (
+                                <Box
+                                    sx={{
+                                        color: 'red',
+                                        mt: 2,
+                                        ml: 2
+                                    }}>
+                                    {errorMessage}
+                                </Box>
+                            )}
+                            <div
+                                className="submit-button">
+                                <button
+                                    type="button"
+                                    className="py-2 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                    onClick={handleSubmit}
+                                >
+                                    Submit
+                                </button>
+                            </div>
+                        </Box>
+                    </Modal>
+                    <div
+                        className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
+                        <button
+                            type="button"
+                            className="py-2 px-4  bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                            onClick={handleOpenEdit}>
+                            Edit
+                            existing
+                            profile
+                            group
+                        </button>
+                    </div>
+                    <Modal
+                        open={openEdit}
+                        onClose={handleCloseEdit}
+                        aria-labelledby="modal-title"
+                        aria-describedby="modal-description"
+                    >
+                        <Box
+                            sx={{
+                                position: 'absolute' as 'absolute',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                width: 460,
+                                bgcolor: 'background.paper',
+                                border: '2px solid #000',
+                                boxShadow: 24,
+                                p: 4,
+                                borderRadius: 2,
+                                '& .close-button': {
+                                    position: 'absolute',
+                                    top: 8,
+                                    right: 8,
+                                },
+                            }}>
+                            <IconButton
+                                className="close-button"
+                                aria-label="close"
+                                onClick={handleCloseEdit}>
+                                <Clear/>
+                            </IconButton>
+                            <div
+                                className='pt-1 pl-7 '>
+                                <Listbox>
+                                    <Listbox.Label
+                                        className="pr-1 text-2xl font-medium leading-6 text-gray-900 text-left">Edit
+                                        a
+                                        monitoring
+                                        profile
+                                        group</Listbox.Label>
+                                </Listbox>
+                            </div>
+                            <div
+                                className='pl-4 pr-4 pb-5 pt-5'>
+                                <Box
+                                    sx={{mb: 2}}>
+                                    Select
+                                    a
+                                    monitoring
+                                    profile
+                                    group:
+                                </Box>
+                                <FormControl
+                                    fullWidth>
+                                    <InputLabel
+                                        id="simple-select-label">Group</InputLabel>
                                     <Select
-                                        labelId="multiple-chip-label"
-                                        id="multiple-chip"
-                                        multiple
-                                        value={selectedMeasurements}
-                                        onChange={handleChange}
-                                        input={<OutlinedInput id="select-multiple-chip" label="Measurements *" />}
-                                        renderValue={(selected) => (
-                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                                {selected.map((value) => (
-                                                    <Chip key={value} label={value} />
-                                                ))}
-                                            </Box>
-                                        )}
-                                        MenuProps={MenuProps}
+                                        labelId="simple-select-label"
+                                        id="simple-select"
+                                        value={selectedMPEdit.group}
+                                        label="Group"
+                                        onChange={(e) => handleSelectedMPEdit(e.target.value)}
                                     >
-                                        {testMeasurements.map((m) => (
+                                        {monitoringProfiles.map((m) => (
                                             <MenuItem
-                                                key={m}
-                                                value={m}
-                                                style={getStyles(m, selectedMeasurements, theme)}
-                                            >
-                                                {m}
-                                            </MenuItem>
+                                                key={m.id}
+                                                value={m.group}>{m.group}</MenuItem>
                                         ))}
                                     </Select>
-                                    <Box sx={{ color: 'red', mt: 1 }}>
-                                        Missing measurement(s).
-                                    </Box>
                                 </FormControl>
-                            </>
-                        )}
-                        <TextField
-                            disabled
-                            id="outlined-disabled"
-                            label={selectedInclinometers === 0 ? 'Inclinometers' : selectedInclinometers.toString()}
-                            sx={{ mt: 2, mb: 2, ml: 2, width: selectedInclinometers === 0 ? 130 : ((selectedInclinometers < 100) ? 50 : 60)}}
-                        />
-                        {errorMessage && (
-                            <Box sx={{ color: 'red', mt: 2, ml: 2 }}>
-                                {errorMessage}
-                            </Box>
-                        )}
-                        <div className="submit-button">
-                            <button
-                                type="button"
-                                className="py-2 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                                onClick={handleSubmit}
-                            >
-                                Submit
-                            </button>
-                        </div>
-                    </Box>
-                </Modal>
-            <div
-                className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
-                <button type="button"
-                        className="py-2 px-4  bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                        onClick={handleOpenEdit}>
-                    Edit existing profile
-                </button>
-            </div>
-                <Modal
-                    open={openEdit}
-                    onClose={handleCloseEdit}
-                    aria-labelledby="modal-title"
-                    aria-describedby="modal-description"
-                >
-                    <Box sx={{
-                        position: 'absolute' as 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        width: 400,
-                        bgcolor: 'background.paper',
-                        border: '2px solid #000',
-                        boxShadow: 24,
-                        p: 4,
-                        borderRadius: 2,
-                        '& .close-button': {
-                            position: 'absolute',
-                            top: 8,
-                            right: 8,
-                        },
-                    }}>
-                        <IconButton className="close-button" aria-label="close" onClick={handleCloseEdit}>
-                            <Clear />
-                        </IconButton>
-                        <div className='pt-1 pl-10 '>
-                            <Listbox>
-                                <Listbox.Label
-                                    className="pr-1 text-2xl font-medium leading-6 text-gray-900 text-left">Edit a monitoring profile</Listbox.Label>
-                            </Listbox>
-                        </div>
-                        <div className='pl-4 pr-4 pb-5 pt-5'>
-                            <Box sx={{ mb: 2 }}>
-                                Select a monitoring profile:
-                            </Box>
-                        <FormControl fullWidth>
-                            <InputLabel id="simple-select-label">Group</InputLabel>
-                            <Select
-                                labelId="simple-select-label"
-                                id="simple-select"
-                                value={selectedMPEdit.group}
-                                label="Group"
-                                onChange={(e) => handleSelectedMPEdit(e.target.value)}
-                            >
-                                {monitoringProfiles.map((m) => (
-                                    <MenuItem key={m.id} value={m.group}>{m.group}</MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                        </div>
-                        {!missingFieldGroupName ? (
-                            <>
-                                <TextField
-                                    key={selectedGroupEdit}
-                                    required
-                                    id="outlined-required"
-                                    label="Group Name"
-                                    defaultValue={selectedGroupEdit}
-                                    onChange={(e) => handleGroupNameEdit(e.target.value)}
-                                    sx={{ mt: 2, mb: 2, ml: 2, width: 300 }}
-                                    InputProps={{
-                                        disabled: selectedMPEdit.group === '',
-                                    }}
-                                />
-                            </>
-                        ) : (
-                            <>
-                                <TextField
-                                    error
-                                    id="outlined-error-text"
-                                    label="Group Name *"
-                                    key={selectedGroupEdit}
-                                    defaultValue={selectedGroupEdit}
-                                    onChange={(e) => handleGroupNameEdit(e.target.value)}
-                                    sx={{ mt: 2, ml: 2, width: 300 }}
-                                />
-                                <Box sx={{ color: 'red', mt: 1, ml: 2 }}>
-                                    Missing group name.
-                                </Box>
-                            </>
-                        )}
-                        {!missingFieldMeasurements ? (
-                            <>
-                                <FormControl sx={{ mt: 2, mb: 2, ml: 2, width: 300 }}>
-                                    <InputLabel id="multiple-chip-label">Measurements *</InputLabel>
-                                    <Select
-                                        labelId="multiple-chip-label"
-                                        id="multiple-chip"
-                                        multiple
-                                        key={selectedMPEdit.group}
-                                        defaultValue={selectedMeasurementsEdit}
-                                        onChange={handleChangeEdit}
-                                        input={<OutlinedInput id="select-multiple-chip" label="Measurements *" />}
-                                        renderValue={(selected) => (
-                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                                {selected.map((value) => (
-                                                    <Chip key={value} label={value} />
-                                                ))}
-                                            </Box>
-                                        )}
-                                        MenuProps={MenuProps}
-                                        inputProps={{
+                            </div>
+                            {!missingFieldGroupName ? (
+                                <>
+                                    <TextField
+                                        key={selectedGroupEdit}
+                                        required
+                                        id="outlined-required"
+                                        label="Group Name"
+                                        defaultValue={selectedGroupEdit}
+                                        onChange={(e) => handleGroupNameEdit(e.target.value)}
+                                        sx={{
+                                            mt: 2,
+                                            mb: 2,
+                                            ml: 2,
+                                            width: 360
+                                        }}
+                                        InputProps={{
                                             disabled: selectedMPEdit.group === '',
                                         }}
-                                    >
-                                        {testMeasurements.map((m) => (
-                                            <MenuItem
-                                                key={m}
-                                                value={m}
-                                                style={getStyles(m, selectedMeasurementsEdit, theme)}
-                                            >
-                                                {m}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-                            </>
-                        ) : (
-                            <>
-                                <FormControl error sx={{ mt: 2, mb: 2, ml: 2, width: 300 }}>
-                                    <InputLabel id="multiple-chip-label">Measurements *</InputLabel>
-                                    <Select
-                                        labelId="multiple-chip-label"
-                                        id="multiple-chip"
-                                        multiple
-                                        key={selectedMeasurementsEdit.length !== 0 ? selectedMeasurementsEdit[selectedMeasurementsEdit.length] :"id"}
-                                        defaultValue={selectedMeasurementsEdit}
-                                        onChange={handleChangeEdit}
-                                        input={<OutlinedInput id="select-multiple-chip" label="Measurements *" />}
-                                        renderValue={(selected) => (
-                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                                {selected.map((value) => (
-                                                    <Chip key={value} label={value} />
-                                                ))}
-                                            </Box>
-                                        )}
-                                        MenuProps={MenuProps}
-                                    >
-                                        {testMeasurements.map((m) => (
-                                            <MenuItem
-                                                key={m}
-                                                value={m}
-                                                style={getStyles(m, selectedMeasurementsEdit, theme)}
-                                            >
-                                                {m}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                    <Box sx={{ color: 'red', mt: 1 }}>
-                                        Missing measurement(s).
+                                    />
+                                </>
+                            ) : (
+                                <>
+                                    <TextField
+                                        error
+                                        id="outlined-error-text"
+                                        label="Group Name *"
+                                        key={selectedGroupEdit}
+                                        defaultValue={selectedGroupEdit}
+                                        onChange={(e) => handleGroupNameEdit(e.target.value)}
+                                        sx={{
+                                            mt: 2,
+                                            ml: 2,
+                                            width: 360
+                                        }}
+                                    />
+                                    <Box
+                                        sx={{
+                                            color: 'red',
+                                            mt: 1,
+                                            ml: 2
+                                        }}>
+                                        Missing
+                                        group
+                                        name.
                                     </Box>
-                                </FormControl>
-                            </>
-                        )}
-                        <TextField
-                            disabled
-                            id="outlined-disabled"
-                            label={selectedInclinometersEdit === 0 ? 'Inclinometers' : selectedInclinometersEdit.toString()}
-                            sx={{ mt: 2, mb: 2, ml: 2, width: selectedInclinometersEdit === 0 ? 130 : ((selectedInclinometersEdit < 100) ? 50 : 60)}}
-                        />
-                        {errorMessage && (
-                            <Box sx={{ color: 'red', mt: 2, ml: 2 }}>
-                                {errorMessage}
-                            </Box>
-                        )}
-                        <div className="submit-button">
-                            <button
-                                type="button"
-                                className="py-2 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                                onClick={handleSubmitEdit}
-                            >
-                                Submit
-                            </button>
-                        </div>
-                    </Box>
-                </Modal>
-            </div>
-        <div className="filter-container-monitProfile">
-        <Box sx={{ width: '100%' }}>
-            <Paper sx={{ width: '100%', mb: 2 }}>
-                <EnhancedTableToolbar numSelected={selected.length} />
-                <TableContainer>
-                    <Table
-                        sx={{ minWidth: 750 }}
-                        aria-labelledby="tableTitle"
-                        size={dense ? 'small' : 'medium'}
-                    >
-                        <EnhancedTableHead
-                            numSelected={selected.length}
-                            order={order}
-                            orderBy={orderBy}
-                            onSelectAllClick={handleSelectAllClick}
-                            onRequestSort={handleRequestSort}
-                            rowCount={rows.length}
-                        />
-                        <TableBody>
-                            {visibleRows.map((row, index) => {
-                                const isItemSelected = isSelected(row.id);
-                                const labelId = `enhanced-table-checkbox-${index}`;
-
-                                return (
-                                    <TableRow
-                                        hover
-                                        onClick={(event) => handleClick(event, row.id)}
-                                        role="checkbox"
-                                        aria-checked={isItemSelected}
-                                        tabIndex={-1}
-                                        key={row.id}
-                                        selected={isItemSelected}
-                                        sx={{ cursor: 'pointer' }}
-                                    >
-                                        <TableCell padding="checkbox">
-                                            <Checkbox
-                                                color="primary"
-                                                checked={isItemSelected}
-                                                inputProps={{
-                                                    'aria-labelledby': labelId,
-                                                }}
-                                            />
-                                        </TableCell>
-                                        <TableCell align="left">{row.group}</TableCell>
-                                        <TableCell align="center">{row.measurements}</TableCell>
-                                        <TableCell align="center">{row.inclinometers}</TableCell>
-                                    </TableRow>
-                                );
-                            })}
-                            {emptyRows > 0 && (
-                                <TableRow
-                                    style={{
-                                        height: (dense ? 33 : 53) * emptyRows,
-                                    }}
-                                >
-                                    <TableCell colSpan={6} />
-                                </TableRow>
+                                </>
                             )}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-                <TablePagination
-                    rowsPerPageOptions={[5, 10, 25]}
-                    component="div"
-                    count={rows.length}
-                    rowsPerPage={rowsPerPage}
-                    page={page}
-                    onPageChange={handleChangePage}
-                    onRowsPerPageChange={handleChangeRowsPerPage}
-                />
-            </Paper>
-        </Box>
+                            {!missingFieldMeasurements ? (
+                                <>
+                                    <FormControl
+                                        sx={{
+                                            mt: 2,
+                                            mb: 2,
+                                            ml: 2,
+                                            width: 360
+                                        }}>
+                                        <InputLabel
+                                            id="multiple-chip-label">Measurements
+                                            *</InputLabel>
+                                        <Select
+                                            labelId="multiple-chip-label"
+                                            id="multiple-chip"
+                                            multiple
+                                            key={selectedMPEdit.group}
+                                            defaultValue={selectedMeasurementsEdit}
+                                            onChange={handleChangeEdit}
+                                            input={
+                                                <OutlinedInput
+                                                    id="select-multiple-chip"
+                                                    label="Measurements *"/>}
+                                            renderValue={(selected) => (
+                                                <Box
+                                                    sx={{
+                                                        display: 'flex',
+                                                        flexWrap: 'wrap',
+                                                        gap: 0.5
+                                                    }}>
+                                                    {selected.map((value) => (
+                                                        <Chip
+                                                            key={value}
+                                                            label={value}/>
+                                                    ))}
+                                                </Box>
+                                            )}
+                                            MenuProps={MenuProps}
+                                            inputProps={{
+                                                disabled: selectedMPEdit.group === '',
+                                            }}
+                                        >
+                                            {testMeasurements.map((m) => (
+                                                <MenuItem
+                                                    key={m}
+                                                    value={m}
+                                                    style={getStyles(m, selectedMeasurementsEdit, theme)}
+                                                >
+                                                    {m}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </>
+                            ) : (
+                                <>
+                                    <FormControl
+                                        error
+                                        sx={{
+                                            mt: 2,
+                                            mb: 2,
+                                            ml: 2,
+                                            width: 360
+                                        }}>
+                                        <InputLabel
+                                            id="multiple-chip-label">Measurements
+                                            *</InputLabel>
+                                        <Select
+                                            labelId="multiple-chip-label"
+                                            id="multiple-chip"
+                                            multiple
+                                            key={selectedMeasurementsEdit.length !== 0 ? selectedMeasurementsEdit[selectedMeasurementsEdit.length] : "id"}
+                                            defaultValue={selectedMeasurementsEdit}
+                                            onChange={handleChangeEdit}
+                                            input={
+                                                <OutlinedInput
+                                                    id="select-multiple-chip"
+                                                    label="Measurements *"/>}
+                                            renderValue={(selected) => (
+                                                <Box
+                                                    sx={{
+                                                        display: 'flex',
+                                                        flexWrap: 'wrap',
+                                                        gap: 0.5
+                                                    }}>
+                                                    {selected.map((value) => (
+                                                        <Chip
+                                                            key={value}
+                                                            label={value}/>
+                                                    ))}
+                                                </Box>
+                                            )}
+                                            MenuProps={MenuProps}
+                                        >
+                                            {testMeasurements.map((m) => (
+                                                <MenuItem
+                                                    key={m}
+                                                    value={m}
+                                                    style={getStyles(m, selectedMeasurementsEdit, theme)}
+                                                >
+                                                    {m}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                        <Box
+                                            sx={{
+                                                color: 'red',
+                                                mt: 1
+                                            }}>
+                                            Missing
+                                            measurement(s).
+                                        </Box>
+                                    </FormControl>
+                                </>
+                            )}
+                            <TextField
+                                disabled
+                                id="outlined-disabled"
+                                label={selectedInclinometersEdit === 0 ? 'Inclinometers' : selectedInclinometersEdit.toString()}
+                                sx={{
+                                    mt: 2,
+                                    mb: 2,
+                                    ml: 2,
+                                    width: selectedInclinometersEdit === 0 ? 130 : ((selectedInclinometersEdit < 100) ? 50 : 60)
+                                }}
+                            />
+                            {errorMessage && (
+                                <Box
+                                    sx={{
+                                        color: 'red',
+                                        mt: 2,
+                                        ml: 2
+                                    }}>
+                                    {errorMessage}
+                                </Box>
+                            )}
+                            <div
+                                className="submit-button">
+                                <button
+                                    type="button"
+                                    className="py-2 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                    onClick={handleSubmitEdit}
+                                >
+                                    Submit
+                                    changes
+                                </button>
+                            </div>
+                        </Box>
+                    </Modal>
+                </div>
+                <div
+                    className="filter-container-monitProfile">
+                    <Box
+                        sx={{width: '100%'}}>
+                        <Paper
+                            sx={{
+                                width: '100%',
+                                mb: 2
+                            }}>
+                            <EnhancedTableToolbar
+                                numSelected={selected.length}
+                                onDelete={handleDelete}
+                            />
+                            <TableContainer>
+                                <Table
+                                    sx={{minWidth: 750}}
+                                    aria-labelledby="tableTitle"
+                                    size={dense ? 'small' : 'medium'}
+                                >
+                                    <EnhancedTableHead
+                                        numSelected={selected.length}
+                                        order={order}
+                                        orderBy={orderBy}
+                                        onSelectAllClick={handleSelectAllClick}
+                                        onRequestSort={handleRequestSort}
+                                        rowCount={rows.length}
+                                    />
+                                    <TableBody>
+                                        {visibleRows.map((row, index) => {
+                                            const isItemSelected = isSelected(row.id);
+                                            if (isItemSelected && !checkedGroups.includes(row.id)) {
+                                                let tempCheck = checkedGroups;
+                                                tempCheck.push(row.id);
+                                                setCheckedGroups(tempCheck);
+                                            } else if (!isItemSelected && checkedGroups.includes(row.id)) {
+                                                let tempCheck = checkedGroups;
+                                                tempCheck = tempCheck.filter(toRemove => toRemove !== row.id);
+                                                setCheckedGroups(tempCheck);
+                                            }
+
+                                            const labelId = `enhanced-table-checkbox-${index}`;
+
+                                            return (
+                                                <TableRow
+                                                    hover
+                                                    onClick={(event) => handleClick(event, row.id)}
+                                                    role="checkbox"
+                                                    aria-checked={isItemSelected}
+                                                    tabIndex={-1}
+                                                    key={row.id}
+                                                    selected={isItemSelected}
+                                                    sx={{cursor: 'pointer'}}
+                                                >
+                                                    <TableCell
+                                                        padding="checkbox">
+                                                        <Checkbox
+                                                            color="primary"
+                                                            checked={isItemSelected}
+                                                            inputProps={{
+                                                                'aria-labelledby': labelId,
+                                                            }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell
+                                                        align="left">{row.group}</TableCell>
+                                                    <TableCell
+                                                        align="center">{row.measurements}</TableCell>
+                                                    <TableCell
+                                                        align="center">{row.inclinometers}</TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                        {emptyRows > 0 && (
+                                            <TableRow
+                                                style={{
+                                                    height: (dense ? 33 : 53) * emptyRows,
+                                                }}
+                                            >
+                                                <TableCell
+                                                    colSpan={6}/>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                            <TablePagination
+                                rowsPerPageOptions={[5, 10, 25]}
+                                component="div"
+                                count={rows.length}
+                                rowsPerPage={rowsPerPage}
+                                page={page}
+                                onPageChange={handleChangePage}
+                                onRowsPerPageChange={handleChangeRowsPerPage}
+                            />
+                        </Paper>
+                    </Box>
+                    <div
+                        className="submit-selected-button">
+                        <button
+                            type="button"
+                            className="py-3 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                            onClick={handleSubmitGroups}
+                        >
+                            Define
+                            selected
+                            groups
+                        </button>
+                    </div>
+                </div>
+                {groupSelected && (
+                    <div
+                        className="filter-container-monitProfile">
+                        <Box
+                            sx={{width: '100%'}}>
+                            <Paper
+                                sx={{
+                                    width: '100%',
+                                    mb: 2
+                                }}>
+                                <EnhancedTableToolbarMP
+                                    numSelected={selectedMP.length}/>
+                                <TableContainer>
+                                    <Table
+                                        sx={{minWidth: 750}}
+                                        aria-labelledby="tableTitle2"
+                                        size={denseMP ? 'small' : 'medium'}
+                                    >
+                                        <EnhancedTableHeadMP
+                                            //numSelected={selectedMP.length}
+                                            order={orderMP}
+                                            orderBy={orderByMP}
+                                            //onSelectAllClick={handleSelectAllClickMP}
+                                            onRequestSort={handleRequestSortMP}
+                                            rowCount={rowsMP.length}
+                                        />
+                                        <TableBody>
+                                            {visibleRowsMP.map((row, index) => {
+                                                const isItemSelectedMP = isSelected(row.id);
+                                                const labelIdMP = `enhanced-table-checkbox-${index}`;
+
+                                                return (
+                                                    <TableRow
+                                                        hover
+                                                        //onClick={(event) => handleClickMP(event, row.id)}
+                                                        role="checkbox"
+                                                        //aria-checked={isItemSelectedMP}
+                                                        tabIndex={-1}
+                                                        key={row.id}
+                                                        //selected={isItemSelectedMP}
+                                                        sx={{cursor: 'pointer'}}
+                                                    >
+                                                        <TableCell
+                                                            onClick={() => handleClickProfile(row.id)}
+                                                            align="left">{row.id}</TableCell>
+                                                        <TableCell
+                                                            onClick={() => handleClickProfile(row.id)}
+                                                            align="center">{row.group}</TableCell>
+                                                        <TableCell
+                                                            onClick={() => handleClickProfile(row.id)}
+                                                            align="center">{row.name}</TableCell>
+                                                        <TableCell
+                                                            onClick={() => handleClickProfile(row.id)}
+                                                            align="center">{row.description}</TableCell>
+                                                        <TableCell
+                                                            align="center">{row.typeOfProfile}</TableCell>
+                                                        <TableCell
+                                                            align="center">
+                                                            <IconButton
+                                                                className="hasImage-button"
+                                                                aria-label="close">
+                                                                {row.hasImage ?
+                                                                    <CheckBoxRounded/> :
+                                                                    <CheckBoxOutlineBlankRounded/>}
+                                                            </IconButton>
+                                                        </TableCell>
+                                                        <TableCell
+                                                            align="center">
+                                                            <Button
+                                                                component="label"
+                                                                role={undefined}
+                                                                variant="contained"
+                                                                tabIndex={-1}
+                                                                startIcon={
+                                                                    <CloudUpload/>}
+                                                                sx={{
+                                                                    backgroundColor: '#22c55e',
+                                                                    '&:hover': {
+                                                                        backgroundColor: '#15803d',
+                                                                    },
+                                                                }}
+                                                            >
+                                                                Upload
+                                                                image
+                                                                <VisuallyHiddenInput
+                                                                    type="file"/>
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                            {emptyRowsMP > 0 && (
+                                                <TableRow
+                                                    style={{
+                                                        height: (dense ? 33 : 53) * emptyRowsMP,
+                                                    }}
+                                                >
+                                                    <TableCell
+                                                        colSpan={6}/>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                                <TablePagination
+                                    rowsPerPageOptions={[5, 10, 25]}
+                                    component="div"
+                                    count={rowsMP.length}
+                                    rowsPerPage={rowsPerPageMP}
+                                    page={pageMP}
+                                    onPageChange={handleChangePageMP}
+                                    onRowsPerPageChange={handleChangeRowsPerPageMP}
+                                />
+                            </Paper>
+                        </Box>
+                    </div>
+                )}
+            </>
+            ):(
+                <>
+                    <div>
+                        <div
+                            className="flex pb-20">
+                            <div
+                                className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
+                                <button
+                                    type="button"
+                                    className="py-2 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                    onClick={handleBackButton}>
+                                    <ArrowBack
+                                        sx={{color: 'white'}}/>
+                                    Back
+                                    to
+                                    Groups
+                                </button>
+                            </div>
+                            <div
+                                className="pt-1.5 pl-4 pr-4">
+                                <Typography
+                                    variant="h5"
+                                    gutterBottom>
+                                    {selectedDetailedProfile}
+                                </Typography>
+                            </div>
+                            <div
+                                className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
+                                <button
+                                    type="button"
+                                    className="py-2 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                    onClick={handlePrevious}>
+                                    <NavigateBefore
+                                        sx={{color: 'white'}}/>
+                                    previous
+                                </button>
+                            </div>
+                            <div
+                                className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
+                                <button
+                                    type="button"
+                                    className="py-2 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                    onClick={handleNext}>
+                                    <NavigateNext
+                                        sx={{color: 'white'}}/>
+                                    next
+                                </button>
+                            </div>
+                        </div>
+                    <div className="tableAndContainer">
+                    <div
+                        className="tableAndContainerT">
+                        <Box
+                            sx={{width: '100%'}}>
+                            <Paper
+                                sx={{
+                                    width: '100%',
+                                    mb: 2
+                                }}>
+                                <EnhancedTableToolbarMPPC
+                                    numSelected={selectedMPPC.length}/>
+                                <TableContainer>
+                                    <Table
+                                        sx={{minWidth: 550}}
+                                        aria-labelledby="tableTitle2"
+                                        size='small'//{denseMPPC ? 'small' : 'medium'}
+                                    >
+                                        <EnhancedTableHeadMPPC
+                                            //numSelected={selectedMP.length}
+                                            order={orderMPPC}
+                                            orderBy={orderByMPPC}
+                                            //onSelectAllClick={handleSelectAllClickMP}
+                                            onRequestSort={handleRequestSortMPPC}
+                                            rowCount={rowsMPPC.length}
+                                        />
+                                        <TableBody>
+                                            {visibleRowsMPPC.map((row, index) => {
+                                                const isItemSelectedMP = isSelected(row.id);
+                                                const labelIdMP = `enhanced-table-checkbox-${index}`;
+
+                                                return (
+                                                    <TableRow
+                                                        hover
+                                                        //onClick={(event) => handleClickMP(event, row.id)}
+                                                        role="checkbox"
+                                                        //aria-checked={isItemSelectedMP}
+                                                        tabIndex={-1}
+                                                        key={row.id}
+                                                        //selected={isItemSelectedMP}
+                                                        sx={{cursor: 'pointer', height: '20px'}}
+                                                    >
+                                                        <TableCell
+                                                            onClick={() => handleClickProfile(row.id)}
+                                                            align="left">{row.id}</TableCell>
+                                                        <TableCell
+                                                            onClick={() => handleClickProfile(row.id)}
+                                                            align="center">{row.groupMP}</TableCell>
+                                                        <TableCell
+                                                            onClick={() => handleClickProfile(row.id)}
+                                                            align="center">I{row.inc}</TableCell>
+                                                        <TableCell
+                                                            align="center">
+                                                            <IconButton
+                                                                className="hasImage-button"
+                                                                aria-label="close">
+                                                                {row.hasPoint ?
+                                                                    <CheckBoxRounded/> :
+                                                                    <CheckBoxOutlineBlankRounded/>}
+                                                            </IconButton>
+                                                        </TableCell>
+                                                        <TableCell
+                                                            align="center">
+                                                            <Button
+                                                                component="label"
+                                                                role={undefined}
+                                                                variant="contained"
+                                                                tabIndex={-1}
+                                                                startIcon={
+                                                                    <Place/>}
+                                                                sx={{
+                                                                    backgroundColor: '#22c55e',
+                                                                    '&:hover': {
+                                                                        backgroundColor: '#15803d',
+                                                                    },
+                                                                    fontSize: '0.75rem',
+                                                                    padding: '8px 8px',
+                                                                }}
+                                                                onClick={() => handlePickPoint(row.id)}
+                                                            >
+                                                                Pick
+                                                                point
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                            {emptyRowsMPPC > 0 && (
+                                                <TableRow
+                                                    style={{
+                                                        height: (denseMPPC ? 33 : 53) * emptyRowsMPPC,
+                                                    }}
+                                                >
+                                                    <TableCell
+                                                        colSpan={6}/>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                                <TablePagination
+                                    rowsPerPageOptions={[5, 10, 25]}
+                                    component="div"
+                                    count={rowsMPPC.length}
+                                    rowsPerPage={rowsPerPageMPPC}
+                                    page={pageMPPC}
+                                    onPageChange={handleChangePageMPPC}
+                                    onRowsPerPageChange={handleChangeRowsPerPageMPPC}
+                                />
+                            </Paper>
+                        </Box>
+                    </div>
+                    <div
+                        id="konvaContainer"
+                        className="tableAndContainerC"></div>
+                    </div>
+                    </div>
+                </>
+            )}
         </div>
-            <div className="flex-grow"></div>
-        </div>
+
     );
 }
 
