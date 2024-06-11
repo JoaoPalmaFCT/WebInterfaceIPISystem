@@ -214,6 +214,17 @@ code {
   flex-grow: 1;
 }
 
+.button-container{
+  display: flex;
+  padding-left: 5%;
+}
+
+.button-container2{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .submit-button {
   padding-top: 15px;
   padding-left: 15px;
@@ -222,7 +233,10 @@ code {
 
 .submit-selected-button {
   padding-top: 15px;
-  padding-left: 70%;
+}
+
+.new-selected-button {
+  padding-top: 15px;
 }
 
 .new-button {
@@ -262,4 +276,9 @@ code {
   padding-top: 10%;
   padding-bottom: 22%;
   padding-left: 33%;
+}
+
+.azimute{
+  padding-left: 15%;
+  padding-bottom: 5%;
 }

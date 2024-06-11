@@ -2351,7 +2351,7 @@ const ChartProfileA: React.FC<ChartPropsProfileInc> = ({
             className="wrapper">
             <ResponsiveContainer
                 width={leftChart ? "100%": "60%"}
-                height={640}>
+                height={(maxDepthOverall === 51) ? 640 : ((maxDepthOverall === 26) ? 340: 280)}>
                 {(graphData.length === 0 || loadingData) ? (
                         <div
                             style={{
@@ -4655,7 +4655,7 @@ function ResultsVisualization() {
         let arrowsAPointValuesAux: InclinometerData[][] = [];
         let arrowsBPointValuesAux: InclinometerData[][] = [];
 
-        if(selectedProfile.name === "All"){
+        //if(selectedProfile.name === "All"){
             for (let i = 0; i < numberOfInc.length; i++){
                 let generatedData = getTableValues(Number(numberOfInc[i]), filteredDataArrayX, filteredDataArrayY, refDateDataX, refDateDataY, selectedResultsProfiles.name, 'Surface');
                 //console.log(generatedData)
@@ -4687,7 +4687,7 @@ function ResultsVisualization() {
             setArrowsAPointValues(arrowsAPointValuesAux);
             setArrowsBPointValues(arrowsBPointValuesAux);
             setArrowsTotalPointValues(arrowsTotalPointValuesAux);
-        }else {
+        /*}else {
             for (let i = 0; i < profileIncChart.length; i++){
                 let generatedData = getTableValues(Number(profileIncChart[i]), filteredDataArrayX, filteredDataArrayY, refDateDataX, refDateDataY, selectedResultsProfiles.name, 'Surface');
 
@@ -4719,7 +4719,7 @@ function ResultsVisualization() {
             setArrowsAPointValues(arrowsAPointValuesAux);
             setArrowsBPointValues(arrowsBPointValuesAux);
             setArrowsTotalPointValues(arrowsTotalPointValuesAux);
-        }
+        }*/
     }
 
     /*useEffect(() => {
@@ -4733,14 +4733,17 @@ function ResultsVisualization() {
         if(selectedProfile.name === profiles[1].name){
             setProfileIncChart([1,3,6,9])
             setDepthProfilesArray([31.5,39.5,51,34.5])
+            setMaxProfileDepth(51)
             profileInc = [1,3,6,9];
         }else if(selectedProfile.name === profiles[2].name){
             setProfileIncChart([2,4,10])
             setDepthProfilesArray([14.5,26,20])
+            setMaxProfileDepth(26)
             profileInc = [2,4,10];
         }else if(selectedProfile.name === profiles[3].name){
             setProfileIncChart([5,8])
             setDepthProfilesArray([16.5,20.5])
+            setMaxProfileDepth(20.5)
             profileInc = [5,8];
         }
 
@@ -4765,14 +4768,17 @@ function ResultsVisualization() {
         if(selectedProfile.name === profiles[1].name){
             setProfileIncChart([1,3,6,9])
             setDepthProfilesArray([31.5,39.5,51,34.5])
+            setMaxProfileDepth(51)
             profileLine = [1,3,6,9];
         }else if(selectedProfile.name === profiles[2].name){
             setProfileIncChart([2,4,10])
             setDepthProfilesArray([14.5,26,20])
+            setMaxProfileDepth(26)
             profileLine = [2,4,10];
         }else if(selectedProfile.name === profiles[3].name){
             setProfileIncChart([5,8])
             setDepthProfilesArray([16.5,20.5])
+            setMaxProfileDepth(20.5)
             profileLine = [5,8];
         }
         handleToogleProfileLine(profileLine);
@@ -4888,7 +4894,7 @@ function ResultsVisualization() {
             }
         } else {
             setToggleArrows(true)
-            if(selectedProfile.name === "All") {
+            //if(selectedProfile.name === "All") {
                 if (stageRef.current) {
                     let stage = stageRef.current;
                     let layer = new Konva.Layer({
@@ -4944,7 +4950,7 @@ function ResultsVisualization() {
                         posCounter += 2;
                     }
                 }
-            }else if(selectedProfile.name !== "All" && selectedOrthoDirection.name === "A"){
+            /*}else if(selectedProfile.name !== "All" && selectedOrthoDirection.name === "A"){
                 if (stageRef.current) {
                     let stage = stageRef.current;
                     let layer = new Konva.Layer({
@@ -5098,7 +5104,7 @@ function ResultsVisualization() {
                         }
                     }
                 }
-            }
+            }*/
         }
     };
 
@@ -5153,7 +5159,7 @@ function ResultsVisualization() {
 
                 let line = new Konva.Line({
                     points: pointsArray,
-                    stroke: 'red',
+                    stroke: 'green',
                     strokeWidth: 5,
                     lineJoin: 'round',
                     dash: [10, 10],
@@ -7190,6 +7196,13 @@ function ResultsVisualization() {
                                             </Listbox>
                                         </div>
                                     )}
+                                    <div className="azimute">
+                                    <img
+                                        src="/azimute.png"
+                                        width="200"
+                                        height="200"
+                                    />
+                                    </div>
                                 </div>
                             </div>
                             <div

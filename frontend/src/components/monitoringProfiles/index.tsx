@@ -52,7 +52,20 @@ import {
 import {CheckIcon, ChevronUpDownIcon} from "@heroicons/react/20/solid";
 import Konva
     from "konva";
-
+import * as firebase from 'firebase/app';
+import {getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { firebaseConfig } from '../../firebaseConfig';
+import {
+    MapContainer,
+    Marker,
+    Popup,
+    TileLayer,
+    useMap,
+    useMapEvents
+} from 'react-leaflet'
+import 'leaflet/dist/leaflet.css';
+import markerIconPng from "leaflet/dist/images/marker-icon.png"
+import {Icon} from 'leaflet'
 
 const testData = [createData(1, 'Profiles1', 2, 40),
     createData(2, 'Profiles2', 1, 30)];
@@ -651,7 +664,6 @@ function getStyles(measurement: string, selectedMeasurements: readonly string[],
     };
 }
 
-
 function MonitoringProfiles() {
 
     const [order, setOrder] = React.useState<Order>('asc');
@@ -670,15 +682,24 @@ function MonitoringProfiles() {
     const [rowsPerPageMP, setRowsPerPageMP] = React.useState(5);
     const [rowsMP, setRowsMP] = React.useState<MonitoringProfile[]>([]);
     const [monitoringProfilesTableData, setMonitoringProfilesTableData] = React.useState<MonitoringProfile[]>([]);
+    const [firebaseInitialized, setFirebaseInitialized] = React.useState(false);
+
+    firebase.initializeApp(firebaseConfig);
+    /*useEffect(() => {
+        if(!firebaseInitialized){
+            firebase.initializeApp(firebaseConfig);
+            setFirebaseInitialized(true);
+        }
+    }, [firebaseInitialized]);*/
 
     useEffect(() => {
         setRows([createData(1, 'Profiles1', 2, 10),
             createData(2, 'Profiles2', 1, 30)]);
         setMonitoringProfiles([createDataMPG(1, 'Profiles1', 2, ['PK150_200', 'PK250_300'], 10),
             createDataMPG(2, 'Profiles2', 1, ['PK250_300'], 30)]);
-        setMonitoringProfilesTableData([createDataMP(1, 'Profiles1', 'All','All inclinometers in the dam (Plan)', typeOfProfile[0].name, true, '/profiles/imagePlan3.png'),
+        setMonitoringProfilesTableData([createDataMP(1, 'Profiles1', 'All','All inclinometers in the dam (Plan)', typeOfProfile[0].name, true, 'https://firebasestorage.googleapis.com/v0/b/webipisystemimagestorage.appspot.com/o/profiles%2FimagePlan3.png?alt=media&token=06e79ca3-a159-47b7-9522-66de489f4c3f'),//'/profiles/imagePlan3.png'),
             createDataMP(2, 'Profiles1', 'Crest', 'Profile along the crest in the downstream site', typeOfProfile[1].name, false, '/profiles/NoImageFound.png'),
-            createDataMP(3, 'Profiles1', 'P5', 'Profile P5', typeOfProfile[1].name, false, '/profiles/NoImageFound.png'),
+            createDataMP(3, 'Profiles1', 'P5', 'Profile P5', typeOfProfile[1].name, true, 'https://firebasestorage.googleapis.com/v0/b/webipisystemimagestorage.appspot.com/o/profiles%2FInclinometers_perfil5_v2.svg?alt=media&token=53a9f417-d178-426d-b26f-8ca05bd481ad'),
             createDataMP(4, 'Profiles2', 'P7', 'Profile P6', typeOfProfile[1].name, false, '/profiles/NoImageFound.png')
         ]);
 
@@ -739,7 +760,6 @@ function MonitoringProfiles() {
 
     const isSelected = (id: number) => selected.indexOf(id) !== -1;
 
-    // Avoid a layout jump when reaching the last page with empty rows.
     const emptyRows =
         page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;
 
@@ -747,7 +767,7 @@ function MonitoringProfiles() {
         () => rows.slice().sort(getComparator(order, orderBy)).slice(
             page * rowsPerPage,
             page * rowsPerPage + rowsPerPage),
-        [rows, order, orderBy, page, rowsPerPage],
+        [monitoringProfiles, rows, order, orderBy, page, rowsPerPage],
     );
 
     const handleDelete = () => {
@@ -811,7 +831,6 @@ function MonitoringProfiles() {
 
     const isSelectedMP = (id: number) => selectedMP.indexOf(id) !== -1;
 
-    // Avoid a layout jump when reaching the last page with empty rows.
     const emptyRowsMP =
         pageMP > 0 ? Math.max(0, (1 + pageMP) * rowsPerPageMP - rowsMP.length) : 0;
 
@@ -819,7 +838,7 @@ function MonitoringProfiles() {
         () => rowsMP.slice().sort(getComparator(orderMP, orderByMP)).slice(
             pageMP * rowsPerPageMP,
             pageMP * rowsPerPageMP + rowsPerPageMP),
-        [rowsMP, orderMP, orderByMP, pageMP, rowsPerPageMP],
+        [monitoringProfilesTableData, rowsMP, orderMP, orderByMP, pageMP, rowsPerPageMP],
     );
 
     const [openNew, setOpenNew] = useState(false);
@@ -1063,6 +1082,181 @@ function MonitoringProfiles() {
         }
     }
 
+
+    // New and edit profiles pop up
+
+    const [openNewProfile, setOpenNewProfile] = useState(false);
+    const [openEditProfile, setOpenEditProfile] = useState(false);
+    const [profileGroups, setProfileGroups] = useState<string[]>([]);
+    const [missingFieldCorrespondingGroupNew, setMissingFieldCorrespondingGroupNew] = useState(false);
+    const [missingFieldProfileNameNew, setMissingFieldProfileNameNew] = useState(false);
+    const [missingFieldProfileDescriptionNew, setMissingFieldProfileDescriptionNew] = useState(false);
+    const [selectedProfileNew, setSelectedProfileNew] = useState<MonitoringProfile>(createDataMP(0, '', '', '', '', false, ''));
+    const [selectedGroupProfileNew, setSelectedGroupProfileNew] = useState<string>('');
+    const [selectedNameProfileNew, setSelectedNameProfileNew] = useState<string>('');
+    const [selectedDescriptionProfileNew, setSelectedDescriptionProfileNew] = useState<string>('');
+    const [selectedTypeOfProfileNew, setSelectedTypeOfProfileNew] = useState<string>('');
+    const [selectedHasImageProfileNew, setSelectedHasImageProfileNew] = useState<boolean>(false);
+
+    useEffect(() => {
+
+    }, [rows]);
+
+    const handleOpenNewProfile = () => setOpenNewProfile(true);
+
+    const handleCloseNewProfile = () => {
+        /*setMissingFieldGroupName(false)
+        setMissingFieldMeasurements(false)
+        setErrorMessage('')
+        setSelectedInclinometers(0)
+        setSelectedMeasurements([])
+        setGroupName('')
+*/
+        setOpenNewProfile(false)
+    };
+
+    const handleSelectedGroupProfileNew= (p: string) => {
+        monitoringProfiles.map(m => {
+            if(m.group === p){
+                setSelectedGroupProfileNew(p)
+                /*setSelectedMPEdit(m)
+                setSelectedGroupEdit(m.group)
+                setSelectedMeasurementsEdit(m.measurementsList)
+                setSelectedInclinometersEdit(m.inclinometers)
+                setSelectedMPEditOld(m)
+                setSelectedGroupEditOld(m.group)
+                setSelectedMeasurementsEditOld(m.measurementsList)
+                setSelectedInclinometersEditOld(m.inclinometers)*/
+            }
+        })
+    }
+
+    const handleNameProfileNew = (newName: string) => {
+        setSelectedNameProfileNew(newName)
+    }
+
+    const handleDescriptionProfileNew = (newName: string) => {
+        setSelectedDescriptionProfileNew(newName)
+    }
+
+    const handleSelectedTypeOfProfileNew= (p: string) => {
+        typeOfProfile.map(m => {
+            if(m.name === p){
+                setSelectedTypeOfProfileNew(p)
+                /*setSelectedMPEdit(m)
+                setSelectedGroupEdit(m.group)
+                setSelectedMeasurementsEdit(m.measurementsList)
+                setSelectedInclinometersEdit(m.inclinometers)
+                setSelectedMPEditOld(m)
+                setSelectedGroupEditOld(m.group)
+                setSelectedMeasurementsEditOld(m.measurementsList)
+                setSelectedInclinometersEditOld(m.inclinometers)*/
+            }
+        })
+    }
+
+    const handleSubmitProfile = () => {
+        /*if(selectedMeasurements.length === 0 || groupName.length === 0){
+            setErrorMessage('Please fill in all required fields.');
+            if(groupName.length === 0){
+                setMissingFieldGroupName(true)
+            }
+            if(selectedMeasurements.length === 0){
+                setMissingFieldMeasurements(true)
+            }
+            setAlertFailedVisible(true);
+            setTimeout(() => {
+                setAlertFailedVisible(false);
+            }, 5000);
+        }else{
+            let tempRows = rows;
+            let tempMP = monitoringProfiles;
+            tempRows.push(createData(rows.length + 1, groupName, selectedMeasurements.length, selectedInclinometers));
+            tempMP.push(createDataMPG(monitoringProfiles.length + 1, groupName, selectedMeasurements.length, selectedMeasurements, selectedInclinometers));
+            setRows(tempRows);
+            setMonitoringProfiles(tempMP)
+            handleCloseNew()
+            setAlertSuccessVisible(true);
+            setTimeout(() => {
+                setAlertSuccessVisible(false);
+            }, 5000);
+        }*/
+    };
+
+    const handleEditProfilePopUp = () => {
+
+    }
+
+    // Image upload
+    const [fileInputRefs, setFileInputRefs] = useState<HTMLInputElement[]>([]);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, rowId :number) => {
+        if (event.target.files && event.target.files[0]) {
+            //setSelectedFile(event.target.files[0]);
+            handleUpload(event.target.files[0], rowId)
+        }
+    };
+
+    const handleUpload = (file: File, rowId: number) =>{
+        const imageFile: File = file
+        const storage = getStorage(firebase.getApp());
+
+        const storageRef = ref(storage, `profiles/${imageFile.name}`);
+
+        uploadBytes(storageRef, imageFile)
+            .then((snapshot) => {
+                console.log('Image uploaded successfully!');
+                return getDownloadURL(snapshot.ref);
+            })
+            .then((downloadURL) => {
+                console.log('Download URL:', downloadURL);
+                let tempData = monitoringProfilesTableData;
+                tempData[rowId-1].imagedAttached = downloadURL;
+                tempData[rowId-1].hasImage = true;
+                setMonitoringProfilesTableData(tempData);
+            })
+            .catch((error) => {
+                console.error('Error uploading image:', error);
+            });
+
+    }
+
+    /*const handleUpload = async(file: File) => {
+        try {
+            const response = await fetch('https://uploadthing.com/api/uploadFiles', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Uploadthing-Api-Key': 'sk_live_07475a2a81560265aaa2810b12ba31af2cad80a42f2e7da404b4f7230cf53602',
+                    'X-Uploadthing-Version': '6.12.0',
+                    'UPLOADTHING_URL': 'https://sparrow-organic-abnormally.ngrok-free.app/',
+                },
+                body: JSON.stringify({
+                    files: [{
+                        name: file.name,
+                        size: file.size,
+                        type: file.type,
+                    }],
+                    acl: 'public-read',
+                    metadata: null,
+                    contentDisposition: 'inline',
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to upload: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log('Upload successful:', data);
+
+        }catch (error) {
+            console.error('Error during upload:', error);
+        }
+    }*/
+
+
     // Detailed view
 
     const [detailedView, setDetailedView] = React.useState(false);
@@ -1083,6 +1277,8 @@ function MonitoringProfiles() {
     const pointsLayerRef = useRef<Konva.Layer | null>(null);
     const [positionsArray, setPositionsArray] = React.useState<number[]>([]);
     const [replaceValues, setReplaceValues] = React.useState(false);
+
+    const [emptyPhoto, setEmptyPhoto] = React.useState(false);
 
     useEffect(() => {
         setMPPCTableData([createDataMPPC(0, 'PK150_200', 1, true, [296.2878194833505, 137.46244130721217]),
@@ -1209,7 +1405,7 @@ function MonitoringProfiles() {
                 });
                 layer.add(group);
 
-                if (selectedData[0].imagedAttached !== '/profiles/NoImageFound.png') {
+                if (selectedData[0].imagedAttached !== '/profiles/NoImageFound.png' && selectedDetailedProfileID === 0) {
 
                     let posCounter = 0;
                     for (let i = 0; i < 9; i++) {
@@ -1226,6 +1422,13 @@ function MonitoringProfiles() {
                     }
                 }
                 pointsLayerRef.current = layer;
+
+                if(selectedData[0].imagedAttached === '/profiles/NoImageFound.png'){
+                    if (stageRef.current) {
+                        const stage = stageRef.current;
+                        stage.destroy();
+                    }
+                }
             }, 1);
         }else{
             if (stageRef.current) {
@@ -1233,10 +1436,23 @@ function MonitoringProfiles() {
                 stage.destroy();
             }
         }
-    }, [selectedDetailedProfile, detailedView]);
+    }, [selectedDetailedProfile, detailedView, monitoringProfilesTableData]);
+
+    useEffect(() => {
+        let tempData = monitoringProfilesTableData;
+        if(tempData.length !== 0){
+            let selectedData = tempData.filter(d => d.id === selectedDetailedProfileID+1)
+
+            if(selectedData[0].imagedAttached === '/profiles/NoImageFound.png'){
+                setEmptyPhoto(true)
+            }else{
+                setEmptyPhoto(false)
+            }
+        }
+    }, [selectedDetailedProfileID]);
 
     const handlePickPoint = (rowId: number) => {
-        if (stageRef.current && pointsLayerRef.current) {
+        if (stageRef.current && pointsLayerRef.current && !emptyPhoto) {
             let stage = stageRef.current;
             /*let layer = new Konva.Layer({
                 scaleX: 1,
@@ -1285,8 +1501,22 @@ function MonitoringProfiles() {
                     }
                 }
             })
+        }else{
+
         }
     }
+
+    const [markers, setMarkers] = useState<L.LatLng[]>([]);
+
+    const MapClickHandler = () => {
+        useMapEvents({
+            click: (event) => {
+                const newMarker = event.latlng;
+                setMarkers((currentMarkers) => [...currentMarkers, newMarker]);
+            }
+        });
+        return null;
+    };
 
     const handleBackButton = () => {
         setDetailedView(false);
@@ -2222,19 +2452,258 @@ function MonitoringProfiles() {
                         </Paper>
                     </Box>
                     <div
-                        className="submit-selected-button">
-                        <button
-                            type="button"
-                            className="py-3 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                            onClick={handleSubmitGroups}
-                        >
-                            Define
-                            selected
-                            groups
-                        </button>
+                        style={{
+                            display: 'flex',
+                            justifyContent: groupSelected ? 'center' : 'flex-end',
+                            gap: '60px',
+                            paddingTop: '15px'
+                        }}>
+                        {groupSelected && (
+                            <>
+                                <div>
+                                    <button
+                                        type="button"
+                                        className="py-3 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-lg"
+                                        onClick={handleOpenNewProfile}
+                                    >
+                                        New
+                                        profile
+                                    </button>
+                                    <Modal
+                                        open={openNewProfile}
+                                        onClose={handleCloseNewProfile}
+                                        aria-labelledby="modal-title"
+                                        aria-describedby="modal-description"
+                                    >
+                                        <Box
+                                            sx={{
+                                                position: 'absolute' as 'absolute',
+                                                top: '50%',
+                                                left: '50%',
+                                                transform: 'translate(-50%, -50%)',
+                                                width: 400,
+                                                bgcolor: 'background.paper',
+                                                border: '2px solid #000',
+                                                boxShadow: 24,
+                                                p: 4,
+                                                borderRadius: 2,
+                                                '& .close-button': {
+                                                    position: 'absolute',
+                                                    top: 8,
+                                                    right: 8,
+                                                },
+                                            }}>
+                                            <IconButton
+                                                className="close-button"
+                                                aria-label="close"
+                                                onClick={handleCloseNewProfile}>
+                                                <Clear/>
+                                            </IconButton>
+                                            <div
+                                                className='pt-1 pl-24 pb-5'>
+                                                <Listbox>
+                                                    <Listbox.Label
+                                                        className="pr-1 text-2xl font-medium leading-6 text-gray-900 text-left">Add
+                                                        profile</Listbox.Label>
+                                                </Listbox>
+                                            </div>
+                                            <FormControl
+                                                sx={{
+                                                    mt: 2,
+                                                    mb: 2,
+                                                    ml: 2,
+                                                    width: 300
+                                                }}>
+                                                        <InputLabel
+                                                            id="simple-select-label">Group *</InputLabel>
+                                                        <Select
+                                                            labelId="simple-select-label"
+                                                            id="simple-select"
+                                                            value={selectedGroupProfileNew}
+                                                            label="Group * "
+                                                            onChange={(e) => handleSelectedGroupProfileNew(e.target.value)}
+                                                        >
+                                                            {monitoringProfiles.map((m) => (
+                                                                <MenuItem
+                                                                    key={m.id}
+                                                                    value={m.group}>{m.group}</MenuItem>
+                                                            ))}
+                                                        </Select>
+                                                    </FormControl>
+                                            {!missingFieldProfileNameNew ? (
+                                                <>
+                                                    <TextField
+                                                        required
+                                                        id="outlined-required"
+                                                        label="Name"
+                                                        onChange={(e) => handleNameProfileNew(e.target.value)}
+                                                        sx={{
+                                                            mt: 2,
+                                                            mb: 2,
+                                                            ml: 2,
+                                                            width: 300
+                                                        }}
+                                                    />
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <TextField
+                                                        error
+                                                        id="outlined-error-text"
+                                                        label="Name *"
+                                                        sx={{
+                                                            mt: 2,
+                                                            ml: 2,
+                                                            width: 300
+                                                        }}
+                                                    />
+                                                    <Box
+                                                        sx={{
+                                                            color: 'red',
+                                                            mt: 1,
+                                                            ml: 2
+                                                        }}>
+                                                        Missing profile
+                                                        name.
+                                                    </Box>
+                                                </>
+                                            )}
+                                            {!missingFieldProfileDescriptionNew ? (
+                                                <>
+                                                    <TextField
+                                                        required
+                                                        id="outlined-required"
+                                                        label="Description"
+                                                        onChange={(e) => handleDescriptionProfileNew(e.target.value)}
+                                                        sx={{
+                                                            mt: 2,
+                                                            mb: 2,
+                                                            ml: 2,
+                                                            width: 300
+                                                        }}
+                                                    />
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <TextField
+                                                        error
+                                                        id="outlined-error-text"
+                                                        label="Description *"
+                                                        sx={{
+                                                            mt: 2,
+                                                            ml: 2,
+                                                            width: 300
+                                                        }}
+                                                    />
+                                                    <Box
+                                                        sx={{
+                                                            color: 'red',
+                                                            mt: 1,
+                                                            ml: 2
+                                                        }}>
+                                                        Missing profile
+                                                        description.
+                                                    </Box>
+                                                </>
+                                            )}
+                                            <FormControl
+                                                sx={{
+                                                    mt: 2,
+                                                    mb: 2,
+                                                    ml: 2,
+                                                    width: 300
+                                                }}>
+                                                <InputLabel
+                                                    id="simple-select-label">Type Of Profile *</InputLabel>
+                                                <Select
+                                                    labelId="simple-select-label"
+                                                    id="simple-select"
+                                                    value={selectedTypeOfProfileNew}
+                                                    label="Type of Profile * "
+                                                    onChange={(e) => handleSelectedTypeOfProfileNew(e.target.value)}
+                                                >
+                                                    {typeOfProfile.map((m) => (
+                                                        <MenuItem
+                                                            key={m.id}
+                                                            value={m.name}>{m.name}</MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </FormControl>
+                                            <Button
+                                                component="label"
+                                                role={undefined}
+                                                variant="contained"
+                                                tabIndex={-1}
+                                                startIcon={
+                                                    <CloudUpload/>}
+                                                sx={{
+                                                    backgroundColor: '#22c55e',
+                                                    '&:hover': {
+                                                        backgroundColor: '#15803d',
+                                                    },
+                                                    mt: 2,
+                                                    mb: 2,
+                                                    ml: 8,
+                                                    width: 200
+                                                }}
+                                            >
+                                                Upload
+                                                image
+                                                <VisuallyHiddenInput
+                                                    type="file"/>
+                                            </Button>
+                                            {errorMessage && (
+                                                <Box
+                                                    sx={{
+                                                        color: 'red',
+                                                        mt: 2,
+                                                        ml: 2
+                                                    }}>
+                                                    {errorMessage}
+                                                </Box>
+                                            )}
+                                            <div
+                                                className="submit-button">
+                                                <button
+                                                    type="button"
+                                                    className="py-2 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                                    onClick={handleSubmitProfile}
+                                                >
+                                                    Submit
+                                                </button>
+                                            </div>
+                                        </Box>
+                                    </Modal>
+                                </div>
+                                <div>
+                                    <button
+                                        type="button"
+                                        className="py-3 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-lg"
+                                        onClick={handleEditProfilePopUp}
+                                    >
+                                        Edit
+                                        profile
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                        <div style={{
+                            paddingLeft: groupSelected ? '25%' : '0%'
+                        }}>
+                            <button
+                                type="button"
+                                className="py-3 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-lg"
+                                onClick={handleSubmitGroups}
+                            >
+                                Define
+                                selected
+                                groups
+                            </button>
+                        </div>
                     </div>
                 </div>
                 {groupSelected && (
+
                     <div
                         className="filter-container-monitProfile">
                         <Box
@@ -2315,11 +2784,23 @@ function MonitoringProfiles() {
                                                                         backgroundColor: '#15803d',
                                                                     },
                                                                 }}
+                                                                key={row.id}
+                                                                onClick={(e) => {
+                                                                    //fileInputRef.current?.click();
+                                                                    //const fileInputRefAux = document.getElementById(`fileInput-${row.id}`);
+                                                                    //fileInputRef.value = null;
+                                                                    //fileInputRefAux?.click();
+                                                                    fileInputRefs[row.id].click();
+                                                                }}
                                                             >
                                                                 Upload
                                                                 image
                                                                 <VisuallyHiddenInput
-                                                                    type="file"/>
+                                                                    type="file"
+                                                                    id={`fileInput-${row.id}`}
+                                                                    onChange={(e) => handleFileChange(e, row.id)}
+                                                                    ref={(e) => (fileInputRefs[row.id] = e as HTMLInputElement)}//fileInputRef}
+                                                                    />
                                                             </Button>
                                                         </TableCell>
                                                     </TableRow>
@@ -2401,122 +2882,150 @@ function MonitoringProfiles() {
                                 </button>
                             </div>
                         </div>
-                    <div className="tableAndContainer">
-                    <div
-                        className="tableAndContainerT">
-                        <Box
-                            sx={{width: '100%'}}>
-                            <Paper
-                                sx={{
-                                    width: '100%',
-                                    mb: 2
-                                }}>
-                                <EnhancedTableToolbarMPPC
-                                    numSelected={selectedMPPC.length}/>
-                                <TableContainer>
-                                    <Table
-                                        sx={{minWidth: 550}}
-                                        aria-labelledby="tableTitle2"
-                                        size='small'//{denseMPPC ? 'small' : 'medium'}
-                                    >
-                                        <EnhancedTableHeadMPPC
-                                            //numSelected={selectedMP.length}
-                                            order={orderMPPC}
-                                            orderBy={orderByMPPC}
-                                            //onSelectAllClick={handleSelectAllClickMP}
-                                            onRequestSort={handleRequestSortMPPC}
-                                            rowCount={rowsMPPC.length}
-                                        />
-                                        <TableBody>
-                                            {visibleRowsMPPC.map((row, index) => {
-                                                const isItemSelectedMP = isSelected(row.id);
-                                                const labelIdMP = `enhanced-table-checkbox-${index}`;
+                        <div
+                            className="tableAndContainer">
+                            <div
+                                className="tableAndContainerT">
+                                <Box
+                                    sx={{width: '100%'}}>
+                                    <Paper
+                                        sx={{
+                                            width: '100%',
+                                            mb: 2
+                                        }}>
+                                        <EnhancedTableToolbarMPPC
+                                            numSelected={selectedMPPC.length}/>
+                                        <TableContainer>
+                                            <Table
+                                                sx={{minWidth: 550}}
+                                                aria-labelledby="tableTitle2"
+                                                size='small'//{denseMPPC ? 'small' : 'medium'}
+                                            >
+                                                <EnhancedTableHeadMPPC
+                                                    //numSelected={selectedMP.length}
+                                                    order={orderMPPC}
+                                                    orderBy={orderByMPPC}
+                                                    //onSelectAllClick={handleSelectAllClickMP}
+                                                    onRequestSort={handleRequestSortMPPC}
+                                                    rowCount={rowsMPPC.length}
+                                                />
+                                                <TableBody>
+                                                    {visibleRowsMPPC.map((row, index) => {
+                                                        const isItemSelectedMP = isSelected(row.id);
+                                                        const labelIdMP = `enhanced-table-checkbox-${index}`;
 
-                                                return (
-                                                    <TableRow
-                                                        hover
-                                                        //onClick={(event) => handleClickMP(event, row.id)}
-                                                        role="checkbox"
-                                                        //aria-checked={isItemSelectedMP}
-                                                        tabIndex={-1}
-                                                        key={row.id}
-                                                        //selected={isItemSelectedMP}
-                                                        sx={{cursor: 'pointer', height: '20px'}}
-                                                    >
-                                                        <TableCell
-                                                            onClick={() => handleClickProfile(row.id)}
-                                                            align="left">{row.id}</TableCell>
-                                                        <TableCell
-                                                            onClick={() => handleClickProfile(row.id)}
-                                                            align="center">{row.groupMP}</TableCell>
-                                                        <TableCell
-                                                            onClick={() => handleClickProfile(row.id)}
-                                                            align="center">I{row.inc}</TableCell>
-                                                        <TableCell
-                                                            align="center">
-                                                            <IconButton
-                                                                className="hasImage-button"
-                                                                aria-label="close">
-                                                                {row.hasPoint ?
-                                                                    <CheckBoxRounded/> :
-                                                                    <CheckBoxOutlineBlankRounded/>}
-                                                            </IconButton>
-                                                        </TableCell>
-                                                        <TableCell
-                                                            align="center">
-                                                            <Button
-                                                                component="label"
-                                                                role={undefined}
-                                                                variant="contained"
+                                                        return (
+                                                            <TableRow
+                                                                hover
+                                                                //onClick={(event) => handleClickMP(event, row.id)}
+                                                                role="checkbox"
+                                                                //aria-checked={isItemSelectedMP}
                                                                 tabIndex={-1}
-                                                                startIcon={
-                                                                    <Place/>}
+                                                                key={row.id}
+                                                                //selected={isItemSelectedMP}
                                                                 sx={{
-                                                                    backgroundColor: '#22c55e',
-                                                                    '&:hover': {
-                                                                        backgroundColor: '#15803d',
-                                                                    },
-                                                                    fontSize: '0.75rem',
-                                                                    padding: '8px 8px',
+                                                                    cursor: 'pointer',
+                                                                    height: '20px'
                                                                 }}
-                                                                onClick={() => handlePickPoint(row.id)}
                                                             >
-                                                                Pick
-                                                                point
-                                                            </Button>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                );
-                                            })}
-                                            {emptyRowsMPPC > 0 && (
-                                                <TableRow
-                                                    style={{
-                                                        height: (denseMPPC ? 33 : 53) * emptyRowsMPPC,
-                                                    }}
-                                                >
-                                                    <TableCell
-                                                        colSpan={6}/>
-                                                </TableRow>
-                                            )}
-                                        </TableBody>
-                                    </Table>
-                                </TableContainer>
-                                <TablePagination
-                                    rowsPerPageOptions={[5, 10, 25]}
-                                    component="div"
-                                    count={rowsMPPC.length}
-                                    rowsPerPage={rowsPerPageMPPC}
-                                    page={pageMPPC}
-                                    onPageChange={handleChangePageMPPC}
-                                    onRowsPerPageChange={handleChangeRowsPerPageMPPC}
-                                />
-                            </Paper>
-                        </Box>
-                    </div>
-                    <div
-                        id="konvaContainer"
-                        className="tableAndContainerC"></div>
-                    </div>
+                                                                <TableCell
+                                                                    onClick={() => handleClickProfile(row.id)}
+                                                                    align="left">{row.id}</TableCell>
+                                                                <TableCell
+                                                                    onClick={() => handleClickProfile(row.id)}
+                                                                    align="center">{row.groupMP}</TableCell>
+                                                                <TableCell
+                                                                    onClick={() => handleClickProfile(row.id)}
+                                                                    align="center">I{row.inc}</TableCell>
+                                                                <TableCell
+                                                                    align="center">
+                                                                    <IconButton
+                                                                        className="hasImage-button"
+                                                                        aria-label="close">
+                                                                        {row.hasPoint ?
+                                                                            <CheckBoxRounded/> :
+                                                                            <CheckBoxOutlineBlankRounded/>}
+                                                                    </IconButton>
+                                                                </TableCell>
+                                                                <TableCell
+                                                                    align="center">
+                                                                    <Button
+                                                                        component="label"
+                                                                        role={undefined}
+                                                                        variant="contained"
+                                                                        tabIndex={-1}
+                                                                        startIcon={
+                                                                            <Place/>}
+                                                                        sx={{
+                                                                            backgroundColor: '#22c55e',
+                                                                            '&:hover': {
+                                                                                backgroundColor: '#15803d',
+                                                                            },
+                                                                            fontSize: '0.75rem',
+                                                                            padding: '8px 8px',
+                                                                        }}
+                                                                        onClick={() => handlePickPoint(row.id)}
+                                                                    >
+                                                                        Pick
+                                                                        point
+                                                                    </Button>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        );
+                                                    })}
+                                                    {emptyRowsMPPC > 0 && (
+                                                        <TableRow
+                                                            style={{
+                                                                height: (denseMPPC ? 33 : 53) * emptyRowsMPPC,
+                                                            }}
+                                                        >
+                                                            <TableCell
+                                                                colSpan={6}/>
+                                                        </TableRow>
+                                                    )}
+                                                </TableBody>
+                                            </Table>
+                                        </TableContainer>
+                                        <TablePagination
+                                            rowsPerPageOptions={[5, 10, 25]}
+                                            component="div"
+                                            count={rowsMPPC.length}
+                                            rowsPerPage={rowsPerPageMPPC}
+                                            page={pageMPPC}
+                                            onPageChange={handleChangePageMPPC}
+                                            onRowsPerPageChange={handleChangeRowsPerPageMPPC}
+                                        />
+                                    </Paper>
+                                </Box>
+                            </div>
+                            <div
+                                id="konvaContainer"
+                                className="tableAndContainerC"></div>
+                            {emptyPhoto &&
+                                <div className="maps" style={{ width: '600px', height: '400px' }}>
+                                    <MapContainer
+                                        center={[38.66086, -9.20339]}
+                                        zoom={13}
+                                        scrollWheelZoom={false}
+                                        style={{ width: '100%', height: '100%' }}
+                                    >
+                                        <TileLayer
+                                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                        />
+                                        {markers.map((marker, index) => (
+                                            <Marker key={index} position={marker} icon={new Icon({iconUrl: markerIconPng, iconSize: [25, 41], iconAnchor: [12, 41]})}>
+                                                <Popup>
+                                                    Test marker |
+                                                    Location: {marker.lat}, {marker.lng}
+                                                </Popup>
+                                            </Marker>
+                                        ))}
+                                        <MapClickHandler />
+                                    </MapContainer>
+                                </div>
+                            }
+                        </div>
                     </div>
                 </>
             )}
