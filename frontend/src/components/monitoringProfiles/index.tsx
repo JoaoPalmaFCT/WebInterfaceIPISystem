@@ -85,6 +85,20 @@ const typeOfProfile = [
     }
 ]
 
+interface PointMarker {
+    id: number;
+    latLng: L.LatLng;
+}
+
+function createPointMarker(
+    id: number,
+    latLng: L.LatLng
+): PointMarker {
+    return {
+        id,
+        latLng
+    };
+}
 
 interface MonitoringProfile {
     id: number;
@@ -184,6 +198,30 @@ function createDataMPPC(
         inc,
         hasPoint,
         pickPoint
+    };
+}
+
+interface IncPerProfile {
+    id: number;
+    profileCode: number;
+    profileGroup: string;
+    measurement: string;
+    inc: number;
+}
+
+function createIncPerProfile(
+    id: number,
+    profileCode: number,
+    profileGroup: string,
+    measurement: string,
+    inc: number
+): IncPerProfile {
+    return {
+        id,
+        profileCode,
+        profileGroup,
+        measurement,
+        inc
     };
 }
 
@@ -1091,16 +1129,68 @@ function MonitoringProfiles() {
     const [missingFieldCorrespondingGroupNew, setMissingFieldCorrespondingGroupNew] = useState(false);
     const [missingFieldProfileNameNew, setMissingFieldProfileNameNew] = useState(false);
     const [missingFieldProfileDescriptionNew, setMissingFieldProfileDescriptionNew] = useState(false);
+    const [missingFieldTypeOfProfileNew, setMissingFieldTypeOfProfileNew] = useState(false);
+    const [missingSelectedInclinometers, setMissingSelectedInclinometers] = useState(false);
     const [selectedProfileNew, setSelectedProfileNew] = useState<MonitoringProfile>(createDataMP(0, '', '', '', '', false, ''));
     const [selectedGroupProfileNew, setSelectedGroupProfileNew] = useState<string>('');
     const [selectedNameProfileNew, setSelectedNameProfileNew] = useState<string>('');
     const [selectedDescriptionProfileNew, setSelectedDescriptionProfileNew] = useState<string>('');
     const [selectedTypeOfProfileNew, setSelectedTypeOfProfileNew] = useState<string>('');
     const [selectedHasImageProfileNew, setSelectedHasImageProfileNew] = useState<boolean>(false);
+    const [selectedAttachedImageNew, setSelectedAttachedImageNew] = useState<string>('');
+    const [availableInclinometersNew, setAvailableInclinometersNew] = useState<string[]>([]);
+    const [selectedInclinometersNew, setSelectedInclinometersNew] = useState<string[]>([]);
+
+
+    const [incPerProfiles, setIncPerProfiles] = React.useState<IncPerProfile[]>([]);
 
     useEffect(() => {
+        let tempMPTD = monitoringProfiles;
+        let differentMP: string[] = []
+        let differentMPMeasurement: string[][] = []
+        let newMPFound = false;
 
-    }, [rows]);
+        tempMPTD.map((mp, index) =>{
+            if(selectedGroupProfileNew === mp.group){
+                if(differentMP.length !== 0){
+                    differentMP.map(dmp =>{
+                        if(mp.group !== dmp){
+                            newMPFound = true;
+                        }
+                    })
+                    if(newMPFound){
+                        differentMP.push(mp.group)
+                        differentMPMeasurement.push(mp.measurementsList)
+                        newMPFound = false;
+                    }
+                }else{
+                    differentMP.push(mp.group)
+                    differentMPMeasurement.push(mp.measurementsList)
+                }
+            }
+        })
+
+        //let tempIncPerProfiles: IncPerProfile[] = []
+        let tempAvailInc: string[] = [];
+        let counter = 0;
+        let counterInc = 1;
+        for(let i = 0; i < differentMP.length; i++){
+            for(let j = 0; j < differentMPMeasurement[i].length; j++){
+                for(let k = 0; k < 9; k++){
+                    tempAvailInc.push("I" + counterInc + " (" + differentMPMeasurement[i][j] + ")");
+                    counter++;
+                    if(counterInc === 6){
+                        counterInc=7
+                    }
+                    counterInc++
+                }
+                counterInc = 1;
+            }
+        }
+
+        setAvailableInclinometersNew(tempAvailInc);
+
+    }, [selectedGroupProfileNew]);
 
     const handleOpenNewProfile = () => setOpenNewProfile(true);
 
@@ -1155,32 +1245,60 @@ function MonitoringProfiles() {
         })
     }
 
+    const handleChangeSelectedIncNew = (event: SelectChangeEvent<typeof selectedInclinometersNew>) => {
+        const {
+            target: { value },
+        } = event;
+        setSelectedInclinometersNew(
+            typeof value === 'string' ? value.split(',') : value,
+        );
+    };
+
     const handleSubmitProfile = () => {
-        /*if(selectedMeasurements.length === 0 || groupName.length === 0){
+        if(selectedGroupProfileNew.length === 0 || selectedNameProfileNew.length === 0 || selectedDescriptionProfileNew.length === 0 || selectedTypeOfProfileNew.length === 0 || selectedInclinometersNew.length === 0){
             setErrorMessage('Please fill in all required fields.');
-            if(groupName.length === 0){
-                setMissingFieldGroupName(true)
+            if(selectedGroupProfileNew.length === 0){
+                setMissingFieldCorrespondingGroupNew(true)
             }
-            if(selectedMeasurements.length === 0){
-                setMissingFieldMeasurements(true)
+            if(selectedNameProfileNew.length === 0){
+                setMissingFieldProfileNameNew(true)
             }
+            if(selectedDescriptionProfileNew.length === 0){
+                setMissingFieldProfileDescriptionNew(true)
+            }
+            if(selectedTypeOfProfileNew.length === 0){
+                setMissingFieldTypeOfProfileNew(true)
+            }
+            if(selectedInclinometersNew.length === 0){
+                setMissingSelectedInclinometers(true)
+            }
+
             setAlertFailedVisible(true);
             setTimeout(() => {
                 setAlertFailedVisible(false);
             }, 5000);
         }else{
-            let tempRows = rows;
-            let tempMP = monitoringProfiles;
-            tempRows.push(createData(rows.length + 1, groupName, selectedMeasurements.length, selectedInclinometers));
-            tempMP.push(createDataMPG(monitoringProfiles.length + 1, groupName, selectedMeasurements.length, selectedMeasurements, selectedInclinometers));
-            setRows(tempRows);
-            setMonitoringProfiles(tempMP)
+            let tempRows = rowsMP;
+            let tempMP = monitoringProfilesTableData;
+            let tempIncPerProfiles = incPerProfiles;
+
+            tempRows.push(createDataMP(rowsMP.length + 1, selectedGroupProfileNew, selectedNameProfileNew, selectedDescriptionProfileNew, selectedTypeOfProfileNew, (selectedAttachedImageNew !== ''), selectedAttachedImageNew))
+            tempMP.push(createDataMP(monitoringProfilesTableData.length + 1, selectedGroupProfileNew, selectedNameProfileNew, selectedDescriptionProfileNew, selectedTypeOfProfileNew, (selectedAttachedImageNew !== ''), selectedAttachedImageNew === '' ? '/profiles/NoImageFound.png' : selectedAttachedImageNew))
+
+            for(let i = 0; i < selectedInclinometersNew.length; i++){
+                tempIncPerProfiles.push(createIncPerProfile(tempIncPerProfiles.length + 1, rowsMP.length + 1, selectedGroupProfileNew, selectedInclinometersNew[i].split("(")[1].split(")")[0], Number(selectedInclinometersNew[i].split(" ")[0].split("I")[1])));
+            }
+
+            setRowsMP(tempRows);
+            setMonitoringProfilesTableData(tempMP)
+            setIncPerProfiles(tempIncPerProfiles);
+
             handleCloseNew()
             setAlertSuccessVisible(true);
             setTimeout(() => {
                 setAlertSuccessVisible(false);
             }, 5000);
-        }*/
+        }
     };
 
     const handleEditProfilePopUp = () => {
@@ -1194,7 +1312,15 @@ function MonitoringProfiles() {
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, rowId :number) => {
         if (event.target.files && event.target.files[0]) {
             //setSelectedFile(event.target.files[0]);
-            handleUpload(event.target.files[0], rowId)
+            let fileType = event.target.files[0].type
+            if(fileType === "image/svg+xml" || fileType === "image/png" || fileType === "image/jpg" || fileType === "image/jpeg")
+                handleUpload(event.target.files[0], rowId)
+            else{
+                setAlertWrongFileType(true);
+                setTimeout(() => {
+                    setAlertWrongFileType(false);
+                }, 5000);
+            }
         }
     };
 
@@ -1281,17 +1407,69 @@ function MonitoringProfiles() {
     const [emptyPhoto, setEmptyPhoto] = React.useState(false);
 
     useEffect(() => {
-        setMPPCTableData([createDataMPPC(0, 'PK150_200', 1, true, [296.2878194833505, 137.46244130721217]),
-            createDataMPPC(1, 'PK150_200', 2, false, []),
-            createDataMPPC(2, 'PK150_200', 3, false, []),
-            createDataMPPC(3, 'PK150_200', 4, false, []),
-            createDataMPPC(4, 'PK150_200', 5, false, []),
-            createDataMPPC(5, 'PK150_200', 6, false, []),
-            createDataMPPC(6, 'PK150_200', 8, false, []),
-            createDataMPPC(7, 'PK150_200', 9, false, []),
-            createDataMPPC(8, 'PK150_200', 10, false, [])])
-        setRowsMPPC(MPPCTableData)
+        if(selectedDetailedProfile === 'Profiles1: All'){
+            setMPPCTableData([createDataMPPC(0, 'PK150_200', 1, true, [296.2878194833505, 137.46244130721217]),
+                createDataMPPC(1, 'PK150_200', 2, false, []),
+                createDataMPPC(2, 'PK150_200', 3, false, []),
+                createDataMPPC(3, 'PK150_200', 4, false, []),
+                createDataMPPC(4, 'PK150_200', 5, false, []),
+                createDataMPPC(5, 'PK150_200', 6, false, []),
+                createDataMPPC(6, 'PK150_200', 8, false, []),
+                createDataMPPC(7, 'PK150_200', 9, false, []),
+                createDataMPPC(8, 'PK150_200', 10, false, [])])
+            setRowsMPPC(MPPCTableData)
+        }
     }, [detailedView]);
+
+    useEffect(() => {
+        if(selectedDetailedProfile !== 'Profiles1: All') {
+
+            let tempIncValues = incPerProfiles;
+            let tempIncValuesFinal: IncPerProfile[] = [];
+            let selectedCode = 0;
+
+            rowsMP.map((i, index) => {
+                if (i.group === selectedDetailedProfile.split(": ")[0] && i.name === selectedDetailedProfile.split(": ")[1]) {
+                    selectedCode = i.id;
+                }
+            })
+
+            tempIncValues.map((v, index) => {
+                if (v.profileCode - 1 === selectedCode) {
+                    tempIncValuesFinal.push(v);
+                }
+            })
+
+            let tempRows = [];
+            let tempMPPCTableData = [];
+            let counter = 0;
+            for (let i = 0; i < tempIncValuesFinal.length; i++) {
+                tempRows.push(createDataMPPC(counter, tempIncValuesFinal[i].profileGroup, tempIncValuesFinal[i].inc, false, []))
+                tempMPPCTableData.push(createDataMPPC(counter, tempIncValuesFinal[i].profileGroup, tempIncValuesFinal[i].inc, false, []))
+                counter++;
+            }
+
+            setRowsMPPC(tempRows)
+            setMPPCTableData(tempMPPCTableData)
+
+            console.log(tempIncValuesFinal)
+        }else{
+            setMPPCTableData([createDataMPPC(0, 'PK150_200', 1, true, [296.2878194833505, 137.46244130721217]),
+                createDataMPPC(1, 'PK150_200', 2, false, []),
+                createDataMPPC(2, 'PK150_200', 3, false, []),
+                createDataMPPC(3, 'PK150_200', 4, false, []),
+                createDataMPPC(4, 'PK150_200', 5, false, []),
+                createDataMPPC(5, 'PK150_200', 6, false, []),
+                createDataMPPC(6, 'PK150_200', 8, false, []),
+                createDataMPPC(7, 'PK150_200', 9, false, []),
+                createDataMPPC(8, 'PK150_200', 10, false, [])])
+            setRowsMPPC(MPPCTableData)
+        }
+    }, [selectedDetailedProfile, selectedDetailedProfileID]);
+
+    useEffect(() => {
+        setRowsMPPC(MPPCTableData)
+    }, [MPPCTableData]);
 
     useEffect(() => {
         for(let i = 0; i < MPPCTableData.length; i++){
@@ -1451,7 +1629,7 @@ function MonitoringProfiles() {
         }
     }, [selectedDetailedProfileID]);
 
-    const handlePickPoint = (rowId: number) => {
+    const handlePickPoint = (rowId: number, rowInc: number) => {
         if (stageRef.current && pointsLayerRef.current && !emptyPhoto) {
             let stage = stageRef.current;
             /*let layer = new Konva.Layer({
@@ -1501,20 +1679,46 @@ function MonitoringProfiles() {
                     }
                 }
             })
-        }else{
-
+        }else if(emptyPhoto){
+            setCurrentPoint(rowInc)
+            setClickPoint(true);
         }
     }
 
-    const [markers, setMarkers] = useState<L.LatLng[]>([]);
+    //const [markers, setMarkers] = useState<L.LatLng[]>([]);
+    const [markers, setMarkers] = useState<PointMarker[]>([]);
+    const [currentPoint, setCurrentPoint] = useState(0);
+    const [clickPoint, setClickPoint] = useState(false);
 
     const MapClickHandler = () => {
         useMapEvents({
             click: (event) => {
-                const newMarker = event.latlng;
-                setMarkers((currentMarkers) => [...currentMarkers, newMarker]);
+                let newPointMarker = createPointMarker(currentPoint, event.latlng)
+
+                let alreadyExists = false;
+                let tempMarkers = markers
+                if(tempMarkers.length !== 0){
+                    tempMarkers.map((m, index) =>{
+                        if(m.id === currentPoint){
+                            tempMarkers[index] = newPointMarker;
+                            alreadyExists = true;
+                        }
+                    })
+                }
+
+                if(alreadyExists){
+                    setMarkers(tempMarkers)
+                }else{
+                    tempMarkers.push(newPointMarker);
+                    tempMarkers.sort((a, b) => a.id - b.id);
+                    setMarkers(tempMarkers);
+                }
+
+                setClickPoint(false);
+                setCurrentPoint(0)
             }
         });
+
         return null;
     };
 
@@ -2481,7 +2685,7 @@ function MonitoringProfiles() {
                                                 top: '50%',
                                                 left: '50%',
                                                 transform: 'translate(-50%, -50%)',
-                                                width: 400,
+                                                width: 800,
                                                 bgcolor: 'background.paper',
                                                 border: '2px solid #000',
                                                 boxShadow: 24,
@@ -2492,6 +2696,9 @@ function MonitoringProfiles() {
                                                     top: 8,
                                                     right: 8,
                                                 },
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center'
                                             }}>
                                             <IconButton
                                                 className="close-button"
@@ -2500,22 +2707,41 @@ function MonitoringProfiles() {
                                                 <Clear/>
                                             </IconButton>
                                             <div
-                                                className='pt-1 pl-24 pb-5'>
+                                                className="top-section"
+                                                style={{
+                                                    width: '100%',
+                                                    display: 'flex',
+                                                    justifyContent: 'center',
+                                                    paddingBottom: '15px'
+                                                }}>
                                                 <Listbox>
                                                     <Listbox.Label
-                                                        className="pr-1 text-2xl font-medium leading-6 text-gray-900 text-left">Add
-                                                        profile</Listbox.Label>
+                                                        className="text-2xl font-medium leading-6 text-gray-900">
+                                                        Add
+                                                        profile
+                                                    </Listbox.Label>
                                                 </Listbox>
                                             </div>
-                                            <FormControl
-                                                sx={{
-                                                    mt: 2,
-                                                    mb: 2,
-                                                    ml: 2,
-                                                    width: 300
+                                            <div
+                                                style={{
+                                                    display: 'flex',
+                                                    width: '100%',
+                                                    justifyContent: 'space-between',
+                                                    gap: 2
                                                 }}>
+                                                <div
+                                                    className="left-side"
+                                                    style={{flex: 1}}>
+                                                    <FormControl
+                                                        sx={{
+                                                            mt: 2,
+                                                            mb: 2,
+                                                            ml: 2,
+                                                            width: 300
+                                                        }}>
                                                         <InputLabel
-                                                            id="simple-select-label">Group *</InputLabel>
+                                                            id="simple-select-label">Group
+                                                            *</InputLabel>
                                                         <Select
                                                             labelId="simple-select-label"
                                                             id="simple-select"
@@ -2530,140 +2756,267 @@ function MonitoringProfiles() {
                                                             ))}
                                                         </Select>
                                                     </FormControl>
-                                            {!missingFieldProfileNameNew ? (
-                                                <>
-                                                    <TextField
-                                                        required
-                                                        id="outlined-required"
-                                                        label="Name"
-                                                        onChange={(e) => handleNameProfileNew(e.target.value)}
+                                                    {!missingFieldProfileNameNew ? (
+                                                        <>
+                                                            <TextField
+                                                                required
+                                                                id="outlined-required"
+                                                                label="Name"
+                                                                onChange={(e) => handleNameProfileNew(e.target.value)}
+                                                                sx={{
+                                                                    mt: 2,
+                                                                    mb: 2,
+                                                                    ml: 2,
+                                                                    width: 300
+                                                                }}
+                                                            />
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <TextField
+                                                                error
+                                                                id="outlined-error-text"
+                                                                label="Name *"
+                                                                sx={{
+                                                                    mt: 2,
+                                                                    ml: 2,
+                                                                    width: 300
+                                                                }}
+                                                            />
+                                                            <Box
+                                                                sx={{
+                                                                    color: 'red',
+                                                                    mt: 1,
+                                                                    ml: 2
+                                                                }}>
+                                                                Missing
+                                                                profile
+                                                                name.
+                                                            </Box>
+                                                        </>
+                                                    )}
+                                                    {!missingFieldProfileDescriptionNew ? (
+                                                        <>
+                                                            <TextField
+                                                                required
+                                                                id="outlined-required"
+                                                                label="Description"
+                                                                onChange={(e) => handleDescriptionProfileNew(e.target.value)}
+                                                                sx={{
+                                                                    mt: 2,
+                                                                    mb: 2,
+                                                                    ml: 2,
+                                                                    width: 300
+                                                                }}
+                                                            />
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <TextField
+                                                                error
+                                                                id="outlined-error-text"
+                                                                label="Description *"
+                                                                sx={{
+                                                                    mt: 2,
+                                                                    ml: 2,
+                                                                    width: 300
+                                                                }}
+                                                            />
+                                                            <Box
+                                                                sx={{
+                                                                    color: 'red',
+                                                                    mt: 1,
+                                                                    ml: 2
+                                                                }}>
+                                                                Missing
+                                                                profile
+                                                                description.
+                                                            </Box>
+                                                        </>
+                                                    )}
+                                                </div>
+                                                <div
+                                                    className="right-side"
+                                                    style={{flex: 1}}>
+                                                    <FormControl
                                                         sx={{
                                                             mt: 2,
                                                             mb: 2,
-                                                            ml: 2,
+                                                            ml: 4,
                                                             width: 300
-                                                        }}
-                                                    />
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <TextField
-                                                        error
-                                                        id="outlined-error-text"
-                                                        label="Name *"
-                                                        sx={{
-                                                            mt: 2,
-                                                            ml: 2,
-                                                            width: 300
-                                                        }}
-                                                    />
-                                                    <Box
-                                                        sx={{
-                                                            color: 'red',
-                                                            mt: 1,
-                                                            ml: 2
                                                         }}>
-                                                        Missing profile
-                                                        name.
-                                                    </Box>
-                                                </>
-                                            )}
-                                            {!missingFieldProfileDescriptionNew ? (
-                                                <>
-                                                    <TextField
-                                                        required
-                                                        id="outlined-required"
-                                                        label="Description"
-                                                        onChange={(e) => handleDescriptionProfileNew(e.target.value)}
+                                                        <InputLabel
+                                                            id="simple-select-label">Type
+                                                            Of
+                                                            Profile
+                                                            *</InputLabel>
+                                                        <Select
+                                                            labelId="simple-select-label"
+                                                            id="simple-select"
+                                                            value={selectedTypeOfProfileNew}
+                                                            label="Type of Profile * "
+                                                            onChange={(e) => handleSelectedTypeOfProfileNew(e.target.value)}
+                                                        >
+                                                            {typeOfProfile.map((m) => (
+                                                                <MenuItem
+                                                                    key={m.id}
+                                                                    value={m.name}>{m.name}</MenuItem>
+                                                            ))}
+                                                        </Select>
+                                                    </FormControl>
+                                                    {!missingSelectedInclinometers ? (
+                                                        <>
+                                                            <FormControl
+                                                                sx={{
+                                                                    mt: 2,
+                                                                    mb: 2,
+                                                                    ml: 4,
+                                                                    width: 300
+                                                                }}>
+                                                                <InputLabel
+                                                                    id="multiple-chip-label">Inclinometers
+                                                                    *</InputLabel>
+                                                                <Select
+                                                                    labelId="multiple-chip-label"
+                                                                    id="multiple-chip"
+                                                                    multiple
+                                                                    key={selectedInclinometersNew.length !== 0 ? selectedInclinometersNew[selectedInclinometersNew.length] : "id"}
+                                                                    defaultValue={selectedInclinometersNew}
+                                                                    onChange={handleChangeSelectedIncNew}
+                                                                    input={
+                                                                        <OutlinedInput
+                                                                            id="select-multiple-chip"
+                                                                            label="Inclinometers *"/>}
+                                                                    renderValue={(selected) => (
+                                                                        <Box
+                                                                            sx={{
+                                                                                display: 'flex',
+                                                                                flexWrap: 'wrap',
+                                                                                gap: 0.5
+                                                                            }}>
+                                                                            {selected.map((value) => (
+                                                                                <Chip
+                                                                                    key={value}
+                                                                                    label={value}/>
+                                                                            ))}
+                                                                        </Box>
+                                                                    )}
+                                                                    MenuProps={MenuProps}
+                                                                    inputProps={{
+                                                                        disabled: selectedGroupProfileNew === '',
+                                                                    }}
+                                                                >
+                                                                    {availableInclinometersNew.map((m) => (
+                                                                        <MenuItem
+                                                                            key={m}
+                                                                            value={m}
+                                                                            style={getStyles(m, selectedInclinometersNew, theme)}
+                                                                        >
+                                                                            {m}
+                                                                        </MenuItem>
+                                                                    ))}
+                                                                </Select>
+                                                            </FormControl>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <FormControl
+                                                                error
+                                                                sx={{
+                                                                    mt: 2,
+                                                                    mb: 2,
+                                                                    ml: 4,
+                                                                    width: 300
+                                                                }}>
+                                                                <InputLabel
+                                                                    id="multiple-chip-label">Inclinometers
+                                                                    *</InputLabel>
+                                                                <Select
+                                                                    labelId="multiple-chip-label"
+                                                                    id="multiple-chip"
+                                                                    multiple
+                                                                    key={selectedInclinometersNew.length !== 0 ? selectedInclinometersNew[selectedInclinometersNew.length] : "id"}
+                                                                    defaultValue={selectedInclinometersNew}
+                                                                    onChange={handleChangeSelectedIncNew}
+                                                                    input={
+                                                                        <OutlinedInput
+                                                                            id="select-multiple-chip"
+                                                                            label="Measurements *"/>}
+                                                                    renderValue={(selected) => (
+                                                                        <Box
+                                                                            sx={{
+                                                                                display: 'flex',
+                                                                                flexWrap: 'wrap',
+                                                                                gap: 0.5
+                                                                            }}>
+                                                                            {selected.map((value) => (
+                                                                                <Chip
+                                                                                    key={value}
+                                                                                    label={value}/>
+                                                                            ))}
+                                                                        </Box>
+                                                                    )}
+                                                                    MenuProps={MenuProps}
+                                                                >
+                                                                    {availableInclinometersNew.map((m) => (
+                                                                        <MenuItem
+                                                                            key={m}
+                                                                            value={m}
+                                                                            style={getStyles(m, selectedInclinometersNew, theme)}
+                                                                        >
+                                                                            {m}
+                                                                        </MenuItem>
+                                                                    ))}
+                                                                </Select>
+                                                                <Box
+                                                                    sx={{
+                                                                        color: 'red',
+                                                                        mt: 1
+                                                                    }}>
+                                                                    Missing
+                                                                    inclinometer(s).
+                                                                </Box>
+                                                            </FormControl>
+                                                        </>
+                                                    )}
+                                                    <Button
+                                                        component="label"
+                                                        role={undefined}
+                                                        variant="contained"
+                                                        tabIndex={-1}
+                                                        startIcon={
+                                                            <CloudUpload/>}
                                                         sx={{
-                                                            mt: 2,
+                                                            backgroundColor: '#22c55e',
+                                                            '&:hover': {
+                                                                backgroundColor: '#15803d',
+                                                            },
+                                                            mt: 3,
                                                             mb: 2,
-                                                            ml: 2,
-                                                            width: 300
+                                                            ml: 10,
+                                                            width: 200
                                                         }}
-                                                    />
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <TextField
-                                                        error
-                                                        id="outlined-error-text"
-                                                        label="Description *"
-                                                        sx={{
-                                                            mt: 2,
-                                                            ml: 2,
-                                                            width: 300
-                                                        }}
-                                                    />
-                                                    <Box
-                                                        sx={{
-                                                            color: 'red',
-                                                            mt: 1,
-                                                            ml: 2
-                                                        }}>
-                                                        Missing profile
-                                                        description.
-                                                    </Box>
-                                                </>
-                                            )}
-                                            <FormControl
-                                                sx={{
-                                                    mt: 2,
-                                                    mb: 2,
-                                                    ml: 2,
-                                                    width: 300
-                                                }}>
-                                                <InputLabel
-                                                    id="simple-select-label">Type Of Profile *</InputLabel>
-                                                <Select
-                                                    labelId="simple-select-label"
-                                                    id="simple-select"
-                                                    value={selectedTypeOfProfileNew}
-                                                    label="Type of Profile * "
-                                                    onChange={(e) => handleSelectedTypeOfProfileNew(e.target.value)}
-                                                >
-                                                    {typeOfProfile.map((m) => (
-                                                        <MenuItem
-                                                            key={m.id}
-                                                            value={m.name}>{m.name}</MenuItem>
-                                                    ))}
-                                                </Select>
-                                            </FormControl>
-                                            <Button
-                                                component="label"
-                                                role={undefined}
-                                                variant="contained"
-                                                tabIndex={-1}
-                                                startIcon={
-                                                    <CloudUpload/>}
-                                                sx={{
-                                                    backgroundColor: '#22c55e',
-                                                    '&:hover': {
-                                                        backgroundColor: '#15803d',
-                                                    },
-                                                    mt: 2,
-                                                    mb: 2,
-                                                    ml: 8,
-                                                    width: 200
-                                                }}
-                                            >
-                                                Upload
-                                                image
-                                                <VisuallyHiddenInput
-                                                    type="file"/>
-                                            </Button>
-                                            {errorMessage && (
-                                                <Box
-                                                    sx={{
-                                                        color: 'red',
-                                                        mt: 2,
-                                                        ml: 2
-                                                    }}>
-                                                    {errorMessage}
-                                                </Box>
-                                            )}
+                                                    >
+                                                        Upload
+                                                        image
+                                                        <VisuallyHiddenInput
+                                                            type="file"/>
+                                                    </Button>
+                                                    {errorMessage && (
+                                                        <Box
+                                                            sx={{
+                                                                color: 'red',
+                                                                mt: 2,
+                                                                ml: 2
+                                                            }}>
+                                                            {errorMessage}
+                                                        </Box>
+                                                    )}
+                                                </div>
+                                            </div>
                                             <div
-                                                className="submit-button">
+                                                className="submit-button-profile"
+                                                style={{width: '60%'}}>
                                                 <button
                                                     type="button"
                                                     className="py-2 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
@@ -2687,8 +3040,9 @@ function MonitoringProfiles() {
                                 </div>
                             </>
                         )}
-                        <div style={{
-                            paddingLeft: groupSelected ? '25%' : '0%'
+                        <div
+                            style={{
+                                paddingLeft: groupSelected ? '25%' : '0%'
                         }}>
                             <button
                                 type="button"
@@ -2964,7 +3318,7 @@ function MonitoringProfiles() {
                                                                             fontSize: '0.75rem',
                                                                             padding: '8px 8px',
                                                                         }}
-                                                                        onClick={() => handlePickPoint(row.id)}
+                                                                        onClick={() => handlePickPoint(row.id, row.inc)}
                                                                     >
                                                                         Pick
                                                                         point
@@ -3014,14 +3368,14 @@ function MonitoringProfiles() {
                                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                                         />
                                         {markers.map((marker, index) => (
-                                            <Marker key={index} position={marker} icon={new Icon({iconUrl: markerIconPng, iconSize: [25, 41], iconAnchor: [12, 41]})}>
+                                            <Marker key={index} position={marker.latLng} icon={new Icon({iconUrl: markerIconPng, iconSize: [25, 41], iconAnchor: [12, 41]})}>
                                                 <Popup>
-                                                    Test marker |
-                                                    Location: {marker.lat}, {marker.lng}
+                                                    Inclinometer {marker.id} -
+                                                    Location: {marker.latLng.lat}, {marker.latLng.lng}
                                                 </Popup>
                                             </Marker>
                                         ))}
-                                        <MapClickHandler />
+                                        {clickPoint && (<MapClickHandler/>)}
                                     </MapContainer>
                                 </div>
                             }

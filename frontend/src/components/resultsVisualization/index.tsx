@@ -1016,9 +1016,23 @@ const CustomTooltip: React.FC<TooltipProps<any, any>> = ({
         const isWideLayout = payload.length > 16;
         const columnCount = isWideLayout ? Math.ceil(payload.length / 21) : 1;
         //const nullPoints: boolean = payload.length>0 ? payload[0].value === payload[1].value : false;
+
+        let checkPayload = false;
+        let oldValue = 0;
+        payload.map((p, index) => {
+            if(p.value.toFixed(2) !== 0.00){
+                if(p.value.toFixed(2) === oldValue){
+                    checkPayload = true;
+                }else{
+                    oldValue = p.value.toFixed(2);
+                }
+            }
+        })
+
         return (
             <div
-                className="custom-tooltip">
+            className="custom-tooltip">
+            {!checkPayload && (
                 <div
                     style={{
                         backgroundColor: 'white',
@@ -1070,7 +1084,7 @@ const CustomTooltip: React.FC<TooltipProps<any, any>> = ({
                             )}
                         </div>
                     ))}
-                </div>
+                </div>)}
             </div>
         );
     }
@@ -3837,7 +3851,7 @@ function ResultsVisualization() {
     async function fetchData() {
         try {
             const response = await getData() as InfluxDataAux[];//getDataFromLastYear() as InfluxDataAux[];
-            const mappedData: InclinometerData[] = response.map(i => ({
+            const mappedData: InclinometerData[] = response.filter(i => formatDate(i._time) !== "2012-11-27 00:00:00").map(i => ({
                 inc: i.inc.split("I")[1],
                 sensorID: i.sensorID,
                 field: i._field,

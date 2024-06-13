@@ -231,6 +231,13 @@ code {
   padding-right: 15px;
 }
 
+.submit-button-profile {
+  padding-top: 35px;
+  padding-left: 110px;
+  padding-right: 110px;
+}
+
+
 .submit-selected-button {
   padding-top: 15px;
 }

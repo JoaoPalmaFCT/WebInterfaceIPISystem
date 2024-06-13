@@ -10,7 +10,7 @@ import HomeScreen from "./components/home";
 import Profile from "./components/profile";
 import MonitoringProfiles from "./components/monitoringProfiles";
 import SettingsPage from "./components/settings";
-import LincsLogo from "./images/logo/Lincs-logo_Page 3_1.png"
+import LincsLogo from "./images/logo/Lincs-logo_Page 9_1.png"
 import {
     Box,
     List,
