@@ -23,7 +23,14 @@ import {
     MenuItem,
     SelectChangeEvent,
     Theme,
-    useTheme, Chip, OutlinedInput, Alert, AlertTitle, Slide, Button
+    useTheme,
+    Chip,
+    OutlinedInput,
+    Alert,
+    AlertTitle,
+    Slide,
+    Button,
+    FormControlLabel
 } from "@mui/material";
 import React, {
     Fragment,
@@ -42,7 +49,8 @@ import {
     ArrowBack,
     NavigateBefore,
     NavigateNext,
-    Place
+    Place,
+    InsertDriveFile
 } from "@mui/icons-material";
 import { styled } from '@mui/material/styles';
 import {
@@ -61,7 +69,8 @@ import {
     Popup,
     TileLayer,
     useMap,
-    useMapEvents
+    useMapEvents,
+    Polyline
 } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css';
 import markerIconPng from "leaflet/dist/images/marker-icon.png"
@@ -84,6 +93,36 @@ const typeOfProfile = [
         name: 'Cross section',
     }
 ]
+
+interface PointsPerProfile {
+    id: number;
+    points: number[];
+}
+
+function createPointPerProfile(
+    id: number,
+    points: number[]
+): PointsPerProfile {
+    return {
+        id,
+        points
+    };
+}
+
+interface PointMarkerPerProfile {
+    id: number;
+    pm: PointMarker[];
+}
+
+function createPointMarkerPerProfile(
+    id: number,
+    pm: PointMarker[]
+): PointMarkerPerProfile {
+    return {
+        id,
+        pm
+    };
+}
 
 interface PointMarker {
     id: number;
@@ -741,6 +780,14 @@ function MonitoringProfiles() {
             createDataMP(4, 'Profiles2', 'P7', 'Profile P6', typeOfProfile[1].name, false, '/profiles/NoImageFound.png')
         ]);
 
+        let tempMarks = [];
+        let tempPoints = [];
+        for(let i = 0; i < 4; i++){
+            tempMarks.push(createPointMarkerPerProfile(i+1, []))
+            tempPoints.push(createPointPerProfile(i+1, []))
+        }
+        setMarkersPerProfile(tempMarks);
+        setPointsPerProfile(tempPoints);
 
     }, [page]);
 
@@ -1281,6 +1328,7 @@ function MonitoringProfiles() {
             let tempRows = rowsMP;
             let tempMP = monitoringProfilesTableData;
             let tempIncPerProfiles = incPerProfiles;
+            let nextId = rowsMP.length + 1;
 
             tempRows.push(createDataMP(rowsMP.length + 1, selectedGroupProfileNew, selectedNameProfileNew, selectedDescriptionProfileNew, selectedTypeOfProfileNew, (selectedAttachedImageNew !== ''), selectedAttachedImageNew))
             tempMP.push(createDataMP(monitoringProfilesTableData.length + 1, selectedGroupProfileNew, selectedNameProfileNew, selectedDescriptionProfileNew, selectedTypeOfProfileNew, (selectedAttachedImageNew !== ''), selectedAttachedImageNew === '' ? '/profiles/NoImageFound.png' : selectedAttachedImageNew))
@@ -1292,6 +1340,13 @@ function MonitoringProfiles() {
             setRowsMP(tempRows);
             setMonitoringProfilesTableData(tempMP)
             setIncPerProfiles(tempIncPerProfiles);
+
+            let tempMarks = markersPerProfile;
+            let tempPoints = pointsPerProfile;
+            tempMarks.push(createPointMarkerPerProfile(nextId, []));
+            tempPoints.push(createPointPerProfile(nextId, []));
+            setMarkersPerProfile(tempMarks);
+            setPointsPerProfile(tempPoints);
 
             handleCloseNew()
             setAlertSuccessVisible(true);
@@ -1387,8 +1442,9 @@ function MonitoringProfiles() {
 
     const [detailedView, setDetailedView] = React.useState(false);
     const [selectedDetailedProfile, setSelectedDetailedProfile] = React.useState<string>('Profile1: All');
+    const [selectedDetailedProfileAttachedImageName, setSelectedDetailedProfileAttachedImageName] = React.useState<string>('');
     const [selectedDetailedProfileID, setSelectedDetailedProfileID] = React.useState<number>(0);
-    const [selectedTypeOfProfile, setSelectedTypeOfProfile] = React.useState(typeOfProfile[0]);
+    const [selectedTypeOfProfile, setSelectedTypeOfProfile] = React.useState<string>(typeOfProfile[0].name);
 
     const [orderMPPC, setOrderMPPC] = React.useState<Order>('asc');
     const [orderByMPPC, setOrderByMPPC] = React.useState<keyof MPPC>('id');
@@ -1407,6 +1463,7 @@ function MonitoringProfiles() {
     const [emptyPhoto, setEmptyPhoto] = React.useState(false);
 
     useEffect(() => {
+        console.log(selectedDetailedProfile)
         if(selectedDetailedProfile === 'Profiles1: All'){
             setMPPCTableData([createDataMPPC(0, 'PK150_200', 1, true, [296.2878194833505, 137.46244130721217]),
                 createDataMPPC(1, 'PK150_200', 2, false, []),
@@ -1418,11 +1475,21 @@ function MonitoringProfiles() {
                 createDataMPPC(7, 'PK150_200', 9, false, []),
                 createDataMPPC(8, 'PK150_200', 10, false, [])])
             setRowsMPPC(MPPCTableData)
+        }else if(selectedDetailedProfile === 'Profiles1: Crest'){
+            setMPPCTableData([createDataMPPC(0, 'PK150_200', 1, false, []),
+                createDataMPPC(1, 'PK150_200', 3, false, []),
+                createDataMPPC(2, 'PK150_200', 6, false, []),
+                createDataMPPC(3, 'PK150_200', 9, false, [])])
+            setRowsMPPC(MPPCTableData)
+        }else{
+            setMPPCTableData([createDataMPPC(0, 'PK150_200', 1, false, []),
+                createDataMPPC(1, 'PK150_200', 2, false, [])])
+            setRowsMPPC(MPPCTableData)
         }
     }, [detailedView]);
 
     useEffect(() => {
-        if(selectedDetailedProfile !== 'Profiles1: All') {
+        if(selectedDetailedProfile !== 'Profiles1: All' && selectedDetailedProfile !== 'Profiles1: Crest' && selectedDetailedProfile !== 'Profiles1: P5') {
 
             let tempIncValues = incPerProfiles;
             let tempIncValuesFinal: IncPerProfile[] = [];
@@ -1452,8 +1519,7 @@ function MonitoringProfiles() {
             setRowsMPPC(tempRows)
             setMPPCTableData(tempMPPCTableData)
 
-            console.log(tempIncValuesFinal)
-        }else{
+        }else if(selectedDetailedProfile === 'Profiles1: All'){
             setMPPCTableData([createDataMPPC(0, 'PK150_200', 1, true, [296.2878194833505, 137.46244130721217]),
                 createDataMPPC(1, 'PK150_200', 2, false, []),
                 createDataMPPC(2, 'PK150_200', 3, false, []),
@@ -1463,6 +1529,16 @@ function MonitoringProfiles() {
                 createDataMPPC(6, 'PK150_200', 8, false, []),
                 createDataMPPC(7, 'PK150_200', 9, false, []),
                 createDataMPPC(8, 'PK150_200', 10, false, [])])
+            setRowsMPPC(MPPCTableData)
+        }else if(selectedDetailedProfile === 'Profiles1: Crest'){
+            setMPPCTableData([createDataMPPC(0, 'PK150_200', 1, false, []),
+                createDataMPPC(1, 'PK150_200', 3, false, []),
+                createDataMPPC(2, 'PK150_200', 6, false, []),
+                createDataMPPC(3, 'PK150_200', 9, false, [])])
+            setRowsMPPC(MPPCTableData)
+        }else{
+            setMPPCTableData([createDataMPPC(0, 'PK150_200', 1, false, []),
+                createDataMPPC(1, 'PK150_200', 2, false, [])])
             setRowsMPPC(MPPCTableData)
         }
     }, [selectedDetailedProfile, selectedDetailedProfileID]);
@@ -1483,7 +1559,9 @@ function MonitoringProfiles() {
     useEffect(() => {
         if(positionsArray.length === 0){
             setPositionsArray([296.2878194833505, 137.46244130721217, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0])
-        }else if(stageRef.current && pointsLayerRef.current && replaceValues){
+        }
+
+        if(stageRef.current && pointsLayerRef.current && replaceValues && !emptyPhoto){
             let stage = stageRef.current;
 
             if (pointsLayerRef) {
@@ -1522,6 +1600,10 @@ function MonitoringProfiles() {
                 }
                 posCounter += 2;
             }
+            setReplaceValues(false);
+        }else if(replaceValues && emptyPhoto){
+            setMarkers(markersPerProfile[selectedDetailedProfileID].pm)
+
             setReplaceValues(false);
         }
     }, [MPPCTableData, positionsArray, replaceValues]);
@@ -1671,6 +1753,10 @@ function MonitoringProfiles() {
 
                         tempTableData[rowId] = createDataMPPC(rowId, rowData.groupMP, rowData.inc, true, [pos.x,pos.y]);
 
+                        let tempPointPerProfile = pointsPerProfile;
+
+                        //pointsPerProfile[selectedDetailedProfileID] = createPointPerProfile()
+
                         setMPPCTableData(tempTableData);
                         setRowsMPPC(tempTableData)
                         setPositionsArray(tempPosArray);
@@ -1680,15 +1766,26 @@ function MonitoringProfiles() {
                 }
             })
         }else if(emptyPhoto){
+            setCurrentRowId(rowId)
             setCurrentPoint(rowInc)
             setClickPoint(true);
         }
     }
 
     //const [markers, setMarkers] = useState<L.LatLng[]>([]);
+    const [pointsPerProfile, setPointsPerProfile] = useState<PointsPerProfile[]>([]);
+    const [markersPerProfile, setMarkersPerProfile] = useState<PointMarkerPerProfile[]>([]);
     const [markers, setMarkers] = useState<PointMarker[]>([]);
+    const [currentRowId, setCurrentRowId] = useState(0);
     const [currentPoint, setCurrentPoint] = useState(0);
     const [clickPoint, setClickPoint] = useState(false);
+    const [lineCoordinates, setLineCoordinates] = useState<L.LatLng[]>([]);
+
+    useEffect(() => {
+        let coordinates = markers.map(marker => marker.latLng);
+        setLineCoordinates(coordinates);
+    }, [markers]);
+
 
     const MapClickHandler = () => {
         useMapEvents({
@@ -1714,6 +1811,25 @@ function MonitoringProfiles() {
                     setMarkers(tempMarkers);
                 }
 
+                let coordinates = tempMarkers.map(marker => marker.latLng);
+                setLineCoordinates(coordinates);
+
+                let tempMPPC = MPPCTableData;
+                let oldMPPC = tempMPPC[currentRowId];
+
+                tempMPPC[currentRowId] = createDataMPPC(currentRowId, oldMPPC.groupMP, oldMPPC.inc, true, [event.latlng.lat, event.latlng.lng]);
+                setMPPCTableData(tempMPPC);
+                setRowsMPPC(tempMPPC);
+
+                let tempMarks = markersPerProfile;
+                let tempMarkersArray = markersPerProfile[selectedDetailedProfileID].pm;
+                tempMarkersArray.push(newPointMarker);
+                tempMarkersArray.sort((a, b) => a.id - b.id);
+
+                markersPerProfile[selectedDetailedProfileID] = createPointMarkerPerProfile(currentRowId, tempMarkersArray)
+                setMarkersPerProfile(tempMarks)
+
+                setReplaceValues(true)
                 setClickPoint(false);
                 setCurrentPoint(0)
             }
@@ -1730,8 +1846,18 @@ function MonitoringProfiles() {
         setDetailedView(true);
         let group = rowsMP[rowID-1].group;
         let name = rowsMP[rowID-1].name;
+        let typeOfProfile = rowsMP[rowID-1].typeOfProfile;
+        let image;
+        if(rowsMP[rowID-1].imagedAttached !== '' && rowsMP[rowID-1].imagedAttached !== '/profiles/NoImageFound.png'){
+            image = rowsMP[rowID-1].imagedAttached.split("profiles%2F")[1].split("?")[0]
+        }else{
+            image = ''
+        }
+
         setSelectedDetailedProfile(group.concat(": ",name));
+        setSelectedDetailedProfileAttachedImageName(image)
         setSelectedDetailedProfileID(rowID-1);
+        setSelectedTypeOfProfile(typeOfProfile)
     }
 
     const handlePrevious = () => {
@@ -1743,13 +1869,31 @@ function MonitoringProfiles() {
         }else if(selectedDetailedProfileID - 1 >= 0){
             let group = rowsMP[selectedDetailedProfileID-1].group;
             let name = rowsMP[selectedDetailedProfileID-1].name;
+            let typeOfProfile = rowsMP[selectedDetailedProfileID-1].typeOfProfile;
+            let image;
+            if(rowsMP[selectedDetailedProfileID-1].imagedAttached !== '' && rowsMP[selectedDetailedProfileID-1].imagedAttached !== '/profiles/NoImageFound.png'){
+                image = rowsMP[selectedDetailedProfileID-1].imagedAttached.split("profiles%2F")[1].split("?")[0]
+            }else{
+                image = ''
+            }
             setSelectedDetailedProfile(group.concat(": ",name));
+            setSelectedDetailedProfileAttachedImageName(image)
             setSelectedDetailedProfileID(selectedDetailedProfileID-1);
+            setSelectedTypeOfProfile(typeOfProfile);
         }else if(selectedDetailedProfileID - 1 < 0){
             let group = rowsMP[rowsMP.length-1].group;
             let name = rowsMP[rowsMP.length-1].name;
+            let typeOfProfile = rowsMP[rowsMP.length-1].typeOfProfile;
+            let image;
+            if(rowsMP[rowsMP.length-1].imagedAttached !== '' && rowsMP[rowsMP.length-1].imagedAttached !== '/profiles/NoImageFound.png'){
+                image = rowsMP[rowsMP.length-1].imagedAttached.split("profiles%2F")[1].split("?")[0]
+            }else{
+                image = ''
+            }
             setSelectedDetailedProfile(group.concat(": ",name));
+            setSelectedDetailedProfileAttachedImageName(image)
             setSelectedDetailedProfileID(rowsMP.length-1);
+            setSelectedTypeOfProfile(typeOfProfile);
         }
     }
 
@@ -1762,14 +1906,31 @@ function MonitoringProfiles() {
         }else if(selectedDetailedProfileID + 1 < rowsMP.length){
             let group = rowsMP[selectedDetailedProfileID+1].group;
             let name = rowsMP[selectedDetailedProfileID+1].name;
+            let typeOfProfile = rowsMP[selectedDetailedProfileID+1].typeOfProfile;
+            let image;
+            if(rowsMP[selectedDetailedProfileID+1].imagedAttached !== '' && rowsMP[selectedDetailedProfileID+1].imagedAttached !== '/profiles/NoImageFound.png'){
+                image = rowsMP[selectedDetailedProfileID+1].imagedAttached.split("profiles%2F")[1].split("?")[0]
+            }else{
+                image = ''
+            }
             setSelectedDetailedProfile(group.concat(": ",name));
+            setSelectedDetailedProfileAttachedImageName(image)
             setSelectedDetailedProfileID(selectedDetailedProfileID+1);
+            setSelectedTypeOfProfile(typeOfProfile);
         }else if(selectedDetailedProfileID + 1 >= rowsMP.length){
             let group = rowsMP[0].group;
             let name = rowsMP[0].name;
-            setSelectedDetailedProfile(name);
+            let typeOfProfile = rowsMP[0].typeOfProfile;
+            let image;
+            if(rowsMP[0].imagedAttached !== '' && rowsMP[0].imagedAttached !== '/profiles/NoImageFound.png'){
+                image = rowsMP[0].imagedAttached.split("profiles%2F")[1].split("?")[0]
+            }else{
+                image = ''
+            }
             setSelectedDetailedProfile(group.concat(": ",name));
+            setSelectedDetailedProfileAttachedImageName(image)
             setSelectedDetailedProfileID(0);
+            setSelectedTypeOfProfile(typeOfProfile);
         }
     }
 
@@ -3191,7 +3352,7 @@ function MonitoringProfiles() {
                 <>
                     <div>
                         <div
-                            className="flex pb-20">
+                            className="flex pb-5">
                             <div
                                 className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
                                 <button
@@ -3236,6 +3397,57 @@ function MonitoringProfiles() {
                                 </button>
                             </div>
                         </div>
+                        <div style={{paddingLeft: (selectedTypeOfProfile === typeOfProfile[0].name && selectedDetailedProfileAttachedImageName !== '') ? '80px' :
+                                (selectedTypeOfProfile !== typeOfProfile[0].name && selectedDetailedProfileAttachedImageName !== '') ? '80px' :'0px',
+                                    paddingRight: (selectedTypeOfProfile !== typeOfProfile[0].name && selectedDetailedProfileAttachedImageName === '') ? '10px': '0px'}}>
+                        <Typography
+                            variant="h6"
+                            gutterBottom>
+                            Plan
+                        </Typography>
+                        </div>
+                        <div
+                            className="flex pb-5 availableImageContainer">
+                            <div
+                                className="availableImageName">
+                                <IconButton
+                                    className=""
+                                    aria-label="close">
+                                    <InsertDriveFile/>
+                                </IconButton>
+                                <div
+                                    className="imageNameContainer">
+                                    {selectedDetailedProfileAttachedImageName !== '' ? (
+                                        <Typography
+                                            variant="h6"
+                                            gutterBottom>
+                                            {selectedDetailedProfileAttachedImageName}
+                                        </Typography>
+                                    ) : (
+                                        <Typography
+                                            variant="h6"
+                                            gutterBottom>
+                                            No
+                                            file
+                                            available
+                                        </Typography>
+                                    )}
+                                </div>
+                            </div>
+                            {selectedDetailedProfileAttachedImageName !== '' ? (
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        defaultChecked
+                                        color="success"/>}
+                                label="Use available image"
+                            />) : (
+                                <FormControlLabel
+                                control={<Checkbox disabled/>}
+                                label="Use available image"
+                                />)}
+                        </div>
+
                         <div
                             className="tableAndContainer">
                             <div
@@ -3352,33 +3564,52 @@ function MonitoringProfiles() {
                                     </Paper>
                                 </Box>
                             </div>
-                            <div
-                                id="konvaContainer"
-                                className="tableAndContainerC"></div>
                             {emptyPhoto &&
-                                <div className="maps" style={{ width: '600px', height: '400px' }}>
+                                <div
+                                    className="maps"
+                                    style={{
+                                        width: '600px',
+                                        height: '400px'
+                                    }}>
                                     <MapContainer
                                         center={[38.66086, -9.20339]}
                                         zoom={13}
                                         scrollWheelZoom={false}
-                                        style={{ width: '100%', height: '100%' }}
+                                        style={{
+                                            width: '100%',
+                                            height: '100%'
+                                        }}
                                     >
                                         <TileLayer
                                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                                         />
                                         {markers.map((marker, index) => (
-                                            <Marker key={index} position={marker.latLng} icon={new Icon({iconUrl: markerIconPng, iconSize: [25, 41], iconAnchor: [12, 41]})}>
+                                            <Marker
+                                                key={index}
+                                                position={marker.latLng}
+                                                icon={new Icon({
+                                                    iconUrl: markerIconPng,
+                                                    iconSize: [25, 41],
+                                                    iconAnchor: [12, 41]
+                                                })}>
                                                 <Popup>
                                                     Inclinometer {marker.id} -
                                                     Location: {marker.latLng.lat}, {marker.latLng.lng}
                                                 </Popup>
                                             </Marker>
                                         ))}
-                                        {clickPoint && (<MapClickHandler/>)}
+                                        {markers.length > 1 && (
+                                            <Polyline positions={lineCoordinates} color="red" />
+                                        )}
+                                        {clickPoint && (
+                                            <MapClickHandler/>)}
                                     </MapContainer>
                                 </div>
                             }
+                            <div
+                                id="konvaContainer"
+                                className="tableAndContainerC"></div>
                         </div>
                     </div>
                 </>

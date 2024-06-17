@@ -286,6 +286,41 @@ code {
 }
 
 .azimute{
-  padding-left: 15%;
-  padding-bottom: 5%;
+  position: relative;
+  width: 250px;
+  height: 250px;
 }
+
+.base-image {
+  width: 100%;
+  height: 100%;
+}
+
+.overlay-image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.availableImageContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding-right: 20%;
+}
+
+.availableImageName {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.imageNameContainer {
+  padding-left: 15px;
+  padding-top: 7px;
+  display: flex;
+  justify-content: flex-end;
+}
+

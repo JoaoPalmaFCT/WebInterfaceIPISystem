@@ -5193,6 +5193,12 @@ function ResultsVisualization() {
 
     const [selectedExport, setSelectedExport] = useState(exportSelect[0])
 
+    const [rotationNorth, setRotationNorth] = useState<number>(0);
+
+    const handleRotateNorth = (angle: number) => {
+        setRotationNorth(angle);
+    };
+
     return (
         <div className="main-wrapper">
             { selectedVisualization.name === visualization[0].name ? (
@@ -7210,12 +7216,23 @@ function ResultsVisualization() {
                                             </Listbox>
                                         </div>
                                     )}
-                                    <div className="azimute">
-                                    <img
-                                        src="/azimute.png"
-                                        width="200"
-                                        height="200"
-                                    />
+                                    <div className="pl-5 pb-5">
+                                    <div
+                                        className="azimute">
+                                        <img
+                                            src="/azimuteWithoutArrow.png"
+                                            width="200"
+                                            height="200"
+                                            className="base-image"
+                                        />
+                                        <img
+                                            src="/azimuteArrow.png"
+                                            width="60"
+                                            height="60"
+                                            className="overlay-image"
+                                            style={{ transform: `translate(-50%, -50%) rotate(${rotationNorth}deg)` }}
+                                        />
+                                    </div>
                                     </div>
                                 </div>
                             </div>
