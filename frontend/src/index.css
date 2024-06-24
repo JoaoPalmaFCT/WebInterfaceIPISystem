@@ -112,6 +112,7 @@ code {
 
 .filter-container-ref{
   padding: 10%;
+  padding-top: 7%;
   width: 400px;
 }
 
@@ -303,24 +304,53 @@ code {
   transform: translate(-50%, -50%);
 }
 
+.parentContainer {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
 .availableImageContainer {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  padding-right: 20%;
+  align-items: flex-start;
+  width: 43%;
 }
 
 .availableImageName {
   display: flex;
   flex-direction: row;
-  justify-content: flex-end;
+  justify-content: flex-start;
   width: 100%;
 }
 
 .imageNameContainer {
-  padding-left: 15px;
   padding-top: 7px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
+.rowCanvas-container{
+  display: flex;
+  flex-direction: column;
+}
+
+.selectCoordColumn1{
+  display: flex;
+  flex-direction: column;
+  width: 50%;
+  padding-top:10%;
+  padding-right: 10%;
+  padding-left: 10%;
+}
+
+.selectCoordColumn2{
+  display: flex;
+  flex-direction: column;
+  width: 50%;
+}
+
+.selectCoordRow{
+  display: flex;
+  flex-direction: row;
+}

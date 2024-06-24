@@ -30,7 +30,10 @@ import {
     AlertTitle,
     Slide,
     Button,
-    FormControlLabel
+    FormControlLabel,
+    CardContent,
+    Card,
+    CardHeader
 } from "@mui/material";
 import React, {
     Fragment,
@@ -74,7 +77,10 @@ import {
 } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css';
 import markerIconPng from "leaflet/dist/images/marker-icon.png"
-import {Icon} from 'leaflet'
+import {
+    Icon,
+    LatLng
+} from 'leaflet'
 
 const testData = [createData(1, 'Profiles1', 2, 40),
     createData(2, 'Profiles2', 1, 30)];
@@ -94,6 +100,36 @@ const typeOfProfile = [
     }
 ]
 
+interface PlanCheckbox {
+    id: number;
+    check: boolean;
+}
+
+function createPlanCheckbox(
+    id: number,
+    check: boolean
+): PlanCheckbox {
+    return {
+        id,
+        check
+    };
+}
+
+interface CrossSectionCheckbox {
+    id: number;
+    check: boolean;
+}
+
+function createCrossSectionCheckbox(
+    id: number,
+    check: boolean
+): CrossSectionCheckbox {
+    return {
+        id,
+        check
+    };
+}
+
 interface PointsPerProfile {
     id: number;
     points: number[];
@@ -106,6 +142,51 @@ function createPointPerProfile(
     return {
         id,
         points
+    };
+}
+
+interface CheckCorrectedValues {
+    id: number;
+    check: boolean;
+}
+
+function createCheckCorrectedValues(
+    id: number,
+    check: boolean
+): CheckCorrectedValues {
+    return {
+        id,
+        check
+    };
+}
+
+interface CorrectedValuesPerProfile {
+    id: number;
+    lc: L.LatLng[];
+}
+
+function createCorrectedValuesPerProfile(
+    id: number,
+    lc: L.LatLng[]
+): CorrectedValuesPerProfile {
+    return {
+        id,
+        lc
+    };
+}
+
+interface LineCoordinatesPerProfile {
+    id: number;
+    lc: L.LatLng[];
+}
+
+function createLineCoordinatesPerProfile(
+    id: number,
+    lc: L.LatLng[]
+): LineCoordinatesPerProfile {
+    return {
+        id,
+        lc
     };
 }
 
@@ -491,6 +572,10 @@ const headCellsMP: readonly HeadCellMP[] = [
     },
 ];
 
+function classNames(...classes: string[]) {
+    return classes.filter(Boolean).join(' ')
+}
+
 interface EnhancedTablePropsMP {
     //numSelected: number;
     onRequestSort: (event: React.MouseEvent<unknown>, property: keyof MonitoringProfile) => void;
@@ -759,6 +844,8 @@ function MonitoringProfiles() {
     const [rowsPerPageMP, setRowsPerPageMP] = React.useState(5);
     const [rowsMP, setRowsMP] = React.useState<MonitoringProfile[]>([]);
     const [monitoringProfilesTableData, setMonitoringProfilesTableData] = React.useState<MonitoringProfile[]>([]);
+    const [profilesCodeList, setProfilesCodeList] = React.useState<string[]>([]);
+    const [selectFromCodeList, setSelectFromCodeList] = React.useState<string>('1');
     const [firebaseInitialized, setFirebaseInitialized] = React.useState(false);
 
     firebase.initializeApp(firebaseConfig);
@@ -782,13 +869,27 @@ function MonitoringProfiles() {
 
         let tempMarks = [];
         let tempPoints = [];
+        let tempCoord = [];
+        let tempCorrected = [];
+        let tempManualCheck = [];
+        let tempPlanCheckboxs = [];
+        let tempCrossSectionCheckboxs = [];
         for(let i = 0; i < 4; i++){
             tempMarks.push(createPointMarkerPerProfile(i+1, []))
             tempPoints.push(createPointPerProfile(i+1, []))
+            tempCoord.push(createLineCoordinatesPerProfile(i+1, []))
+            tempCorrected.push(createCorrectedValuesPerProfile(i+1, []))
+            tempManualCheck.push(createCheckCorrectedValues(i+1, false))
+            tempPlanCheckboxs.push(createPlanCheckbox(i+1, false))
+            tempCrossSectionCheckboxs.push(createCrossSectionCheckbox(i+1, false))
         }
         setMarkersPerProfile(tempMarks);
         setPointsPerProfile(tempPoints);
-
+        setLineCoordinatesPerProfile(tempCoord);
+        setCorrectedValuesPerProfile(tempCorrected);
+        setManuallyCorrectedLines(tempManualCheck)
+        setPlanCheckboxs(tempPlanCheckboxs)
+        setCrossSectionCheckboxs(tempCrossSectionCheckboxs)
     }, [page]);
 
     // Monitoring profile groups
@@ -958,11 +1059,20 @@ function MonitoringProfiles() {
         setOpenEdit(false)
     };
 
-    const handleNewMonitProfile = () => {
+    const handleGetAllMPCodes = () =>{
+        if(monitoringProfilesTableData.length > 0){
+            let codeList: string[] = []
+            for(let i = 0; i < monitoringProfilesTableData.length; i++){
+                if(monitoringProfilesTableData[i].hasImage && monitoringProfilesTableData[i].typeOfProfile === typeOfProfile[0].name)
+                    codeList.push(monitoringProfilesTableData[i].id.toString())
+            }
 
+            setProfilesCodeList(codeList);
+        }
     }
-    const handleEditMonitProfile = () => {
 
+    const handleSelectFromCodeList = (e: string) =>{
+        setSelectFromCodeList(e)
     }
 
     // ADD AND EDIT POP UPS SECTION
@@ -1343,10 +1453,25 @@ function MonitoringProfiles() {
 
             let tempMarks = markersPerProfile;
             let tempPoints = pointsPerProfile;
+            let tempCoords = lineCoordinatesPerProfile;
+            let tempCorrected = correctedValuesPerProfile;
+            let tempManualCheck = manuallyCorrectedLines;
+            let tempCrossSectionCheckbox = crossSectionCheckboxs;
+            let tempPlanCheckbox = planCheckboxs;
             tempMarks.push(createPointMarkerPerProfile(nextId, []));
             tempPoints.push(createPointPerProfile(nextId, []));
+            tempCoords.push(createLineCoordinatesPerProfile(nextId, []))
+            tempCorrected.push(createCorrectedValuesPerProfile(nextId, []))
+            tempManualCheck.push(createCheckCorrectedValues(nextId, false))
+            tempCrossSectionCheckbox.push(createCrossSectionCheckbox(nextId, false))
+            tempPlanCheckbox.push(createPlanCheckbox(nextId, false))
             setMarkersPerProfile(tempMarks);
             setPointsPerProfile(tempPoints);
+            setLineCoordinatesPerProfile(tempCoords);
+            setCorrectedValuesPerProfile(tempCorrected);
+            setManuallyCorrectedLines(tempManualCheck)
+            setCrossSectionCheckboxs(tempCrossSectionCheckbox)
+            setPlanCheckboxs(tempPlanCheckbox)
 
             handleCloseNew()
             setAlertSuccessVisible(true);
@@ -1393,49 +1518,16 @@ function MonitoringProfiles() {
             .then((downloadURL) => {
                 console.log('Download URL:', downloadURL);
                 let tempData = monitoringProfilesTableData;
-                tempData[rowId-1].imagedAttached = downloadURL;
-                tempData[rowId-1].hasImage = true;
+                tempData[rowId].imagedAttached = downloadURL;
+                tempData[rowId].hasImage = true;
                 setMonitoringProfilesTableData(tempData);
+                setRowsMP(tempData);
             })
             .catch((error) => {
                 console.error('Error uploading image:', error);
             });
 
     }
-
-    /*const handleUpload = async(file: File) => {
-        try {
-            const response = await fetch('https://uploadthing.com/api/uploadFiles', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Uploadthing-Api-Key': 'sk_live_07475a2a81560265aaa2810b12ba31af2cad80a42f2e7da404b4f7230cf53602',
-                    'X-Uploadthing-Version': '6.12.0',
-                    'UPLOADTHING_URL': 'https://sparrow-organic-abnormally.ngrok-free.app/',
-                },
-                body: JSON.stringify({
-                    files: [{
-                        name: file.name,
-                        size: file.size,
-                        type: file.type,
-                    }],
-                    acl: 'public-read',
-                    metadata: null,
-                    contentDisposition: 'inline',
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`Failed to upload: ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            console.log('Upload successful:', data);
-
-        }catch (error) {
-            console.error('Error during upload:', error);
-        }
-    }*/
 
 
     // Detailed view
@@ -1460,7 +1552,29 @@ function MonitoringProfiles() {
     const [positionsArray, setPositionsArray] = React.useState<number[]>([]);
     const [replaceValues, setReplaceValues] = React.useState(false);
 
-    const [emptyPhoto, setEmptyPhoto] = React.useState(false);
+    const [emptyPhoto, setEmptyPhoto] = React.useState(true);
+
+    const [planCheckActiveImgSrc, setPlanCheckActiveImgSrc] = useState<string>('');
+    const [planCheckActiveOwn, setPlanCheckActiveOwn] = useState(false);
+    const [planCheckActive, setPlanCheckActive] = useState(false);
+    const [crossSectionCheckActive, setCrossSectionCheckActive] = useState(false);
+    const [replaceCrossCheckValue, setReplaceCrossCheckValue] = useState(false);
+    const [replacePlanCheckValue, setReplacePlanCheckValue] = useState(false);
+    const [planCheckboxs, setPlanCheckboxs] = useState<PlanCheckbox[]>([]);
+    const [crossSectionCheckboxs, setCrossSectionCheckboxs] = useState<CrossSectionCheckbox[]>([]);
+
+    const [activePickPointRow, setActivePickPointRow] = useState(false);
+    const [activePickPointRowId, setActivePickPointRowId] = useState<number>(-1);
+
+    const stageRefCrossSection = useRef<Konva.Stage | null>(null);
+    const pointsLayerRefCrossSection = useRef<Konva.Layer | null>(null);
+    const [positionsArrayCrossSection, setPositionsArrayCrossSection] = React.useState<number[]>([]);
+    const [replaceValuesCrossSection, setReplaceValuesCrossSection] = React.useState(false);
+
+    const [clickTop, setClickTop] = useState(false);
+    const [clickBottom, setClickBottom] = useState(false);
+    const [selectedIncTopBottom, setSelectedIncTopBottom] = useState<number>(0);
+    const [coordIncs, setCoordIncs] = useState<number[]>([]);
 
     useEffect(() => {
         console.log(selectedDetailedProfile)
@@ -1509,13 +1623,18 @@ function MonitoringProfiles() {
 
             let tempRows = [];
             let tempMPPCTableData = [];
+            let tempInc = [];
             let counter = 0;
             for (let i = 0; i < tempIncValuesFinal.length; i++) {
                 tempRows.push(createDataMPPC(counter, tempIncValuesFinal[i].profileGroup, tempIncValuesFinal[i].inc, false, []))
                 tempMPPCTableData.push(createDataMPPC(counter, tempIncValuesFinal[i].profileGroup, tempIncValuesFinal[i].inc, false, []))
+                tempInc.push(tempIncValuesFinal[i].inc)
                 counter++;
             }
-
+            if(tempIncValuesFinal.length > 0){
+                setSelectedIncTopBottom(tempIncValuesFinal[0].inc)
+            }
+            setCoordIncs(tempInc)
             setRowsMPPC(tempRows)
             setMPPCTableData(tempMPPCTableData)
 
@@ -1536,10 +1655,14 @@ function MonitoringProfiles() {
                 createDataMPPC(2, 'PK150_200', 6, false, []),
                 createDataMPPC(3, 'PK150_200', 9, false, [])])
             setRowsMPPC(MPPCTableData)
+            setCoordIncs([1,3,6,9])
+            setSelectedIncTopBottom(1)
         }else{
             setMPPCTableData([createDataMPPC(0, 'PK150_200', 1, false, []),
                 createDataMPPC(1, 'PK150_200', 2, false, [])])
             setRowsMPPC(MPPCTableData)
+            setCoordIncs([1,2])
+            setSelectedIncTopBottom(1)
         }
     }, [selectedDetailedProfile, selectedDetailedProfileID]);
 
@@ -1551,10 +1674,11 @@ function MonitoringProfiles() {
         for(let i = 0; i < MPPCTableData.length; i++){
             if(!MPPCTableData[i].hasPoint && MPPCTableData[i].pickPoint.length !== 0){
                 MPPCTableData[i].hasPoint = true;
+                setActivePickPointRowId(-1)
                 setRowsMPPC(MPPCTableData)
             }
         }
-    }, [rowsMPPC, MPPCTableData, positionsArray, replaceValues]);
+    }, [rowsMPPC, MPPCTableData, positionsArray, replaceValues, activePickPointRowId]);
 
     useEffect(() => {
         if(positionsArray.length === 0){
@@ -1609,109 +1733,408 @@ function MonitoringProfiles() {
     }, [MPPCTableData, positionsArray, replaceValues]);
 
     useEffect(() => {
-        if(detailedView) {
-            let tempData = monitoringProfilesTableData;
-            let selectedData = tempData.filter(d => d.id === selectedDetailedProfileID+1)
+        if(positionsArrayCrossSection.length === 0){
+            setPositionsArrayCrossSection([0, 0, 0, 0, 0, 0, 0, 0])
+        }
 
-            setTimeout(function () {
-                if (stageRef.current) {
-                    const stage = stageRef.current;
-                    stage.destroy();
+        if(stageRefCrossSection.current && pointsLayerRefCrossSection.current && crossSectionCheckboxs[selectedDetailedProfileID].check && replaceValuesCrossSection && emptyPhoto && crossSectionCheckActive) {
+            let stage = stageRefCrossSection.current;
+
+            if (pointsLayerRefCrossSection.current) {
+                pointsLayerRefCrossSection.current.destroy();
+            }
+
+            let layer = new Konva.Layer({
+                scaleX: 1,
+                scaleY: 1,
+                rotation: 5,
+            });
+
+            stage.add(layer);
+
+            pointsLayerRefCrossSection.current = layer;
+
+            //let layer = pointsLayerRef.current;
+
+            let group = new Konva.Group({
+                x: 30,
+                rotation: 10,
+                scaleX: 1,
+            });
+            layer.add(group);
+
+            let tempPosArray = positionsArrayCrossSection;
+            console.log(tempPosArray)
+
+            for(let i = 0; i < coordIncs.length; i++) {
+                if (tempPosArray[i * 4] !== 0 && tempPosArray[i * 4 + 2] !== 0) {
+                    //linha
+                    let shape = new Konva.Line({
+                        points: [tempPosArray[i * 4], tempPosArray[i * 4 + 1], tempPosArray[i * 4 + 2], tempPosArray[i * 4 + 3]],
+                        stroke: 'red',
+                        strokeWidth: 5
+                    });
+                    group.add(shape);
+                } else if (tempPosArray[i * 4] !== 0) {
+                    //ponto
+                    let shape = new Konva.Circle({
+                        x: tempPosArray[i * 4],
+                        y: tempPosArray[i * 4 + 1],
+                        fill: 'red',
+                        radius: 5,
+                    });
+                    group.add(shape);
+                } else if (tempPosArray[i * 4 + 2] !== 0) {
+                    //ponto
+                    let shape = new Konva.Circle({
+                        x: tempPosArray[i * 4 + 2],
+                        y: tempPosArray[i * 4 + 3],
+                        fill: 'red',
+                        radius: 5,
+                    });
+                    group.add(shape);
                 }
-
-                const stage = new Konva.Stage({
-                    container: 'konvaContainer',
-                    width: 600,
-                    height: 400
-                });
-                stageRef.current = stage;
-
-                let backgroundLayer = new Konva.Layer();
-                stage.add(backgroundLayer);
-
-                let backgroundImage = new Image();
-                backgroundImage.onload = function () {
-                    let background = new Konva.Image({
-                        image: backgroundImage,
-                        width: stage.width(),
-                        height: stage.height(),
+            }
+            /*let posCounter = 0;
+            for (let i = 0; i < 9; i++) {
+                if (positionsArrayCrossSection[posCounter] !== 0 || positionsArrayCrossSection[posCounter + 1] !== 0) {
+                    let shape = new Konva.Circle({
+                        x: positionsArrayCrossSection[posCounter],
+                        y: positionsArrayCrossSection[posCounter + 1],
+                        fill: 'red',
+                        radius: 5,
                     });
-                    backgroundLayer.add(background);
+                    group.add(shape);
+                }
+                posCounter += 2;
+            }*/
+            setReplaceValuesCrossSection(false);
+        }
 
-                    let border = new Konva.Rect({
-                        x: 0,
-                        y: 0,
-                        width: stage.width(),
-                        height: stage.height(),
-                        stroke: 'black',
-                        strokeWidth: 2,
-                    });
-                    backgroundLayer.add(border);
-                    backgroundLayer.draw();
-                };
-                backgroundImage.src = selectedData[0].imagedAttached;//'/profiles/imagePlan3.png';
+    }, [positionsArrayCrossSection, replaceValuesCrossSection]);
 
-                let layer = new Konva.Layer({
-                    scaleX: 1,
-                    scaleY: 1,
-                    rotation: 5,
-                });
-                stage.add(layer);
 
-                let group = new Konva.Group({
-                    x: 30,
-                    rotation: 10,
-                    scaleX: 1,
-                });
-                layer.add(group);
+    //const [crossSectionImgLarge, setCrossSectionImgLarge] = useState<boolean>(false);
 
-                if (selectedData[0].imagedAttached !== '/profiles/NoImageFound.png' && selectedDetailedProfileID === 0) {
+    /*useEffect(() => {
+        if(detailedView && selectedTypeOfProfile == typeOfProfile[1].name){
+            let tempData = monitoringProfilesTableData;
+            let selectedData = tempData.filter(d => d.id === selectedDetailedProfileID + 1)
+            if (selectedData.length > 0) {
+                let image = new Image();
+                image.src = selectedData[0].imagedAttached;
 
-                    let posCounter = 0;
-                    for (let i = 0; i < 9; i++) {
-                        if (positionsArray[posCounter] !== 0 || positionsArray[posCounter + 1] !== 0) {
-                            let shape = new Konva.Circle({
-                                x: positionsArray[posCounter],
-                                y: positionsArray[posCounter + 1],
-                                fill: 'red',
-                                radius: 5,
-                            });
-                            group.add(shape);
-                        }
-                        posCounter += 2;
+                image.onload = () => {
+                    console.log(image.width)
+                    console.log(image)
+
+                    setCrossSectionImgWidth(image.width)
+                    setCrossSectionImgHeight(image.height)
+
+                    console.log(selectedData)
+                    console.log(image.height + " | " + image.width)
+
+                    if ((image.height / image.width) > 0.63) {
+                        setCrossSectionImgLarge(false);
+                    } else {
+                        setCrossSectionImgLarge(true);
                     }
                 }
-                pointsLayerRef.current = layer;
+            }
+        }
+    }, [selectedDetailedProfile, selectedDetailedProfileID]);*/
 
-                if(selectedData[0].imagedAttached === '/profiles/NoImageFound.png'){
+    useEffect(() => {
+        if(detailedView) {
+            let tempData = monitoringProfilesTableData;
+            let selectedData = tempData.filter(d => d.id === selectedDetailedProfileID + 1)
+
+            if (selectedTypeOfProfile === typeOfProfile[0].name && planCheckboxs[selectedDetailedProfileID].check) {
+
+                setTimeout(function () {
                     if (stageRef.current) {
                         const stage = stageRef.current;
                         stage.destroy();
                     }
+
+                    const stage = new Konva.Stage({
+                        container: 'konvaContainer',
+                        width: 600,
+                        height: 400
+                    });
+                    stageRef.current = stage;
+
+                    let backgroundLayer = new Konva.Layer();
+                    stage.add(backgroundLayer);
+
+                    let backgroundImage = new Image();
+                    backgroundImage.onload = function () {
+                        let background = new Konva.Image({
+                            image: backgroundImage,
+                            width: stage.width(),
+                            height: stage.height(),
+                        });
+                        backgroundLayer.add(background);
+
+                        let border = new Konva.Rect({
+                            x: 0,
+                            y: 0,
+                            width: stage.width(),
+                            height: stage.height(),
+                            stroke: 'black',
+                            strokeWidth: 2,
+                        });
+                        backgroundLayer.add(border);
+                        backgroundLayer.draw();
+                    };
+                    backgroundImage.src = selectedData[0].imagedAttached;//'/profiles/imagePlan3.png';
+
+                    let layer = new Konva.Layer({
+                        scaleX: 1,
+                        scaleY: 1,
+                        rotation: 5,
+                    });
+                    stage.add(layer);
+
+                    let group = new Konva.Group({
+                        x: 30,
+                        rotation: 10,
+                        scaleX: 1,
+                    });
+                    layer.add(group);
+
+                    if (selectedData[0].imagedAttached !== '/profiles/NoImageFound.png' && selectedDetailedProfileID === 0) {
+
+                        let posCounter = 0;
+                        for (let i = 0; i < 9; i++) {
+                            if (positionsArray[posCounter] !== 0 || positionsArray[posCounter + 1] !== 0) {
+                                let shape = new Konva.Circle({
+                                    x: positionsArray[posCounter],
+                                    y: positionsArray[posCounter + 1],
+                                    fill: 'red',
+                                    radius: 5,
+                                });
+                                group.add(shape);
+                            }
+                            posCounter += 2;
+                        }
+                    }
+                    pointsLayerRef.current = layer;
+
+                    if (selectedData[0].imagedAttached === '/profiles/NoImageFound.png') {
+                        if (stageRef.current) {
+                            const stage = stageRef.current;
+                            stage.destroy();
+                        }
+                    }
+                }, 1);
+            }else{
+                if (stageRef.current) {
+                    let stage = stageRef.current;
+                    stage.destroy();
                 }
-            }, 1);
-        }else{
+            }
+        }else {
             if (stageRef.current) {
-                const stage = stageRef.current;
+                let stage = stageRef.current;
                 stage.destroy();
             }
         }
-    }, [selectedDetailedProfile, detailedView, monitoringProfilesTableData]);
+    }, [selectedDetailedProfile, detailedView, monitoringProfilesTableData, replacePlanCheckValue, planCheckboxs]);
+
+    useEffect(() => {
+        if(detailedView) {
+            let tempData = monitoringProfilesTableData;
+            let selectedData = tempData.filter(d => d.id === selectedDetailedProfileID + 1)
+
+            if(selectedTypeOfProfile === typeOfProfile[1].name && crossSectionCheckboxs[selectedDetailedProfileID].check && crossSectionCheckActive){
+                console.log("TESTE")
+                setTimeout(function () {
+                    if (stageRefCrossSection.current) {
+                        let stage2 = stageRefCrossSection.current;
+                        stage2.destroy();
+                    }
+
+                    let imgWidth: number = 600;
+                    let imgHeight: number = 400;
+
+                    setEmptyPhoto(true)
+
+                    let measureImage = new Image();
+                    measureImage.src = selectedData[0].imagedAttached;
+
+                    measureImage.onload = () => {
+                        if(measureImage.width < 600){
+                            let aspectRatio = measureImage.width/measureImage.height;
+                            imgWidth = 600;
+                            imgHeight = 600 / aspectRatio;
+                            //setImgCrossSectionWidth(600)
+                            //setImgCrossSectionHeight(newHeight)
+                        }else{
+                            imgWidth = measureImage.width;
+                            imgHeight = measureImage.height;
+                            //setImgCrossSectionWidth(image.width)
+                            //setImgCrossSectionHeight(image.height)
+                        }
+                        //setImgCrossSectionSrc(image.src)
+                    }
+
+                    let stage2 = new Konva.Stage({
+                        container: 'konvaContainerCrossSection',
+                        width: imgWidth,
+                        height: imgHeight
+                    });
+                    stageRefCrossSection.current = stage2;
+
+                    let backgroundLayer2 = new Konva.Layer();
+                    stage2.add(backgroundLayer2);
+
+                    let image = new Image();
+
+                    image.onload = function () {
+                        let background2 = new Konva.Image({
+                            image: image,
+                            width: imgWidth,
+                            height: imgHeight,
+                        });
+
+                        backgroundLayer2.add(background2);
+                        let border2 = new Konva.Rect({
+                            x: 0,
+                            y: 0,
+                            width: imgWidth,
+                            height: imgHeight,
+                            stroke: 'black',
+                            strokeWidth: 2,
+                        });
+                        backgroundLayer2.add(border2);
+                        backgroundLayer2.draw();
+                    }
+
+                    image.src = measureImage.src;
+                    //backgroundImage.src = selectedData[0].imagedAttached;//'/profiles/imagePlan3.png';
+
+                    let layer2 = new Konva.Layer({
+                        scaleX: 1,
+                        scaleY: 1,
+                        rotation: 5,
+                    });
+                    stage2.add(layer2);
+
+                    let group2 = new Konva.Group({
+                        x: 30,
+                        rotation: 10,
+                        scaleX: 1,
+                    });
+                    layer2.add(group2);
+
+
+                    if (selectedData[0].imagedAttached !== '/profiles/NoImageFound.png' && selectedData[0].imagedAttached !== '') {
+                        let tempPosArray = positionsArrayCrossSection;
+
+                        for(let i = 0; i < coordIncs.length; i++){
+                            if(tempPosArray[i*4] !== 0 && tempPosArray[i*4+2] !== 0){
+                                //linha
+                                let shape = new Konva.Line({
+                                    points: [tempPosArray[i*4], tempPosArray[i*4+1], tempPosArray[i*4+2], tempPosArray[i*4+3]],
+                                    stroke: 'red',
+                                    strokeWidth: 5
+                                });
+                                group2.add(shape);
+                            }else if(tempPosArray[i*4] !== 0){
+                                //ponto
+                                let shape = new Konva.Circle({
+                                    x: tempPosArray[i*4],
+                                    y: tempPosArray[i*4+1],
+                                    fill: 'red',
+                                    radius: 5,
+                                });
+                                group2.add(shape);
+                            }else if(tempPosArray[i*4+1] !== 0){
+                                //ponto
+                                let shape = new Konva.Circle({
+                                    x: tempPosArray[i*4+2],
+                                    y: tempPosArray[i*4+3],
+                                    fill: 'red',
+                                    radius: 5,
+                                });
+                                group2.add(shape);
+                            }
+                        }
+                        /*let posCounter = 0;
+                        for (let i = 0; i < 9; i++) {
+                            if (positionsArrayCrossSection[posCounter] !== 0 || positionsArrayCrossSection[posCounter + 1] !== 0) {
+                                let shape = new Konva.Circle({
+                                    x: positionsArrayCrossSection[posCounter],
+                                    y: positionsArrayCrossSection[posCounter + 1],
+                                    fill: 'red',
+                                    radius: 5,
+                                });
+                                group2.add(shape);
+                            }
+                            posCounter += 2;
+                        }*/
+                    }
+                    pointsLayerRefCrossSection.current = layer2;
+
+                }, 1);
+            }else{
+                if (stageRefCrossSection.current) {
+                    let stage2 = stageRefCrossSection.current;
+                    stage2.destroy();
+                }
+            }
+        }else {
+            if (stageRefCrossSection.current) {
+                let stage2 = stageRefCrossSection.current;
+                stage2.destroy();
+            }
+        }
+    }, [selectedDetailedProfile, detailedView, replaceCrossCheckValue, crossSectionCheckboxs]);
+
+
+
+    const [imgCrossSectionSrc, setImgCrossSectionSrc] = useState<string>('');
+    const [imgCrossSectionWidth, setImgCrossSectionWidth] = useState<number>(0);
+    const [imgCrossSectionHeight, setImgCrossSectionHeight] = useState<number>(0);
 
     useEffect(() => {
         let tempData = monitoringProfilesTableData;
-        if(tempData.length !== 0){
-            let selectedData = tempData.filter(d => d.id === selectedDetailedProfileID+1)
+        if(tempData.length !== 0) {
+            let selectedData = tempData.filter(d => d.id === selectedDetailedProfileID + 1)
 
-            if(selectedData[0].imagedAttached === '/profiles/NoImageFound.png'){
+            if (selectedData[0].imagedAttached === '/profiles/NoImageFound.png' || selectedData[0].imagedAttached === '') {
                 setEmptyPhoto(true)
+            }else if(selectedData[0].typeOfProfile === typeOfProfile[1].name){
+                setEmptyPhoto(true)
+
+                let image = new Image();
+                image.src = selectedData[0].imagedAttached;
+
+                image.onload = () => {
+
+                    if(image.width < 600){
+                        let aspectRatio = image.width/image.height;
+                        let newHeight = 600 / aspectRatio;
+                        setImgCrossSectionWidth(600)
+                        setImgCrossSectionHeight(newHeight)
+                    }else{
+                        setImgCrossSectionWidth(image.width)
+                        setImgCrossSectionHeight(image.height)
+                    }
+
+                    setImgCrossSectionSrc(image.src)
+                }
+
             }else{
-                setEmptyPhoto(false)
+                setEmptyPhoto(true)//setEmptyPhoto(false)
             }
         }
     }, [selectedDetailedProfileID]);
 
     const handlePickPoint = (rowId: number, rowInc: number) => {
+        setActivePickPointRowId(rowId);
+
         if (stageRef.current && pointsLayerRef.current && !emptyPhoto) {
             let stage = stageRef.current;
             /*let layer = new Konva.Layer({
@@ -1762,6 +2185,7 @@ function MonitoringProfiles() {
                         setPositionsArray(tempPosArray);
                         clicked = true;
                         setReplaceValues(true)
+                        setActivePickPointRowId(-1)
                     }
                 }
             })
@@ -1772,6 +2196,224 @@ function MonitoringProfiles() {
         }
     }
 
+    const handlePickPointCrossSection = (placedAt: string) => {
+
+        if (stageRefCrossSection.current && pointsLayerRefCrossSection.current && emptyPhoto && crossSectionCheckActive) {
+            let stage = stageRefCrossSection.current;
+
+            let layer = pointsLayerRefCrossSection.current;
+
+            let group = new Konva.Group({
+                x: 30,
+                rotation: 10,
+                scaleX: 1,
+            });
+            layer.add(group);
+
+            /*let shape = new Konva.Line({
+                points: [192.1246379510998, 76.9538253966865,231.27566411570146, 226.93114751659465],
+                stroke: 'red',
+                strokeWidth: 5
+            });
+            group.add(shape);
+
+            console.log(shape)
+            console.log(layer)*/
+
+            let clicked = false;
+            stage.on('click', function () {
+                if (!clicked) {
+                    let pos = group.getRelativePointerPosition();
+                    if (pos !== null) {
+                        let tempPosArray = positionsArrayCrossSection;
+
+                        console.log("teste2")
+                        console.log(positionsArrayCrossSection)
+
+                        for(let i = 0; i < coordIncs.length; i++){
+                            console.log("1: " + (selectedIncTopBottom === coordIncs[i]))
+                            if(selectedIncTopBottom === coordIncs[i]){
+                                console.log("2: " + placedAt)
+                                if(placedAt === "top"){
+                                    if(tempPosArray[i*4+2] !== 0 || tempPosArray[i*4+3] !== 0){
+                                        //criar linha
+                                        let shape = new Konva.Line({
+                                            points: [pos.x, pos.y, tempPosArray[i*4+2], tempPosArray[i*4+3]],
+                                            stroke: 'red',
+                                            strokeWidth: 5
+                                        });
+                                        group.add(shape);
+
+                                        setClickTop(false)
+                                    }else{
+                                        //criar ponto
+                                        let shape = new Konva.Circle({
+                                            x: pos.x,
+                                            y: pos.y,
+                                            fill: 'red',
+                                            radius: 5,
+                                        });
+                                        group.add(shape);
+
+                                        setClickTop(false)
+                                    }
+                                    tempPosArray[i*4] = pos.x;
+                                    tempPosArray[i*4+1] = pos.y;
+                                }else{
+                                    if(tempPosArray[i*4] !== 0 || tempPosArray[i*4+1] !== 0){
+                                        //criar linha
+                                        let shape = new Konva.Line({
+                                            points: [tempPosArray[i*4], tempPosArray[i*4+1], pos.x, pos.y],
+                                            stroke: 'red',
+                                            strokeWidth: 5
+                                        });
+                                        group.add(shape);
+
+                                        setClickBottom(false)
+                                    }else{
+                                        //criar ponto
+                                        let shape = new Konva.Circle({
+                                            x: pos.x,
+                                            y: pos.y,
+                                            fill: 'red',
+                                            radius: 5,
+                                        });
+                                        group.add(shape);
+
+                                        setClickBottom(false)
+                                    }
+                                    tempPosArray[i*4+2] = pos.x;
+                                    tempPosArray[i*4+3] = pos.y;
+                                }
+                            }
+                        }
+
+                        //let tempPointPerProfile = pointsPerProfile;
+
+                        //pointsPerProfile[selectedDetailedProfileID] = createPointPerProfile()
+
+                        setPositionsArrayCrossSection(tempPosArray);
+                        clicked = true;
+                        setReplaceValuesCrossSection(true)
+                    }
+                }
+            })
+        }
+/*
+        if (stageRef.current && pointsLayerRef.current && !emptyPhoto) {
+            let stage = stageRef.current;
+
+            let layer = pointsLayerRef.current;
+
+            let group = new Konva.Group({
+                x: 30,
+                rotation: 10,
+                scaleX: 1,
+            });
+            layer.add(group);
+
+            let clicked = false;
+
+            stage.on('click', function () {
+                if (!clicked) {
+                    let pos = group.getRelativePointerPosition();
+                    if (pos !== null) {
+                        let shape = new Konva.Circle({
+                            x: pos.x,
+                            y: pos.y,
+                            fill: 'red',
+                            radius: 5,
+                        });
+                        console.log(pos.x + " | " + pos.y)
+                        group.add(shape);
+
+                        let tempPosArray = positionsArray;
+                        let tempTableData = MPPCTableData;
+                        let rowData = MPPCTableData[rowId]
+
+                        tempPosArray[rowId*2] = pos.x
+                        tempPosArray[rowId*2+1] = pos.y
+
+                        tempTableData[rowId] = createDataMPPC(rowId, rowData.groupMP, rowData.inc, true, [pos.x,pos.y]);
+
+                        let tempPointPerProfile = pointsPerProfile;
+
+                        //pointsPerProfile[selectedDetailedProfileID] = createPointPerProfile()
+
+                        setMPPCTableData(tempTableData);
+                        setRowsMPPC(tempTableData)
+                        setPositionsArray(tempPosArray);
+                        clicked = true;
+                        setReplaceValues(true)
+                        setActivePickPointRowId(-1)
+                    }
+                }
+            })
+        }else if(emptyPhoto){
+            setCurrentRowId(rowId)
+            setCurrentPoint(rowInc)
+            setClickPoint(true);
+        }*/
+    }
+
+    const handleCrossSectionCheckbox = (event: React.ChangeEvent<HTMLInputElement>) =>{
+        if(event.target.checked){
+            let temp = crossSectionCheckboxs;
+            temp[selectedDetailedProfileID].check = false;
+            setReplaceCrossCheckValue(true);
+            setCrossSectionCheckboxs(temp);
+
+            setCrossSectionCheckActive(true)
+        }else{
+            let temp = crossSectionCheckboxs;
+            temp[selectedDetailedProfileID].check = true;
+            setReplaceCrossCheckValue(true);
+            setCrossSectionCheckboxs(temp);
+
+            setCrossSectionCheckActive(false)
+        }
+    }
+
+    const handlePlanCheckbox = (event: React.ChangeEvent<HTMLInputElement>, from: string) =>{
+        if(event.target.checked){
+            let temp = planCheckboxs;
+            temp[selectedDetailedProfileID].check = false;
+            setReplacePlanCheckValue(true);
+            setPlanCheckboxs(temp)
+            setEmptyPhoto(false)
+
+            if(from !== "own"){
+
+            setPlanCheckActive(true)
+            setPlanCheckActiveOwn(false)
+
+            for(let i = 0; i < monitoringProfilesTableData.length; i++){
+                if(Number(selectFromCodeList) === monitoringProfilesTableData[i].id && from === "other"){
+                    setPlanCheckActiveImgSrc(monitoringProfilesTableData[i].imagedAttached)
+                }else if(selectedDetailedProfileID === monitoringProfilesTableData[i].id && from === "own"){
+                    //setPlanCheckActiveImgSrc(monitoringProfilesTableData[i].imagedAttached)
+                    setPlanCheckActiveOwn(true)
+                }
+            }
+            }
+        }else{
+            let temp = planCheckboxs;
+            temp[selectedDetailedProfileID].check = true;
+            setReplacePlanCheckValue(true);
+            setPlanCheckboxs(temp)
+            setEmptyPhoto(true)
+            setPlanCheckActive(false)
+            setPlanCheckActiveOwn(false)
+
+            if(from === "own"){
+                if (stageRef.current) {
+                    const stage = stageRef.current;
+                    stage.destroy();
+                }
+            }
+        }
+    }
+
     //const [markers, setMarkers] = useState<L.LatLng[]>([]);
     const [pointsPerProfile, setPointsPerProfile] = useState<PointsPerProfile[]>([]);
     const [markersPerProfile, setMarkersPerProfile] = useState<PointMarkerPerProfile[]>([]);
@@ -1779,13 +2421,124 @@ function MonitoringProfiles() {
     const [currentRowId, setCurrentRowId] = useState(0);
     const [currentPoint, setCurrentPoint] = useState(0);
     const [clickPoint, setClickPoint] = useState(false);
+    const [lineCoordinatesPerProfile, setLineCoordinatesPerProfile] = useState<LineCoordinatesPerProfile[]>([]);
     const [lineCoordinates, setLineCoordinates] = useState<L.LatLng[]>([]);
+    const [manuallyCorrectedLine, setManuallyCorrectedLine] = useState(false);
+    //const [selectedBottomLimit, setSelectedBottomLimit] = useState<number>(0);
+    const [lineManualCoordinates, setLineManualCoordinates] = useState<L.LatLng[]>([]);
+    const [manuallyCorrectedLines, setManuallyCorrectedLines] = useState<CheckCorrectedValues[]>([]);
+    const [correctedValuesPerProfile, setCorrectedValuesPerProfile] = useState<CorrectedValuesPerProfile[]>([]);
+    const [replaceLinesValues, setReplaceLinesValues] = useState(false);
+
+
+    useEffect(() => {
+        let temp = crossSectionCheckboxs;
+        if(crossSectionCheckboxs.length > 0 && replaceCrossCheckValue){
+            if(crossSectionCheckboxs[selectedDetailedProfileID].check){
+                temp[selectedDetailedProfileID].check = false;
+                setCrossSectionCheckboxs(temp)
+            }else{
+                temp[selectedDetailedProfileID].check = true;
+                setCrossSectionCheckboxs(temp)
+            }
+            setReplaceCrossCheckValue(false);
+        }
+
+    }, [replaceCrossCheckValue, crossSectionCheckboxs, selectedDetailedProfileID]);
+
+    useEffect(() => {
+        let temp = planCheckboxs;
+        if(planCheckboxs.length > 0  && replacePlanCheckValue){
+            if(planCheckboxs[selectedDetailedProfileID].check){
+                temp[selectedDetailedProfileID].check = false;
+                setPlanCheckboxs(temp)
+            }else{
+                temp[selectedDetailedProfileID].check = true;
+                setPlanCheckboxs(temp)
+            }
+            setReplacePlanCheckValue(false);
+        }
+
+    }, [replacePlanCheckValue, planCheckboxs, selectedDetailedProfileID]);
+
+    useEffect(() => {
+        if(manuallyCorrectedLines.length > 0){
+            if(manuallyCorrectedLines[selectedDetailedProfileID].check){
+                setLineManualCoordinates(correctedValuesPerProfile[selectedDetailedProfileID].lc)
+                setReplaceLinesValues(false)
+            }
+        }
+    }, [replaceLinesValues, correctedValuesPerProfile, clickTop, clickBottom, lineManualCoordinates, manuallyCorrectedLines]);
+
+    /*const MapClickTopBottomHandler = () => {
+        useMapEvents({
+            click: (event) => {
+                if(!manuallyCorrectedLine){
+                    setManuallyCorrectedLine(true);
+                }
+                if(!manuallyCorrectedLines[selectedDetailedProfileID].check){
+                    let tempManual = manuallyCorrectedLines
+                    tempManual[selectedDetailedProfileID].check = true;
+                    setManuallyCorrectedLines(tempManual);
+                }
+
+                let newPointPos = event.latlng
+                let tempLineCoord = lineManualCoordinates;
+
+                if(lineManualCoordinates.length === 0) {
+                    let initialTop: LatLng = new LatLng(0, 0);
+                    let initialBottom: LatLng = new LatLng(0, 0);
+                    let markersPP = markersPerProfile[selectedDetailedProfileID].pm;
+
+                    for(let i = 0; i < markersPP.length; i++){
+                        if(selectedTopLimit === markersPP[i].id){
+                            initialTop = markersPP[i].latLng;
+                        }
+                        if(selectedBottomLimit === markersPP[i].id){
+                            initialBottom = markersPP[i].latLng;
+                        }
+                    }
+
+                    tempLineCoord.push(initialTop);
+                    tempLineCoord.push(initialBottom);
+                }
+
+                if(clickTop){
+                    tempLineCoord[0] = newPointPos;
+                }else{
+                    tempLineCoord[1] = newPointPos;
+                }
+                console.log(newPointPos)
+                console.log(tempLineCoord)
+
+                setLineManualCoordinates(tempLineCoord);
+                let tempCorrected = correctedValuesPerProfile;
+                tempCorrected[selectedDetailedProfileID].lc = tempLineCoord;
+                setCorrectedValuesPerProfile(tempCorrected);
+                //setManuallyCorrectedValues(true);
+                if(clickTop)
+                    setClickTop(false);
+                if(clickBottom)
+                    setClickBottom(false);
+
+                setReplaceLinesValues(true);
+            }
+        });
+
+        return null;
+    };*/
+
+
 
     useEffect(() => {
         let coordinates = markers.map(marker => marker.latLng);
         setLineCoordinates(coordinates);
+        let tempCoord = lineCoordinatesPerProfile;
+        if(lineCoordinatesPerProfile.length > 0){
+            tempCoord[selectedDetailedProfileID].lc = coordinates;
+            setLineCoordinatesPerProfile(tempCoord)
+        }
     }, [markers]);
-
 
     const MapClickHandler = () => {
         useMapEvents({
@@ -1827,11 +2580,13 @@ function MonitoringProfiles() {
                 tempMarkersArray.sort((a, b) => a.id - b.id);
 
                 markersPerProfile[selectedDetailedProfileID] = createPointMarkerPerProfile(currentRowId, tempMarkersArray)
+                lineCoordinatesPerProfile[selectedDetailedProfileID] = createLineCoordinatesPerProfile(currentRowId, coordinates)
                 setMarkersPerProfile(tempMarks)
 
                 setReplaceValues(true)
                 setClickPoint(false);
-                setCurrentPoint(0)
+                setCurrentPoint(0);
+                setActivePickPointRowId(-1);
             }
         });
 
@@ -1858,6 +2613,8 @@ function MonitoringProfiles() {
         setSelectedDetailedProfileAttachedImageName(image)
         setSelectedDetailedProfileID(rowID-1);
         setSelectedTypeOfProfile(typeOfProfile)
+
+        handleGetAllMPCodes();
     }
 
     const handlePrevious = () => {
@@ -1996,7 +2753,6 @@ function MonitoringProfiles() {
             pageMPPC * rowsPerPageMPPC + rowsPerPageMPPC),
         [MPPCTableData,replaceValues,rowsMPPC, orderMPPC, orderByMPPC, pageMPPC, rowsPerPageMPPC],
     );
-
 
 
     return (
@@ -3397,57 +4153,105 @@ function MonitoringProfiles() {
                                 </button>
                             </div>
                         </div>
-                        <div style={{paddingLeft: (selectedTypeOfProfile === typeOfProfile[0].name && selectedDetailedProfileAttachedImageName !== '') ? '80px' :
-                                (selectedTypeOfProfile !== typeOfProfile[0].name && selectedDetailedProfileAttachedImageName !== '') ? '80px' :'0px',
-                                    paddingRight: (selectedTypeOfProfile !== typeOfProfile[0].name && selectedDetailedProfileAttachedImageName === '') ? '10px': '0px'}}>
-                        <Typography
-                            variant="h6"
-                            gutterBottom>
-                            Plan
-                        </Typography>
+                        <div
+                            style={{
+                                paddingLeft: '210px'
+                            }}>
+                            <Typography
+                                variant="h5"
+                                gutterBottom>
+                                Plan
+                            </Typography>
                         </div>
                         <div
-                            className="flex pb-5 availableImageContainer">
-                            <div
-                                className="availableImageName">
-                                <IconButton
-                                    className=""
-                                    aria-label="close">
-                                    <InsertDriveFile/>
-                                </IconButton>
+                            className="parentContainer">
+                            {(selectedTypeOfProfile !== typeOfProfile[0].name) ? (
                                 <div
-                                    className="imageNameContainer">
-                                    {selectedDetailedProfileAttachedImageName !== '' ? (
-                                        <Typography
-                                            variant="h6"
-                                            gutterBottom>
-                                            {selectedDetailedProfileAttachedImageName}
-                                        </Typography>
-                                    ) : (
-                                        <Typography
-                                            variant="h6"
-                                            gutterBottom>
-                                            No
-                                            file
-                                            available
-                                        </Typography>
-                                    )}
+                                    className="flex pb-5 availableImageContainer">
+                                    <div
+                                        style={{paddingLeft: '10px'}}>
+                                        <FormControlLabel
+                                            control={
+                                                <Checkbox
+                                                    id={selectedDetailedProfileID.toString().concat("plan")}
+                                                    checked={planCheckboxs[selectedDetailedProfileID].check}
+                                                    onChange={(event)=>(handlePlanCheckbox(event, "other"))}
+                                                    color="success"/>}
+                                            label="Use available image from profile"
+                                        />
+                                        <FormControl>
+                                            <Select
+                                                labelId="simple-select-label"
+                                                id="simple-select"
+                                                value={selectFromCodeList === '' ? '' : selectFromCodeList}
+                                                onChange={(e) => {
+                                                    handleSelectFromCodeList(e.target.value)
+                                                }}
+                                                sx={{height: '40px'}}
+                                            >
+                                                {profilesCodeList.map((p, index) => (
+                                                    <MenuItem
+                                                        key={p}
+                                                        value={p}>{p}</MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    </div>
                                 </div>
-                            </div>
-                            {selectedDetailedProfileAttachedImageName !== '' ? (
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        defaultChecked
-                                        color="success"/>}
-                                label="Use available image"
-                            />) : (
-                                <FormControlLabel
-                                control={<Checkbox disabled/>}
-                                label="Use available image"
-                                />)}
+                            ) : (
+                                <div
+                                    className="flex pb-5 availableImageContainer">
+                                    <div
+                                        className="availableImageName">
+                                        <IconButton
+                                            className=""
+                                            aria-label="close">
+                                            <InsertDriveFile/>
+                                        </IconButton>
+                                        <div
+                                            className="imageNameContainer">
+                                            {selectedDetailedProfileAttachedImageName !== '' ? (
+                                                <Typography
+                                                    variant="subtitle1"
+                                                    gutterBottom>
+                                                    {selectedDetailedProfileAttachedImageName}
+                                                </Typography>
+                                            ) : (
+                                                <Typography
+                                                    variant="subtitle1"
+                                                    gutterBottom>
+                                                    No
+                                                    file
+                                                    available
+                                                </Typography>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {(selectedDetailedProfileAttachedImageName !== '') ? (
+                                        <div
+                                            style={{paddingLeft: '10px'}}>
+                                            <FormControlLabel
+                                                control={
+                                                    <Checkbox
+                                                        id={selectedDetailedProfileID.toString().concat("plan")}
+                                                        checked={planCheckboxs[selectedDetailedProfileID].check}
+                                                        color="success"
+                                                        onChange={(event)=>(handlePlanCheckbox(event, "own"))}
+                                                    />}
+                                                label="Use available image"
+                                            />
+                                        </div>) : (
+                                        <div
+                                            style={{paddingLeft: '10px'}}>
+                                            <FormControlLabel
+                                                control={
+                                                    <Checkbox
+                                                        disabled/>}
+                                                label="Use available image"
+                                            />
+                                        </div>)}
+                                </div>)}
                         </div>
-
                         <div
                             className="tableAndContainer">
                             <div
@@ -3491,17 +4295,15 @@ function MonitoringProfiles() {
                                                                 //selected={isItemSelectedMP}
                                                                 sx={{
                                                                     cursor: 'pointer',
-                                                                    height: '20px'
+                                                                    height: '20px',
+                                                                    backgroundColor: (activePickPointRowId === row.id) ? '#d4d4d4' : '#ffffff'
                                                                 }}
                                                             >
                                                                 <TableCell
-                                                                    onClick={() => handleClickProfile(row.id)}
                                                                     align="left">{row.id}</TableCell>
                                                                 <TableCell
-                                                                    onClick={() => handleClickProfile(row.id)}
                                                                     align="center">{row.groupMP}</TableCell>
                                                                 <TableCell
-                                                                    onClick={() => handleClickProfile(row.id)}
                                                                     align="center">I{row.inc}</TableCell>
                                                                 <TableCell
                                                                     align="center">
@@ -3564,53 +4366,237 @@ function MonitoringProfiles() {
                                     </Paper>
                                 </Box>
                             </div>
-                            {emptyPhoto &&
-                                <div
-                                    className="maps"
-                                    style={{
-                                        width: '600px',
-                                        height: '400px'
-                                    }}>
-                                    <MapContainer
-                                        center={[38.66086, -9.20339]}
-                                        zoom={13}
-                                        scrollWheelZoom={false}
-                                        style={{
-                                            width: '100%',
-                                            height: '100%'
-                                        }}
-                                    >
-                                        <TileLayer
-                                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                        />
-                                        {markers.map((marker, index) => (
-                                            <Marker
-                                                key={index}
-                                                position={marker.latLng}
-                                                icon={new Icon({
-                                                    iconUrl: markerIconPng,
-                                                    iconSize: [25, 41],
-                                                    iconAnchor: [12, 41]
-                                                })}>
-                                                <Popup>
-                                                    Inclinometer {marker.id} -
-                                                    Location: {marker.latLng.lat}, {marker.latLng.lng}
-                                                </Popup>
-                                            </Marker>
-                                        ))}
-                                        {markers.length > 1 && (
-                                            <Polyline positions={lineCoordinates} color="red" />
-                                        )}
-                                        {clickPoint && (
-                                            <MapClickHandler/>)}
-                                    </MapContainer>
-                                </div>
-                            }
                             <div
-                                id="konvaContainer"
-                                className="tableAndContainerC"></div>
+                                className="rowCanvas-container">
+                                {emptyPhoto &&
+                                    <div
+                                        className="maps"
+                                        style={{
+                                            width: '600px',
+                                            height: '400px'
+                                        }}>
+                                        <MapContainer
+                                            center={[38.66086, -9.20339]}
+                                            zoom={13}
+                                            scrollWheelZoom={false}
+                                            style={{
+                                                width: '100%',
+                                                height: '100%'
+                                            }}
+                                        >
+                                            <TileLayer
+                                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                            />
+                                            <TileLayer
+                                                attribution='&copy; <a href="https://localhost:3000/">Lincs</a>'
+                                                url=""
+                                            />
+                                            {markersPerProfile[selectedDetailedProfileID].pm.map((marker, index) => (
+                                                <Marker
+                                                    key={index}
+                                                    position={marker.latLng}
+                                                    icon={new Icon({
+                                                        iconUrl: markerIconPng,
+                                                        iconSize: [25, 41],
+                                                        iconAnchor: [12, 41]
+                                                    })}>
+                                                    <Popup>
+                                                        <div style={{ width: '180px'}}>
+                                                            <h3 style={{
+                                                                textAlign: 'center',
+                                                                fontSize: '20px'
+                                                            }}>Inclinometer {marker.id}</h3>
+                                                            <p>Location: {marker.latLng.lat}, {marker.latLng.lng}</p>
+                                                        </div>
+                                                    </Popup>
+                                                </Marker>
+                                            ))}
+                                            {(markersPerProfile[selectedDetailedProfileID].pm.length > 1 && !manuallyCorrectedLines[selectedDetailedProfileID].check) && (
+                                                <Polyline
+                                                    positions={lineCoordinatesPerProfile[selectedDetailedProfileID].lc}//{lineCoordinates}
+                                                    color="red"/>
+                                            )}
+                                            {(markersPerProfile[selectedDetailedProfileID].pm.length > 1 && manuallyCorrectedLines[selectedDetailedProfileID].check) && (
+                                                <Polyline
+                                                    positions={lineManualCoordinates}
+                                                    color="red"/>
+                                            )}
+                                            {clickPoint && (
+                                                <MapClickHandler/>)}
+                                        </MapContainer>
+                                    </div>
+                                }
+                                {(!emptyPhoto && planCheckActive && !planCheckActiveOwn) && (
+                                    <img
+                                        src={planCheckActiveImgSrc}
+                                        width={600}
+                                        height={400}
+                                        alt=''
+                                        style={{border: '1px solid black'}}/>
+                                )}
+                                <div
+                                    id="konvaContainer"
+                                    className="tableAndContainerC"></div>
+                                {selectedTypeOfProfile === typeOfProfile[1].name && (
+                                    <div>
+                                        <div
+                                            style={{
+                                                paddingTop: '30px',
+                                            }}>
+                                            <Typography
+                                                align='left'
+                                                variant="h5"
+                                                gutterBottom>
+                                                Cross
+                                                section
+                                            </Typography>
+                                        </div>
+                                        <div
+                                            className="flex pb-5 availableImageContainer">
+                                            <div
+                                                className="availableImageName">
+                                                <IconButton
+                                                    className=""
+                                                    aria-label="close">
+                                                    <InsertDriveFile/>
+                                                </IconButton>
+                                                <div
+                                                    className="imageNameContainer">
+                                                    {selectedDetailedProfileAttachedImageName !== '' ? (
+                                                        <Typography
+                                                            variant="subtitle1"
+                                                            gutterBottom>
+                                                            {selectedDetailedProfileAttachedImageName}
+                                                        </Typography>
+                                                    ) : (
+                                                        <Typography
+                                                            variant="subtitle1"
+                                                            gutterBottom>
+                                                            No
+                                                            file
+                                                            available
+                                                        </Typography>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            {(selectedDetailedProfileAttachedImageName !== '') ? (
+                                                <div
+                                                    style={{paddingLeft: '10px'}}>
+                                                    <FormControlLabel
+                                                        control={
+                                                            <Checkbox
+                                                                id={selectedDetailedProfileID.toString().concat("cross")}
+                                                                checked={crossSectionCheckboxs[selectedDetailedProfileID].check}
+                                                                color="success"
+                                                                onChange={(event)=>(handleCrossSectionCheckbox(event))}
+                                                            />}
+                                                        label="Use available image"
+                                                    />
+                                                </div>) : (
+                                                <div
+                                                    style={{paddingLeft: '10px'}}>
+                                                    <FormControlLabel
+                                                        control={
+                                                            <Checkbox
+                                                                disabled/>}
+                                                        label="Use available image"
+                                                    />
+                                                </div>)}
+                                        </div>
+
+                                    </div>)}
+                            </div>
                         </div>
+                        <div style={{display: 'flex',justifyContent: 'flex-end'}}>
+                            {(crossSectionCheckboxs[selectedDetailedProfileID].check && (selectedDetailedProfileAttachedImageName !== '') && (selectedTypeOfProfile === typeOfProfile[1].name)) && (
+                                <div style={{paddingRight: '16px'}}>
+                                <Card sx={{ minWidth: 275 }}>
+                                    <CardHeader
+                                        title="Map the image to coordinates"
+                                        disableTypography
+                                        sx={{ backgroundColor: '#22c55e', color: '#ffffff', fontSize: '20px'}}
+                                    />
+                                    <CardContent>
+                                        <div
+                                            className="selectCoordRow">
+                                            <div
+                                                className="selectCoordColumn1">
+                                                <FormControl sx={{paddingBottom: '15px', paddingRight: '10px'}}>
+                                                    <Select
+                                                        labelId="simple-select-label"
+                                                        id="simple-select"
+                                                        value={coordIncs.length === 0 ? "" : selectedIncTopBottom}
+                                                        onChange={(e) => {
+                                                            setSelectedIncTopBottom(Number(e.target.value))
+                                                        }}
+                                                        sx={{height: '40px'}}
+                                                    >
+                                                        {coordIncs.map((c, index) => (
+                                                            <MenuItem
+                                                                key={c}
+                                                                value={c}>{c}</MenuItem>
+                                                        ))}
+                                                    </Select>
+                                                </FormControl>
+                                            </div>
+                                            <div
+                                                className="selectCoordColumn2">
+                                                <div style={{paddingBottom: '18px'}}>
+                                                <Button
+                                                    component="label"
+                                                    role={undefined}
+                                                    variant="contained"
+                                                    tabIndex={-1}
+                                                    startIcon={
+                                                        <Place/>}
+                                                    sx={{
+                                                        backgroundColor: '#22c55e',
+                                                        '&:hover': {
+                                                            backgroundColor: '#15803d',
+                                                        },
+                                                        fontSize: '0.75rem',
+                                                        padding: '8px 22px',
+                                                    }}
+                                                    onClick={() => {handlePickPointCrossSection("top");setClickTop(true)}}
+                                                >
+                                                    Pick
+                                                    top
+                                                </Button>
+                                                </div>
+                                                <div>
+                                                <Button
+                                                    component="label"
+                                                    role={undefined}
+                                                    variant="contained"
+                                                    tabIndex={-1}
+                                                    startIcon={
+                                                        <Place/>}
+                                                    sx={{
+                                                        backgroundColor: '#22c55e',
+                                                        '&:hover': {
+                                                            backgroundColor: '#15803d',
+                                                        },
+                                                        fontSize: '0.75rem',
+                                                        padding: '8px 8px',
+                                                    }}
+                                                    onClick={() => {handlePickPointCrossSection("bottom");setClickBottom(true)}}
+                                                >
+                                                    Pick
+                                                    bottom
+                                                </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>)}
+                            <div>
+                                <div
+                                    id="konvaContainerCrossSection"
+                                    className="tableAndContainerC"></div>
+                            </div>
+                            </div>
                     </div>
                 </>
             )}

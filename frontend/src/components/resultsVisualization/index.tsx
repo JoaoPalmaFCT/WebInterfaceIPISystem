@@ -847,6 +847,18 @@ const getMostRecentDate = (graphData: Inclinometer[]) => {
     return oldestDate
 }
 
+/*const getMaxDisplacement = (graphData: Inclinometer[]) => {
+    let maxDisplacement = graphData[0].value;
+
+    graphData.map(g => {
+        if (oldestDate < g.time)
+            oldestDate = g.time
+    })
+
+    return oldestDate
+}*/
+
+
 const getIntervalDates = (graphData: InclinometerData[], initialDate: string, lastDate: string) => {
     let tempData: InclinometerData[] = [];
     graphData.map(g => {
@@ -3520,6 +3532,13 @@ const getTableValues = (selectedInc: number, arrayX: InclinometerData[], arrayY:
     let returnDataTotal: InclinometerData[] = [];
     let returnDataArray: InclinometerData[][] = [];
 
+    let returnDataMax: InclinometerData[] = [];
+    let returnDataXMax: InclinometerData[] = [];
+    let returnDataYMax: InclinometerData[] = [];
+    let returnDataTotalMax: InclinometerData[] = [];
+
+    let returnDataXFullLength: InclinometerData[] = [];
+    let returnDataYFullLength: InclinometerData[] = [];
 
     const uniqueDates = getUniqueDates(arrayX)
     const numberOfDates = uniqueDates.length;
@@ -3632,9 +3651,25 @@ const getTableValues = (selectedInc: number, arrayX: InclinometerData[], arrayY:
     }
 
     let maxSensor = getNumberOfSensors(arrayX, selectedInc);
+    // if max location selected
+    let currentMaxDisplacementX : number = 0;
+    let maxDisplacementItemX : InclinometerData = {
+        inc: '',
+        sensorID: '',
+        field: '',
+        measurement: '',
+        time: '',
+        depth: 0,
+        value: 0,
+        cumulative: 0,
+        displacement: 0,
+        typeOfResult: selectedResult
+    };
+    let firstExecX : boolean = true;
 
     for (let i = 0; i < numberOfDates; i++) {
         let cumulative: number = 0;
+        firstExecX = true;
         for (const item of dataX[i]) {
             if (Number(item.inc) === selectedInc && item.field === "aX") {
                 if (selectedResult === resultsProfiles[0].name) {
@@ -3652,13 +3687,30 @@ const getTableValues = (selectedInc: number, arrayX: InclinometerData[], arrayY:
                         displacement: calculateDisplacement(item.inc, item.sensorID, cumulative, refDateDataX),
                         typeOfResult: selectedResult
                     };
-                    if(maxSensor === Number(item.sensorID)){
+                    if(firstExecX){
+                        maxDisplacementItemX = updatedItem;
+                        currentMaxDisplacementX = updatedItem.displacement;
+                        firstExecX = false;
+                    }
+
+                    if(selectedLocation === 'Max' && Math.abs(updatedItem.displacement) > Math.abs(currentMaxDisplacementX)){
+                        maxDisplacementItemX = updatedItem;
+                        currentMaxDisplacementX = updatedItem.displacement;
+                    }
+
+                    if(maxSensor === Number(item.sensorID) && selectedLocation === 'Surface'){
                         returnData.push(updatedItem);
                         returnDataX.push(updatedItem);
+                    }else if(maxSensor === Number(item.sensorID) && selectedLocation === 'Max'){
+                        returnData.push(updatedItem);
+                        returnDataX.push(updatedItem);
+                        returnDataMax.push(maxDisplacementItemX);
+                        returnDataXMax.push(maxDisplacementItemX);
                     }
+
+                    returnDataXFullLength.push(updatedItem)
                 } else if (selectedResult === resultsProfiles[1].name) {
-                    if(maxSensor === Number(item.sensorID)){
-                        const updatedItem: InclinometerData = {
+                    const updatedItem: InclinometerData = {
                             inc: item.inc,
                             sensorID: item.sensorID,
                             field: item.field,
@@ -3669,17 +3721,53 @@ const getTableValues = (selectedInc: number, arrayX: InclinometerData[], arrayY:
                             cumulative: 0,
                             displacement: calculateAngle(item.value),
                             typeOfResult: selectedResult
-                        };
+                    };
+                    if(firstExecX){
+                        maxDisplacementItemX = updatedItem;
+                        currentMaxDisplacementX = updatedItem.displacement;
+                        firstExecX = false;
+                    }
+
+                    if(selectedLocation === 'Max' && Math.abs(updatedItem.displacement) > Math.abs(currentMaxDisplacementX)){
+                        maxDisplacementItemX = updatedItem;
+                        currentMaxDisplacementX = updatedItem.displacement;
+                    }
+
+                    if(maxSensor === Number(item.sensorID) && selectedLocation === 'Surface'){
                         returnData.push(updatedItem);
                         returnDataX.push(updatedItem);
+                    }else if(maxSensor === Number(item.sensorID) && selectedLocation === 'Max'){
+                        returnData.push(updatedItem);
+                        returnDataX.push(updatedItem);
+                        returnDataMax.push(maxDisplacementItemX);
+                        returnDataXMax.push(maxDisplacementItemX);
                     }
+
+                    returnDataXFullLength.push(updatedItem)
                 }
             }
         }
     }
 
+    // if max location selected
+    let currentMaxDisplacementY : number = 0;
+    let maxDisplacementItemY : InclinometerData = {
+        inc: '',
+        sensorID: '',
+        field: '',
+        measurement: '',
+        time: '',
+        depth: 0,
+        value: 0,
+        cumulative: 0,
+        displacement: 0,
+        typeOfResult: selectedResult
+    };
+    let firstExecY : boolean = true;
+
     for (let i = 0; i < numberOfDates; i++) {
         let cumulativeY: number = 0;
+        firstExecY = true;
         for (const item of dataY[i]) {
             if (Number(item.inc) === selectedInc && item.field === "aY") {
                 if (selectedResult === resultsProfiles[0].name) {
@@ -3698,13 +3786,29 @@ const getTableValues = (selectedInc: number, arrayX: InclinometerData[], arrayY:
                         displacement: calculateDisplacement(item.inc, item.sensorID, cumulativeY, refDateDataY),
                         typeOfResult: selectedResult
                     };
-                    if(maxSensor === Number(item.sensorID)){
+                    if(firstExecY){
+                        maxDisplacementItemY = updatedItem;
+                        currentMaxDisplacementY = updatedItem.displacement;
+                        firstExecY = false;
+                    }
+                    if(selectedLocation === 'Max' && Math.abs(updatedItem.displacement) > Math.abs(currentMaxDisplacementY)){
+                        maxDisplacementItemY = updatedItem;
+                        currentMaxDisplacementY = updatedItem.displacement;
+                    }
+
+                    if(maxSensor === Number(item.sensorID) && selectedLocation === 'Surface'){
                         returnData.push(updatedItem);
                         returnDataY.push(updatedItem);
+                    }else if(maxSensor === Number(item.sensorID) && selectedLocation === 'Max'){
+                        returnData.push(updatedItem);
+                        returnDataY.push(updatedItem);
+                        returnDataMax.push(maxDisplacementItemY);
+                        returnDataYMax.push(maxDisplacementItemY);
                     }
+
+                    returnDataYFullLength.push(updatedItem)
                 } else if (selectedResult === resultsProfiles[1].name) {
-                    if(maxSensor === Number(item.sensorID)){
-                        const updatedItem: InclinometerData = {
+                    const updatedItem: InclinometerData = {
                             inc: item.inc,
                             sensorID: item.sensorID,
                             field: item.field,
@@ -3716,17 +3820,132 @@ const getTableValues = (selectedInc: number, arrayX: InclinometerData[], arrayY:
                             displacement: calculateAngle(item.value),
                             typeOfResult: selectedResult
                         };
+                    if(firstExecY){
+                        maxDisplacementItemY = updatedItem;
+                        currentMaxDisplacementY = updatedItem.displacement;
+                        firstExecY = false;
+                    }
+                    if(selectedLocation === 'Max' && Math.abs(updatedItem.displacement) > Math.abs(currentMaxDisplacementY)){
+                        maxDisplacementItemY = updatedItem;
+                        currentMaxDisplacementY = updatedItem.displacement;
+                    }
+                    if(maxSensor === Number(item.sensorID) && selectedLocation === 'Surface'){
                         returnData.push(updatedItem);
                         returnDataY.push(updatedItem);
+                    }else if(maxSensor === Number(item.sensorID) && selectedLocation === 'Max'){
+                        returnData.push(updatedItem);
+                        returnDataY.push(updatedItem);
+                        returnDataMax.push(maxDisplacementItemY);
+                        returnDataYMax.push(maxDisplacementItemY);
                     }
+
+                    returnDataYFullLength.push(updatedItem)
                 }
             }
         }
     }
 
+    // if max location selected
+    /*let currentMaxDisplacementT : number = 0;
+    let maxDisplacementItemT : InclinometerData = {
+        inc: '',
+        sensorID: '',
+        field: '',
+        measurement: '',
+        time: '',
+        depth: 0,
+        value: 0,
+        cumulative: 0,
+        displacement: 0,
+        typeOfResult: selectedResult
+    };
+    let currentMaxDisplacementTX : number = 0;
+    let maxDisplacementItemTX : InclinometerData = {
+        inc: '',
+        sensorID: '',
+        field: '',
+        measurement: '',
+        time: '',
+        depth: 0,
+        value: 0,
+        cumulative: 0,
+        displacement: 0,
+        typeOfResult: selectedResult
+    };
+    let currentMaxDisplacementTY : number = 0;
+    let maxDisplacementItemTY : InclinometerData = {
+        inc: '',
+        sensorID: '',
+        field: '',
+        measurement: '',
+        time: '',
+        depth: 0,
+        value: 0,
+        cumulative: 0,
+        displacement: 0,
+        typeOfResult: selectedResult
+    };*/
+
     for (let i = 0; i < numberOfDates; i++) {
         let tempData = returnData;
         let found = false;
+        let foundX = false;
+        let foundY = false;
+
+        // if max location selected
+        let currentMaxDisplacementT : number = 0;
+        let maxDisplacementItemT : InclinometerData = {
+            inc: '',
+            sensorID: '',
+            field: '',
+            measurement: '',
+            time: '',
+            depth: 0,
+            value: 0,
+            cumulative: 0,
+            displacement: 0,
+            typeOfResult: selectedResult
+        };
+        let currentMaxDisplacementTX : number = 0;
+        let maxDisplacementItemTX : InclinometerData = {
+            inc: '',
+            sensorID: '',
+            field: '',
+            measurement: '',
+            time: '',
+            depth: 0,
+            value: 0,
+            cumulative: 0,
+            displacement: 0,
+            typeOfResult: selectedResult
+        };
+        let currentMaxDisplacementTY : number = 0;
+        let maxDisplacementItemTY : InclinometerData = {
+            inc: '',
+            sensorID: '',
+            field: '',
+            measurement: '',
+            time: '',
+            depth: 0,
+            value: 0,
+            cumulative: 0,
+            displacement: 0,
+            typeOfResult: selectedResult
+        };
+        let xTempArray = [];
+        let yTempArray = [];
+        if(selectedLocation === 'Max'){
+            if(returnDataYMax.length >= i + 1){
+                xTempArray = returnDataXFullLength.filter(x => x.sensorID === returnDataYMax[i].sensorID && x.time === returnDataYMax[i].time && x.field !== returnDataYMax[i].field)
+                maxDisplacementItemTX = xTempArray[0];
+                currentMaxDisplacementTX = xTempArray[0].displacement
+            }
+            if(returnDataXMax.length >= i + 1){
+                yTempArray = returnDataYFullLength.filter(x => x.sensorID === returnDataXMax[i].sensorID && x.time === returnDataXMax[i].time && x.field !== returnDataXMax[i].field)
+                maxDisplacementItemTY = yTempArray[0];
+                currentMaxDisplacementTY = yTempArray[0].displacement
+            }
+        }
         tempData.map(g => {
             if (g.time === uniqueDates[i]) {
                 tempData.map(y => {
@@ -3745,22 +3964,203 @@ const getTableValues = (selectedInc: number, arrayX: InclinometerData[], arrayY:
                             displacement: calculateTotal(g.displacement, y.displacement),
                             typeOfResult: selectedResult
                         };
-                        returnData.push(updatedItem);
-                        returnDataTotal.push(updatedItem);
+                        //returnData.push(updatedItem);
+                        //returnDataTotal.push(updatedItem);
                         found = true;
+                        maxDisplacementItemT = updatedItem;
+                        currentMaxDisplacementT = updatedItem.displacement
+
                     }
+                    /*if(selectedLocation === 'Max'){
+                    if (returnDataXMax[i].sensorID === y.sensorID && returnDataXMax[i].time === y.time && returnDataXMax[i].field !== y.field && !foundX) {
+                        //g.field = "total"
+                        //g.displacement = calculateTotal(g.displacement, y.displacement);
+                        const updatedItem: InclinometerData = {
+                            inc: g.inc,
+                            sensorID: g.sensorID,
+                            field: "total",
+                            measurement: g.measurement,
+                            time: g.time,
+                            depth: getDepth(dataX[i], Number(g.inc), g.depth),
+                            value: calculateAngle(g.value),
+                            cumulative: 0,
+                            displacement: calculateTotal(returnDataXMax[i].displacement, y.displacement),
+                            typeOfResult: selectedResult
+                        };
+                        //returnDataMax.push(updatedItem);
+                        //returnDataXMax.push(updatedItem);
+                        foundX = true;
+                        maxDisplacementItemTX = updatedItem;
+                        currentMaxDisplacementTX = updatedItem.displacement
+                    }
+                    if (returnDataYMax[i].sensorID === y.sensorID && returnDataYMax[i].time === y.time && returnDataYMax[i].field !== y.field && !foundY) {
+                        //g.field = "total"
+                        //g.displacement = calculateTotal(g.displacement, y.displacement);
+                        const updatedItem: InclinometerData = {
+                            inc: g.inc,
+                            sensorID: g.sensorID,
+                            field: "total",
+                            measurement: g.measurement,
+                            time: g.time,
+                            depth: getDepth(dataY[i], Number(g.inc), g.depth),
+                            value: calculateAngle(g.value),
+                            cumulative: 0,
+                            displacement: calculateTotal(returnDataYMax[i].displacement, y.displacement),
+                            typeOfResult: selectedResult
+                        };
+                        //returnDataMax.push(updatedItem);
+                        //returnDataYMax.push(updatedItem);
+                        foundY = true;
+                        maxDisplacementItemTY = updatedItem;
+                        currentMaxDisplacementTY = updatedItem.displacement
+                    }
+                    }*/
                 })
             }
         })
+
+        if(selectedLocation === 'Max'){
+            if(Math.abs(currentMaxDisplacementT) >= Math.abs(currentMaxDisplacementTX) && Math.abs(currentMaxDisplacementT) >= Math.abs(currentMaxDisplacementTY)){
+                if(maxDisplacementItemT.inc !== ''){
+                    returnDataMax.push(maxDisplacementItemT)
+                    returnDataTotalMax.push(maxDisplacementItemT);
+                }
+            }else if (Math.abs(currentMaxDisplacementTX) >= Math.abs(currentMaxDisplacementT) && Math.abs(currentMaxDisplacementTX) >= Math.abs(currentMaxDisplacementTY)){
+                let newReturnDataY = makeCalcAgain(maxDisplacementItemX, 'Y', numberOfDates, dataY, selectedInc, selectedResult, refDateDataY)
+                let xLength = returnDataXMax.length;
+                returnDataMax[i] = returnDataXMax[i];
+                returnDataMax[xLength-1+i] = newReturnDataY[i];
+                returnDataYMax[i] = newReturnDataY[i];
+                returnDataMax.push(maxDisplacementItemTX);
+                returnDataTotalMax.push(maxDisplacementItemTX);
+            }else{
+                let newReturnDataX = makeCalcAgain(maxDisplacementItemY, 'X', numberOfDates, dataX, selectedInc, selectedResult, refDateDataX)
+                let xLength = newReturnDataX.length;
+                returnDataMax[i] = newReturnDataX[i];
+                returnDataXMax[i] = newReturnDataX[i];
+                returnDataMax[xLength-1+i] = returnDataYMax[i];
+                returnDataMax.push(maxDisplacementItemTY);
+                returnDataTotalMax.push(maxDisplacementItemTY);
+            }
+        }else{
+            returnData.push(maxDisplacementItemT)
+            returnDataTotal.push(maxDisplacementItemT);
+        }
     }
 
-    returnDataArray.push(returnData);
-    returnDataArray.push(returnDataX);
-    returnDataArray.push(returnDataY);
-    returnDataArray.push(returnDataTotal);
-
+    if(selectedLocation === 'Max'){
+        let newTemp = returnDataXMax.concat(returnDataYMax).concat(returnDataTotalMax)
+        returnDataArray.push(newTemp);//returnDataMax);
+        returnDataArray.push(returnDataXMax);
+        returnDataArray.push(returnDataYMax);
+        returnDataArray.push(returnDataTotalMax);
+    }else{
+        returnDataArray.push(returnData);
+        returnDataArray.push(returnDataX);
+        returnDataArray.push(returnDataY);
+        returnDataArray.push(returnDataTotal);
+    }
     return returnDataArray;
 };
+
+const makeCalcAgain = (maxDisplacementItem: InclinometerData, orthoNeeded: string, numberOfDates: number, data: InclinometerData[][], selectedInc: number, selectedResult: string, refDateData: InclinometerData[]) : InclinometerData[] =>{
+    let returnData : InclinometerData[] = [];
+
+    if(orthoNeeded === 'X'){
+        for (let i = 0; i < numberOfDates; i++) {
+            let cumulative: number = 0;
+            for (const item of data[i]) {
+                if (Number(item.inc) === selectedInc && item.field === "aX") {
+                    if (selectedResult === resultsProfiles[0].name) {
+                        let val = Math.abs(calculateAngle(item.value));
+                        cumulative += val;
+                        const updatedItem: InclinometerData = {
+                            inc: item.inc,
+                            sensorID: item.sensorID,
+                            field: item.field,
+                            measurement: item.measurement,
+                            time: item.time,
+                            depth: getDepth(data[i], Number(item.inc), item.depth),
+                            value: val,
+                            cumulative: cumulative,
+                            displacement: calculateDisplacement(item.inc, item.sensorID, cumulative, refDateData),
+                            typeOfResult: selectedResult
+                        };
+
+                        if(Number(maxDisplacementItem.sensorID) === Number(item.sensorID)){
+                            returnData.push(updatedItem);
+                        }
+                    } else if (selectedResult === resultsProfiles[1].name) {
+                        if(Number(maxDisplacementItem.sensorID) === Number(item.sensorID)){
+                            const updatedItem: InclinometerData = {
+                                inc: item.inc,
+                                sensorID: item.sensorID,
+                                field: item.field,
+                                measurement: item.measurement,
+                                time: item.time,
+                                depth: getDepth(data[i], Number(item.inc), item.depth),
+                                value: calculateAngle(item.value),
+                                cumulative: 0,
+                                displacement: calculateAngle(item.value),
+                                typeOfResult: selectedResult
+                            };
+
+                            returnData.push(updatedItem);
+                        }
+                    }
+                }
+            }
+        }
+    }else{
+        for (let i = 0; i < numberOfDates; i++) {
+            let cumulativeY: number = 0;
+            for (const item of data[i]) {
+                if (Number(item.inc) === selectedInc && item.field === "aY") {
+                    if (selectedResult === resultsProfiles[0].name) {
+                        let val = Math.abs(calculateAngle(item.value));
+                        cumulativeY += val;
+
+                        const updatedItem: InclinometerData = {
+                            inc: item.inc,
+                            sensorID: item.sensorID,
+                            field: item.field,
+                            measurement: item.measurement,
+                            time: item.time,
+                            depth: getDepth(data[i], Number(item.inc), item.depth),
+                            value: val,
+                            cumulative: cumulativeY,
+                            displacement: calculateDisplacement(item.inc, item.sensorID, cumulativeY, refDateData),
+                            typeOfResult: selectedResult
+                        };
+
+                        if(Number(maxDisplacementItem.sensorID) === Number(item.sensorID)){
+                            returnData.push(updatedItem);
+
+                        }
+                    } else if (selectedResult === resultsProfiles[1].name) {
+                        if(Number(maxDisplacementItem.sensorID) === Number(item.sensorID)) {
+                            const updatedItem: InclinometerData = {
+                                inc: item.inc,
+                                sensorID: item.sensorID,
+                                field: item.field,
+                                measurement: item.measurement,
+                                time: item.time,
+                                depth: getDepth(data[i], Number(item.inc), item.depth),
+                                value: calculateAngle(item.value),
+                                cumulative: 0,
+                                displacement: calculateAngle(item.value),
+                                typeOfResult: selectedResult
+                            };
+
+                            returnData.push(updatedItem);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return returnData;
+}
 
 
 function ResultsVisualization() {
@@ -4671,8 +5071,13 @@ function ResultsVisualization() {
 
         //if(selectedProfile.name === "All"){
             for (let i = 0; i < numberOfInc.length; i++){
-                let generatedData = getTableValues(Number(numberOfInc[i]), filteredDataArrayX, filteredDataArrayY, refDateDataX, refDateDataY, selectedResultsProfiles.name, 'Surface');
-                //console.log(generatedData)
+                let generatedData;
+                if(selectedLocation.name === locations[0].name) {
+                    generatedData = getTableValues(Number(numberOfInc[i]), filteredDataArrayX, filteredDataArrayY, refDateDataX, refDateDataY, selectedResultsProfiles.name, 'Surface');
+                }else{
+                    generatedData = getTableValues(Number(numberOfInc[i]), filteredDataArrayX, filteredDataArrayY, refDateDataX, refDateDataY, selectedResultsProfiles.name, 'Max');
+                }
+
                 let mostRecentDate = ""
                 if(generatedData[1].length !== 0){
                     mostRecentDate = getMostRecentDate(generatedData[1]);
@@ -4681,17 +5086,33 @@ function ResultsVisualization() {
                 arrowsBPointValuesAux.push(generatedData[2].filter(item => item.time === mostRecentDate))
                 arrowsTotalPointValuesAux.push(generatedData[3].filter(item => item.time === mostRecentDate))
 
-                for(let j = 0; j < uniqueDates.length; j++){
-                    let tempData = generatedData[0].filter(item => item.time === uniqueDates[j])
-                    //console.log(tempData)
-                    if(tempData.length > 0){
-                        let newData = createTableData(counter, Number(numberOfInc[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, 'Surface', Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
-                        let newDataA = createTableData(counter, Number(numberOfInc[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, 'Surface', Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
-                        let newDataB = createTableData(counter, Number(numberOfInc[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, 'Surface', Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
-                        counter++;
-                        newTableRows.push(newData)
-                        newTableRowsA.push(newDataA)
-                        newTableRowsB.push(newDataB)
+                if(selectedLocation.name === locations[0].name){
+                    for(let j = 0; j < uniqueDates.length; j++){
+                        let tempData = generatedData[0].filter(item => item.time === uniqueDates[j])
+                        if(tempData.length > 0){
+                            let newData = createTableData(counter, Number(numberOfInc[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, 'Surface', Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
+                            let newDataA = createTableData(counter, Number(numberOfInc[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, 'Surface', Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
+                            let newDataB = createTableData(counter, Number(numberOfInc[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, 'Surface', Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
+                            counter++;
+                            newTableRows.push(newData)
+                            newTableRowsA.push(newDataA)
+                            newTableRowsB.push(newDataB)
+                        }
+                    }
+                }else{
+                    //let maxDisplacement = 0;
+                    let maxSensor = getNumberOfSensors(filteredDataArrayX, Number(numberOfInc[i]))
+                    for(let j = 0; j < uniqueDates.length; j++){
+                        let tempData = generatedData[0].filter(item => item.time === uniqueDates[j])
+                        if(tempData.length > 0){
+                            let newData = createTableData(counter, Number(numberOfInc[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, (Number(tempData[2].sensorID) === maxSensor) ? 'Surface' : tempData[2].sensorID, Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
+                            let newDataA = createTableData(counter, Number(numberOfInc[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, tempData[0].sensorID, Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
+                            let newDataB = createTableData(counter, Number(numberOfInc[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, tempData[1].sensorID, Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
+                            counter++;
+                            newTableRows.push(newData)
+                            newTableRowsA.push(newDataA)
+                            newTableRowsB.push(newDataB)
+                        }
                     }
                 }
             }
@@ -4775,7 +5196,7 @@ function ResultsVisualization() {
             }
             setSelectedProfileArrayChartDataY(tempArray)
         }
-    }, [selectedProfile, checkedDates, selectedOrthoDirection, selectedResultsProfiles]);
+    }, [selectedProfile, checkedDates, selectedOrthoDirection, selectedResultsProfiles, selectedLocation]);
 
     useEffect(() => {
         let profileLine: number[] = [];
@@ -5193,7 +5614,8 @@ function ResultsVisualization() {
 
     const [selectedExport, setSelectedExport] = useState(exportSelect[0])
 
-    const [rotationNorth, setRotationNorth] = useState<number>(0);
+    const [rotationNorth, setRotationNorth] = useState<number>(0)
+    const [rotationAB, setRotationAB] = useState<number>(225);
 
     const handleRotateNorth = (angle: number) => {
         setRotationNorth(angle);
@@ -7217,6 +7639,12 @@ function ResultsVisualization() {
                                         </div>
                                     )}
                                     <div className="pl-5 pb-5">
+                                        <div style={{paddingBottom: '25px', paddingLeft: '10px', paddingTop: '30px'}}>
+                                        <Listbox>
+                                            <Listbox.Label
+                                                className="block text-lg font-medium leading-6 text-gray-900 text-left">Azimute</Listbox.Label>
+                                        </Listbox>
+                                        </div>
                                     <div
                                         className="azimute">
                                         <img
@@ -7224,6 +7652,7 @@ function ResultsVisualization() {
                                             width="200"
                                             height="200"
                                             className="base-image"
+                                            style={{ transform: `rotate(${rotationAB}deg)` }}
                                         />
                                         <img
                                             src="/azimuteArrow.png"
@@ -7233,6 +7662,8 @@ function ResultsVisualization() {
                                             style={{ transform: `translate(-50%, -50%) rotate(${rotationNorth}deg)` }}
                                         />
                                     </div>
+                                    </div>
+                                    <div style={{paddingBottom: '20px'}}>
                                     </div>
                                 </div>
                             </div>
