@@ -1,9 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit';
 import userReducer, { setUser } from './user';
+import monitoringProfileReducer from './monitoringProfile';
+import measurementsReducer from './settings';
+
 export const store = configureStore({
     reducer: {
         user: userReducer,
-
+        mp: monitoringProfileReducer,
+        measurements: measurementsReducer
     },
     //middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat([logger]),
 });

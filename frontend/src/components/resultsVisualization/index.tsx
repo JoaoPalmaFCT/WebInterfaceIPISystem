@@ -759,19 +759,23 @@ const locations = [
 const profiles = [
     {
         id: 1,
-        name: 'All',
+        name: 'All - Plan',
     },
     {
         id: 2,
-        name: 'Crest',
+        name: 'Profile 5 - Cross Section',
     },
     {
         id: 3,
-        name: 'Mid-slope',
+        name: 'Profile 7 - Cross Section',
     },
     {
         id: 4,
-        name: 'Toe',
+        name: 'Profile 9  - Cross Section',
+    },
+    {
+        id: 5,
+        name: 'Profile 13  - Cross Section',
     }
 ]
 
@@ -2523,7 +2527,7 @@ const ChartProfileA: React.FC<ChartPropsProfileInc> = ({
                                     }]}
                                 >
                                     <Label
-                                        value={`Depth (m)`}
+                                        value={`Elevation (m)`}
                                         position="left"
                                         angle={-90}
                                         dy={-30}
@@ -5166,30 +5170,47 @@ function ResultsVisualization() {
 
         let profileInc: number[] = [];
         if(selectedProfile.name === profiles[1].name){
-            setProfileIncChart([1,3,6,9])
+            /*setProfileIncChart([1,3,6,9])
             setDepthProfilesArray([31.5,39.5,51,34.5])
             setMaxProfileDepth(51)
-            profileInc = [1,3,6,9];
+            profileInc = [1,3,6,9];*/
+            setProfileIncChart([1,2])
+            setDepthProfilesArray([31.5,14.5])
+            setMaxProfileDepth(31.5)
+            profileInc = [1,2];
         }else if(selectedProfile.name === profiles[2].name){
-            setProfileIncChart([2,4,10])
+            /*setProfileIncChart([2,4,10])
             setDepthProfilesArray([14.5,26,20])
             setMaxProfileDepth(26)
-            profileInc = [2,4,10];
+            profileInc = [2,4,10];*/
+            setProfileIncChart([3,4,5])
+            setDepthProfilesArray([39.5,26,16.5])
+            setMaxProfileDepth(39.5)
+            profileInc = [3,4,5];
         }else if(selectedProfile.name === profiles[3].name){
-            setProfileIncChart([5,8])
+            /*setProfileIncChart([5,8])
             setDepthProfilesArray([16.5,20.5])
             setMaxProfileDepth(20.5)
-            profileInc = [5,8];
+            profileInc = [5,8];*/
+            setProfileIncChart([6,8])
+            setDepthProfilesArray([51,20.5])
+            setMaxProfileDepth(51)
+            profileInc = [6,8];
+        }else if(selectedProfile.name === profiles[4].name){
+            setProfileIncChart([9,10])
+            setDepthProfilesArray([34.5,20])
+            setMaxProfileDepth(34.5)
+            profileInc = [9,10];
         }
 
-        if(selectedProfile.name !== "All" && selectedOrthoDirection.name === "A"){
+        if(selectedProfile.name !== "All - Plan" && selectedOrthoDirection.name === "A"){
             let tempArray: InclinometerData[][] = [];
             for (let i = 0; i < profileInc.length; i++) {
                 tempArray[i] = getDataArrayX(profileInc[i], filteredDataArrayX, refDateDataX, selectedResultsProfiles.name)
             }
             setSelectedProfileArrayChartDataX(tempArray)
 
-        }else if(selectedProfile.name !== "All" && selectedOrthoDirection.name === "B"){
+        }else if(selectedProfile.name !== "All - Plan" && selectedOrthoDirection.name === "B"){
             let tempArray: InclinometerData[][] = [];
             for (let i = 0; i < profileInc.length; i++) {
                 tempArray[i] = getDataArrayY(profileInc[i], filteredDataArrayY, refDateDataY, selectedResultsProfiles.name)
@@ -5201,20 +5222,37 @@ function ResultsVisualization() {
     useEffect(() => {
         let profileLine: number[] = [];
         if(selectedProfile.name === profiles[1].name){
-            setProfileIncChart([1,3,6,9])
+            /*setProfileIncChart([1,3,6,9])
             setDepthProfilesArray([31.5,39.5,51,34.5])
             setMaxProfileDepth(51)
-            profileLine = [1,3,6,9];
+            profileInc = [1,3,6,9];*/
+            setProfileIncChart([1,2])
+            setDepthProfilesArray([31.5,14.5])
+            setMaxProfileDepth(31.5)
+            profileLine = [1,2];
         }else if(selectedProfile.name === profiles[2].name){
-            setProfileIncChart([2,4,10])
+            /*setProfileIncChart([2,4,10])
             setDepthProfilesArray([14.5,26,20])
             setMaxProfileDepth(26)
-            profileLine = [2,4,10];
+            profileInc = [2,4,10];*/
+            setProfileIncChart([3,4,5])
+            setDepthProfilesArray([39.5,26,16.5])
+            setMaxProfileDepth(39.5)
+            profileLine = [3,4,5];
         }else if(selectedProfile.name === profiles[3].name){
-            setProfileIncChart([5,8])
+            /*setProfileIncChart([5,8])
             setDepthProfilesArray([16.5,20.5])
             setMaxProfileDepth(20.5)
-            profileLine = [5,8];
+            profileInc = [5,8];*/
+            setProfileIncChart([6,8])
+            setDepthProfilesArray([51,20.5])
+            setMaxProfileDepth(51)
+            profileLine = [6,8];
+        }else if(selectedProfile.name === profiles[4].name){
+            setProfileIncChart([9,10])
+            setDepthProfilesArray([34.5,20])
+            setMaxProfileDepth(34.5)
+            profileLine = [9,10];
         }
         handleToogleProfileLine(profileLine);
     }, [selectedProfile]);
@@ -5544,7 +5582,7 @@ function ResultsVisualization() {
     };
 
     const handleToogleProfileLine = (profileLine: number[]) => {
-        if (selectedProfile.name !== "All") {
+        if (selectedProfile.name !== "All - Plan") {
             if (stageRef.current) {
                 let stage = stageRef.current;
                 if(profileLineLayerRef.current !== null){
@@ -5586,12 +5624,19 @@ function ResultsVisualization() {
                 }
 
                 let arrayLength = pointsArray.length;
-                pointsArray.push(pointsArray[arrayLength-2]+100)
+                //horizontal line
+                /*pointsArray.push(pointsArray[arrayLength-2]+100)
                 pointsArray.push(pointsArray[arrayLength-1]-25)
                 let auxPoint1 = pointsArray[0];
                 let auxPoint2 = pointsArray[1];
-                pointsArray.unshift(auxPoint1-100, auxPoint2+25)
-
+                pointsArray.unshift(auxPoint1-100, auxPoint2+25)*/
+                //vertical line
+                pointsArray.push(pointsArray[arrayLength-2]+20)
+                pointsArray.push(pointsArray[arrayLength-1]+70)
+                let auxPoint1 = pointsArray[0];
+                let auxPoint2 = pointsArray[1];
+                pointsArray.unshift(auxPoint1-20, auxPoint2-70)
+                
                 let line = new Konva.Line({
                     points: pointsArray,
                     stroke: 'green',
@@ -7048,6 +7093,8 @@ function ResultsVisualization() {
                 /*
                  * PROFILE SECTION
                  */
+                <div className="row-container">
+                    <div>
                 <div
                     className="row-container">
                     <div
@@ -7469,7 +7516,7 @@ function ResultsVisualization() {
                         <div
                             className="row-container left-column-profile">
                             <div
-                                className="column-container middle-column">
+                                className="column-container middle-column-p">
                                 <div
                                     className="middle-col-select">
                                     <div
@@ -7554,7 +7601,7 @@ function ResultsVisualization() {
                                             )}
                                         </Listbox>
                                     </div>
-                                    {selectedProfile.name !== "All" && (
+                                    {selectedProfile.name !== "All - Plan" && (
                                         <div
                                             className="filter-container-typeViz">
                                             <Listbox
@@ -7638,37 +7685,44 @@ function ResultsVisualization() {
                                             </Listbox>
                                         </div>
                                     )}
-                                    <div className="pl-5 pb-5">
-                                        <div style={{paddingBottom: '25px', paddingLeft: '10px', paddingTop: '30px'}}>
-                                        <Listbox>
-                                            <Listbox.Label
-                                                className="block text-lg font-medium leading-6 text-gray-900 text-left">Azimute</Listbox.Label>
-                                        </Listbox>
-                                        </div>
                                     <div
-                                        className="azimute">
-                                        <img
-                                            src="/azimuteWithoutArrow.png"
-                                            width="200"
-                                            height="200"
-                                            className="base-image"
-                                            style={{ transform: `rotate(${rotationAB}deg)` }}
-                                        />
-                                        <img
-                                            src="/azimuteArrow.png"
-                                            width="60"
-                                            height="60"
-                                            className="overlay-image"
-                                            style={{ transform: `translate(-50%, -50%) rotate(${rotationNorth}deg)` }}
-                                        />
+                                        className="pl-5 pb-5">
+                                        <div
+                                            style={{
+                                                paddingBottom: '25px',
+                                                paddingLeft: '10px',
+                                                paddingTop: '30px'
+                                            }}>
+                                            <Listbox>
+                                                <Listbox.Label
+                                                    className="block text-lg font-medium leading-6 text-gray-900 text-left">Azimute</Listbox.Label>
+                                            </Listbox>
+                                        </div>
+                                        <div
+                                            className="azimute">
+                                            <img
+                                                src="/azimuteWithoutArrow.png"
+                                                width="200"
+                                                height="200"
+                                                className="base-image"
+                                                style={{transform: `rotate(${rotationAB}deg)`}}
+                                            />
+                                            <img
+                                                src="/azimuteArrow.png"
+                                                width="60"
+                                                height="60"
+                                                className="overlay-image"
+                                                style={{transform: `translate(-50%, -50%) rotate(${rotationNorth}deg)`}}
+                                            />
+                                        </div>
                                     </div>
-                                    </div>
-                                    <div style={{paddingBottom: '20px'}}>
+                                    <div
+                                        style={{paddingBottom: '20px'}}>
                                     </div>
                                 </div>
                             </div>
                             <div
-                                className="column-container right-column">
+                                className="column-container right-column-p">
                                 <div
                                     className="filter-container-ref">
                                     <Listbox>
@@ -7865,7 +7919,7 @@ function ResultsVisualization() {
                                     className="filter-container-typeInputsLocation">
                                     <Listbox>
                                         <Listbox.Label
-                                            className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Show
+                                            className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Show displacement
                                             arrows</Listbox.Label>
                                     </Listbox>
                                     <div
@@ -7883,34 +7937,65 @@ function ResultsVisualization() {
                             </div>
                         </div>
                         <div
+                            style={{
+                                paddingTop: '20px',
+                                paddingBottom: '20px',
+                                width: '10%'
+                            }}>
+                            <Listbox>
+                                <Listbox.Label
+                                    className="block text-lg font-medium leading-6 text-gray-900 text-left">Plan</Listbox.Label>
+                            </Listbox>
+                        </div>
+                        <div
                             id="konvaContainer"
-                            className="container-profile"></div>
-                        <div className="flex-charts-container">
-                        {(selectedProfile.name !== "All" && selectedOrthoDirection.name === "A") && selectedProfileArrayChartDataX.length > 0 &&(
-                            profileIncChart.map((inc, index) => (
-                                <div className="chart-wrapper2" key={index}>
-                                    <ChartProfileA
-                                        graphData={selectedProfileArrayChartDataX[index]}
-                                        loadingData={loadingData}
-                                        maxDepthOverall={maxProfileDepth}
-                                        maxDepthInc={depthProfilesArray[index]}
-                                        maxData={maxProfileDisplacementX+2}
-                                        inc={inc}
-                                        numberOfTotalInc={profileIncChart.length}
-                                        leftChart={index === 0}
-                                    />
-                                </div>))
-
-                        )}
-                            {(selectedProfile.name !== "All" && selectedOrthoDirection.name === "B") && selectedProfileArrayChartDataY.length > 0 &&(
+                            className="container-profile-p"></div>
+                        {(selectedProfile.name !== "All - Plan") && (<div>
+                            <div
+                            style={{
+                                paddingTop: '20px',
+                                paddingBottom: '20px',
+                                width: '20%'
+                            }}>
+                            <Listbox>
+                                <Listbox.Label
+                                    className="block text-lg font-medium leading-6 text-gray-900 text-left">Cross-Section</Listbox.Label>
+                            </Listbox>
+                        </div>
+                            <img src="https://firebasestorage.googleapis.com/v0/b/webipisystemimagestorage.appspot.com/o/profiles%2FInclinometers_perfil5_v2.svg?alt=media&token=53a9f417-d178-426d-b26f-8ca05bd481ad"
+                            width="600" height="400" alt="" style={{border: '1px solid black'}}/>
+                        </div>)}
+                        <div
+                            className="flex-charts-container">
+                            {(selectedProfile.name !== "All - Plan" && selectedOrthoDirection.name === "A") && selectedProfileArrayChartDataX.length > 0 && (
                                 profileIncChart.map((inc, index) => (
-                                    <div className="chart-wrapper2" key={index}>
+                                    <div
+                                        className="chart-wrapper2"
+                                        key={index}>
+                                        <ChartProfileA
+                                            graphData={selectedProfileArrayChartDataX[index]}
+                                            loadingData={loadingData}
+                                            maxDepthOverall={maxProfileDepth}
+                                            maxDepthInc={depthProfilesArray[index]}
+                                            maxData={maxProfileDisplacementX + 2}
+                                            inc={inc}
+                                            numberOfTotalInc={profileIncChart.length}
+                                            leftChart={index === 0}
+                                        />
+                                    </div>))
+
+                            )}
+                            {(selectedProfile.name !== "All - Plan" && selectedOrthoDirection.name === "B") && selectedProfileArrayChartDataY.length > 0 && (
+                                profileIncChart.map((inc, index) => (
+                                    <div
+                                        className="chart-wrapper2"
+                                        key={index}>
                                         <ChartProfileA
                                             graphData={selectedProfileArrayChartDataY[index]}
                                             loadingData={loadingData}
                                             maxDepthOverall={maxProfileDepth}
                                             maxDepthInc={depthProfilesArray[index]}
-                                            maxData={maxProfileDisplacementY+2}
+                                            maxData={maxProfileDisplacementY + 2}
                                             inc={inc}
                                             numberOfTotalInc={profileIncChart.length}
                                             leftChart={index === 0}
@@ -7919,103 +8004,106 @@ function ResultsVisualization() {
 
                             )}
                         </div>
-                        {(selectedProfile.name !== "All" && selectedOrthoDirection.name === "B") && (
-                            <div>
+                    </div>
+                </div>
+                        <div>
+                            {(selectedProfile.name !== "All - Plan" && selectedOrthoDirection.name === "B") && (
+                                <div>
 
-                            </div>
-                        )}
-                        <div
-                            className="filter-container-typeSummary">
-                            <Listbox>
-                            <Listbox.Label
-                                    className="block text-lg font-medium leading-6 text-gray-900 text-left pb-2">Summary
+                                </div>
+                            )}
+                            <div
+                                className="filter-container-typeSummary">
+                                <Listbox>
+                                    <Listbox.Label
+                                        className="block text-lg font-medium leading-6 text-gray-900 text-left pb-2">Summary
                                     of
                                     Results</Listbox.Label>
                             </Listbox>
                         </div>
-                        {selectedProfile.name === "All" && (
-                        <Box
-                            sx={{width: '100%'}}>
-                            <Paper
-                                sx={{
-                                    width: '100%',
-                                    mb: 2
-                                }}>
-                                <TableContainer>
-                                    <Table
-                                        sx={{minWidth: 750}}
-                                        aria-labelledby="tableTitle"
-                                        size={dense ? 'small' : 'medium'}
-                                    >
-                                        <EnhancedTableHead
-                                            order={order}
-                                            orderBy={orderBy}
-                                            onRequestSort={handleRequestSort}
-                                            rowCount={rows.length}
-                                        />
-                                        <TableBody>
-                                            {visibleRows.map((row, index) => {
-                                                const labelId = `enhanced-table-checkbox-${index}`;
+                        {selectedProfile.name === "All - Plan" && (
+                            <Box
+                                sx={{width: '100%'}}>
+                                <Paper
+                                    sx={{
+                                        width: '100%',
+                                        mb: 2
+                                    }}>
+                                    <TableContainer>
+                                        <Table
+                                            sx={{minWidth: 750}}
+                                            aria-labelledby="tableTitle"
+                                            size={dense ? 'small' : 'medium'}
+                                        >
+                                            <EnhancedTableHead
+                                                order={order}
+                                                orderBy={orderBy}
+                                                onRequestSort={handleRequestSort}
+                                                rowCount={rows.length}
+                                            />
+                                            <TableBody>
+                                                {visibleRows.map((row, index) => {
+                                                    const labelId = `enhanced-table-checkbox-${index}`;
 
-                                                return (
+                                                    return (
+                                                        <TableRow
+                                                            hover
+                                                            tabIndex={-1}
+                                                            key={row.id}
+                                                            sx={{cursor: 'pointer'}}
+                                                        >
+                                                            <TableCell
+                                                                component="th"
+                                                                id={labelId}
+                                                                scope="row"
+                                                                padding="none"
+                                                                align="center"
+                                                            >
+                                                                {row.inc}
+                                                            </TableCell>
+                                                            <TableCell
+                                                                align="center">{parseFloat(row.a.toFixed(2))}</TableCell>
+                                                            <TableCell
+                                                                align="center">{parseFloat(row.b.toFixed(2))}</TableCell>
+                                                            <TableCell
+                                                                align="center">{parseFloat(row.total.toFixed(2))}</TableCell>
+                                                            <TableCell
+                                                                align="center">{row.direction}</TableCell>
+                                                            <TableCell
+                                                                align="center">{row.node}</TableCell>
+                                                            <TableCell
+                                                                align="center">{row.level}</TableCell>
+                                                            <TableCell
+                                                                align="center">{row.date.split(" ")[0]}</TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })}
+                                                {emptyRows > 0 && (
                                                     <TableRow
-                                                        hover
-                                                        tabIndex={-1}
-                                                        key={row.id}
-                                                        sx={{cursor: 'pointer'}}
+                                                        style={{
+                                                            height: (dense ? 33 : 53) * emptyRows,
+                                                        }}
                                                     >
                                                         <TableCell
-                                                            component="th"
-                                                            id={labelId}
-                                                            scope="row"
-                                                            padding="none"
-                                                            align="center"
-                                                        >
-                                                            {row.inc}
-                                                        </TableCell>
-                                                        <TableCell
-                                                            align="center">{parseFloat(row.a.toFixed(2))}</TableCell>
-                                                        <TableCell
-                                                            align="center">{parseFloat(row.b.toFixed(2))}</TableCell>
-                                                        <TableCell
-                                                            align="center">{parseFloat(row.total.toFixed(2))}</TableCell>
-                                                        <TableCell
-                                                            align="center">{row.direction}</TableCell>
-                                                        <TableCell
-                                                            align="center">{row.node}</TableCell>
-                                                        <TableCell
-                                                            align="center">{row.level}</TableCell>
-                                                        <TableCell
-                                                            align="center">{row.date.split(" ")[0]}</TableCell>
+                                                            colSpan={6}/>
                                                     </TableRow>
-                                                );
-                                            })}
-                                            {emptyRows > 0 && (
-                                                <TableRow
-                                                    style={{
-                                                        height: (dense ? 33 : 53) * emptyRows,
-                                                    }}
-                                                >
-                                                    <TableCell
-                                                        colSpan={6}/>
-                                                </TableRow>
-                                            )}
-                                        </TableBody>
-                                    </Table>
-                                </TableContainer>
-                                <TablePagination
-                                    rowsPerPageOptions={[5, 10, 25]}
-                                    component="div"
-                                    count={rows.length}
-                                    rowsPerPage={rowsPerPage}
-                                    page={page}
-                                    onPageChange={handleChangePage}
-                                    onRowsPerPageChange={handleChangeRowsPerPage}
-                                    //sx={{ backgroundColor: '#22c55e' }}
-                                />
-                            </Paper>
-                        </Box>)}
-                        {(selectedProfile.name !== "All" && selectedOrthoDirection.name === "A") && (
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                    <TablePagination
+                                        rowsPerPageOptions={[5, 10, 25]}
+                                        component="div"
+                                        count={rows.length}
+                                        rowsPerPage={rowsPerPage}
+                                        page={page}
+                                        onPageChange={handleChangePage}
+                                        onRowsPerPageChange={handleChangeRowsPerPage}
+                                        //sx={{ backgroundColor: '#22c55e' }}
+                                    />
+                                </Paper>
+                            </Box>)}
+                        {(selectedProfile.name !== "All - Plan" && selectedOrthoDirection.name === "A") && (
                             <Box
                                 sx={{width: '100%'}}>
                                 <Paper
@@ -8091,7 +8179,7 @@ function ResultsVisualization() {
                                     />
                                 </Paper>
                             </Box>)}
-                        {(selectedProfile.name !== "All" && selectedOrthoDirection.name === "B") && (
+                        {(selectedProfile.name !== "All - Plan" && selectedOrthoDirection.name === "B") && (
                             <Box
                                 sx={{width: '100%'}}>
                                 <Paper
@@ -8167,6 +8255,7 @@ function ResultsVisualization() {
                                     />
                                 </Paper>
                             </Box>)}
+                    </div>
                     </div>
                 </div>
             )}

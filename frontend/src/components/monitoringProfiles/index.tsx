@@ -77,15 +77,51 @@ import {
 } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css';
 import markerIconPng from "leaflet/dist/images/marker-icon.png"
-import {
+import L, {
     Icon,
     LatLng
 } from 'leaflet'
+import {
+    useAppDispatch,
+    useMeasurementsSelector,
+    useMPSelector
+} from "../../store/hooks";
+import {
+    getMarkers,
+    getMonitoringProfileGroups,
+    getMonitoringProfiles,
+    getProfilePositionAdjustments
+} from "../../store/monitoringProfile";
+import {
+    getMeasurements
+} from "../../store/settings";
 
 const testData = [createData(1, 'Profiles1', 2, 40),
     createData(2, 'Profiles2', 1, 30)];
 
 const testIncValues = ['PK150_200', 10, "PK250_300", 30];
+
+interface Measurement {
+    id: number;
+    measurement: string;
+    host: string;
+    inclinometers: string
+}
+
+function createMeasurement(
+    id: number,
+    measurement: string,
+    host: string,
+    inclinometers: string
+): Measurement {
+    return {
+        id,
+        measurement,
+        host,
+        inclinometers
+    };
+}
+
 
 const testMeasurements = ['PK150_200', "PK250_300"];
 
@@ -828,6 +864,25 @@ function getStyles(measurement: string, selectedMeasurements: readonly string[],
 
 function MonitoringProfiles() {
 
+    const sessionToken: string = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJqb2FvQGdtYWlsLmNvbSIsImlhdCI6MTcxOTM1NDM3MSwiZXhwIjoxNzIxOTgyNDY3fQ.ABHn1JqMi-TI0tns0G09aC80gm5NfbH6Zb3zlW7EqkiFx7fyPhojx6DdxPQx1JgJK2iCwppVU3m1WVaqCNXvtA";
+    const dispatch = useAppDispatch()
+    const dbMeasurementsList = useMeasurementsSelector(state => state.measurements)
+    const dbMPGroups = useMPSelector(state => state.mpGroups)
+    const dbMPs = useMPSelector(state => state.mp)
+    const dbPosAdjust = useMPSelector(state => state.posAdjust)
+    const dbMarkers = useMPSelector(state => state.marker)
+    useEffect(() => {
+        dispatch(getMeasurements(sessionToken))
+        dispatch(getMonitoringProfileGroups(sessionToken))
+        dispatch(getMonitoringProfiles(sessionToken))
+        dispatch(getProfilePositionAdjustments(sessionToken))
+        /*if(selectedDetailedProfileID === 0){
+            dispatch(getMarkers(1,sessionToken))
+        }*/
+    }, [dispatch]);
+
+    const [measurements, setMeasurements] = React.useState<Measurement[]>([]);
+
     const [order, setOrder] = React.useState<Order>('asc');
     const [orderBy, setOrderBy] = React.useState<keyof ExistingMonitoringProfiles>('group');
     const [selected, setSelected] = React.useState<readonly number[]>([]);
@@ -856,7 +911,110 @@ function MonitoringProfiles() {
         }
     }, [firebaseInitialized]);*/
 
+
     useEffect(() => {
+        if(dbMeasurementsList != undefined){
+            let m = [];
+            let counterArray = 0;
+            for(let i = 0; i<(dbMeasurementsList ?? []).length; i++) {
+                let mIncString = dbMeasurementsList[i].inclinometers;
+                let incs:string[] = [];
+                if (mIncString !== undefined) {
+                    incs = mIncString.split("?");
+                } else {
+                    incs = [];
+                }
+
+                let measurementName = dbMeasurementsList[i].measurement;
+                let hostName = dbMeasurementsList[i].host;
+                if(measurementName !== undefined && hostName !== undefined){
+                    for (let j = 0; j < incs.length; j++) {
+                        m.push(createMeasurement(counterArray, measurementName,hostName,incs[j]))
+                        counterArray++;
+                    }
+                }
+            }
+            setMeasurements(m)
+
+            if(dbMPGroups !== undefined){
+                let groups = [];
+                for(let i = 0; i<(dbMPGroups ?? []).length; i++){
+                    let measurementsCounter = 0;
+                    let groupMeasurements:string[] = [];
+                    let groupMeasurementsString = dbMPGroups[i].measurements;
+
+                    if(groupMeasurementsString !== undefined){
+                        groupMeasurements = groupMeasurementsString.split("?");
+                    }else{
+                        groupMeasurements = [];
+                    }
+
+                    let incsPerMeasurements = 0;
+
+                    for(let j = 0; j<groupMeasurements.length; j++){
+                        let tempIncs = m.filter(mFilter => mFilter.measurement === groupMeasurements[j])
+                        incsPerMeasurements+=tempIncs.length;
+                        measurementsCounter++;
+                    }
+
+                    let mgId = dbMPGroups[i].monitoringGroupId;
+                    let mgGroup = dbMPGroups[i].group;
+                    if(mgId !== undefined && mgGroup !== undefined){
+                        groups.push(createData(mgId, mgGroup, measurementsCounter, incsPerMeasurements))
+                    }
+                }
+                setRows(groups)
+
+                setMonitoringProfiles([createDataMPG(1, 'Profiles1', 2, ['PK150_200', 'PK250_300'], 10),
+                    createDataMPG(2, 'Profiles2', 1, ['PK250_300'], 30)]);
+                setMonitoringProfilesTableData([createDataMP(1, 'Profiles1', 'All','All inclinometers in the dam (Plan)', typeOfProfile[0].name, true, 'https://firebasestorage.googleapis.com/v0/b/webipisystemimagestorage.appspot.com/o/profiles%2FimagePlan3.png?alt=media&token=06e79ca3-a159-47b7-9522-66de489f4c3f'),//'/profiles/imagePlan3.png'),
+                    createDataMP(2, 'Profiles1', 'Crest', 'Profile along the crest in the downstream site', typeOfProfile[1].name, false, '/profiles/NoImageFound.png'),
+                    createDataMP(3, 'Profiles1', 'P5', 'Profile P5', typeOfProfile[1].name, true, 'https://firebasestorage.googleapis.com/v0/b/webipisystemimagestorage.appspot.com/o/profiles%2FInclinometers_perfil5_v3.svg?alt=media&token=940d3b7e-e8bf-4458-a2bc-05f6cc4a4bd3'),
+                    createDataMP(4, 'Profiles2', 'P7', 'Profile P6', typeOfProfile[1].name, false, '/profiles/NoImageFound.png')
+                ]);
+
+                //let tempMarks = [];
+                let tempPoints = [];
+                let tempCoord = [];
+                let tempCorrected = [];
+                let tempManualCheck = [];
+                let tempPlanCheckboxs = [];
+                let tempCrossSectionCheckboxs = [];
+                for(let i = 0; i < 4; i++){
+                    //tempMarks.push(createPointMarkerPerProfile(i+1, []))
+                    tempPoints.push(createPointPerProfile(i+1, []))
+                    tempCoord.push(createLineCoordinatesPerProfile(i+1, []))
+                    tempCorrected.push(createCorrectedValuesPerProfile(i+1, []))
+                    tempManualCheck.push(createCheckCorrectedValues(i+1, false))
+                    tempPlanCheckboxs.push(createPlanCheckbox(i+1, false))
+                    tempCrossSectionCheckboxs.push(createCrossSectionCheckbox(i+1, false))
+                }
+                //setMarkersPerProfile(tempMarks);
+                setPointsPerProfile(tempPoints);
+                setLineCoordinatesPerProfile(tempCoord);
+                setCorrectedValuesPerProfile(tempCorrected);
+                setManuallyCorrectedLines(tempManualCheck)
+                setPlanCheckboxs(tempPlanCheckboxs)
+                setCrossSectionCheckboxs(tempCrossSectionCheckboxs)
+            }
+        }
+    },[dbMPGroups]);
+
+    const [markersInitialized, setMarkersInitialized] = React.useState(false);
+
+    useEffect(() => {
+        if(!markersInitialized){
+            let tempMarks = [];
+            for(let i = 0; i < 4; i++){
+                tempMarks.push(createPointMarkerPerProfile(i+1, []))
+            }
+            setMarkersPerProfile(tempMarks);
+            setMarkersInitialized(true)
+        }
+    }, [markersInitialized]);
+
+    //Test Data
+    /*useEffect(() => {
         setRows([createData(1, 'Profiles1', 2, 10),
             createData(2, 'Profiles2', 1, 30)]);
         setMonitoringProfiles([createDataMPG(1, 'Profiles1', 2, ['PK150_200', 'PK250_300'], 10),
@@ -890,7 +1048,7 @@ function MonitoringProfiles() {
         setManuallyCorrectedLines(tempManualCheck)
         setPlanCheckboxs(tempPlanCheckboxs)
         setCrossSectionCheckboxs(tempCrossSectionCheckboxs)
-    }, [page]);
+    }, [page]);*/
 
     // Monitoring profile groups
 
@@ -1575,6 +1733,7 @@ function MonitoringProfiles() {
     const [clickBottom, setClickBottom] = useState(false);
     const [selectedIncTopBottom, setSelectedIncTopBottom] = useState<number>(0);
     const [coordIncs, setCoordIncs] = useState<number[]>([]);
+
 
     useEffect(() => {
         console.log(selectedDetailedProfile)
@@ -2429,6 +2588,41 @@ function MonitoringProfiles() {
     const [manuallyCorrectedLines, setManuallyCorrectedLines] = useState<CheckCorrectedValues[]>([]);
     const [correctedValuesPerProfile, setCorrectedValuesPerProfile] = useState<CorrectedValuesPerProfile[]>([]);
     const [replaceLinesValues, setReplaceLinesValues] = useState(false);
+
+    /*useEffect(() => {
+        console.log(markersPerProfile[selectedDetailedProfileID]);
+    }, [selectedDetailedProfileID]);*/
+
+    useEffect(() => {
+        if(selectedDetailedProfileID === 0 || selectedDetailedProfileID === 2){
+            dispatch(getMarkers(selectedDetailedProfileID+1,sessionToken)).then(markers => {
+
+        if(markers !== undefined){
+            if(selectedDetailedProfile === "Profiles1: All" && selectedDetailedProfileID === 0 || selectedDetailedProfile === "Profiles1: P5" && selectedDetailedProfileID === 2){
+                console.log(selectedDetailedProfile + " | " + selectedDetailedProfileID)
+                console.log(markers)
+                let tempMarkers = [];
+                for(let i = 0; i < markers.length; i++){
+                    let newLat = markers[i].lat;
+                    let newLng = markers[i].lng;
+                    if(newLat !== undefined && newLng !== undefined){
+                        let point = new L.LatLng(newLat, newLng)
+                        tempMarkers.push(createPointMarker(i+1, point))
+                    }
+                }
+
+                let tempMarkersPerProfile = markersPerProfile;
+                tempMarkersPerProfile[selectedDetailedProfileID] = createPointMarkerPerProfile(selectedDetailedProfileID+1, tempMarkers) ;
+
+                setMarkersPerProfile(tempMarkersPerProfile);
+                setMarkers(tempMarkers);
+            /*}else if(selectedDetailedProfile === "Profile1: P5"){
+*/
+            }
+        }
+        });
+        }
+    }, [dispatch, selectedDetailedProfile]);
 
 
     useEffect(() => {
@@ -4376,8 +4570,8 @@ function MonitoringProfiles() {
                                             height: '400px'
                                         }}>
                                         <MapContainer
-                                            center={[38.66086, -9.20339]}
-                                            zoom={13}
+                                            center={[41.55648, -6.88924]}//{[41.5559, -6.8889]}
+                                            zoom={17} //13
                                             scrollWheelZoom={false}
                                             style={{
                                                 width: '100%',
@@ -4412,16 +4606,6 @@ function MonitoringProfiles() {
                                                     </Popup>
                                                 </Marker>
                                             ))}
-                                            {(markersPerProfile[selectedDetailedProfileID].pm.length > 1 && !manuallyCorrectedLines[selectedDetailedProfileID].check) && (
-                                                <Polyline
-                                                    positions={lineCoordinatesPerProfile[selectedDetailedProfileID].lc}//{lineCoordinates}
-                                                    color="red"/>
-                                            )}
-                                            {(markersPerProfile[selectedDetailedProfileID].pm.length > 1 && manuallyCorrectedLines[selectedDetailedProfileID].check) && (
-                                                <Polyline
-                                                    positions={lineManualCoordinates}
-                                                    color="red"/>
-                                            )}
                                             {clickPoint && (
                                                 <MapClickHandler/>)}
                                         </MapContainer>

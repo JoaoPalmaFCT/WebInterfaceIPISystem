@@ -79,6 +79,10 @@ code {
   padding-right: 15%;
 }
 
+.middle-column-p{
+  padding-left: 45%;
+  padding-right: 20%;
+}
 
 .middle-col-select{
   padding-left: 15%;
@@ -88,6 +92,11 @@ code {
 .right-column{
   padding-left: 0%;
   padding-right: 10%;
+}
+
+.right-column-p{
+  padding-left: 0%;
+  padding-right: 45%;
 }
 
 .chart-wrapper{
@@ -165,9 +174,13 @@ code {
   padding-left: 10%;
 }
 
+.container-profile-p{
+  padding-left: 0%;
+}
+
 .left-column-p{
   padding-left: 0%;
-  padding-right: 5%;
+  padding-right: 15%;
 }
 
 .left-column-profile{
@@ -176,10 +189,10 @@ code {
 
 .filter-container-typeInputsLocation{
   padding-bottom: 5%;
-  padding-left: 0%;
+  padding-left: 25px;
   padding-right: 30%;
   padding-top: 0%;
-  width: 350px;
+  width: 450px;
 }
 
 .chart-wrapper2{

@@ -5,7 +5,7 @@ interface BannerProps {
 }
 export const Banner = ({ title }: BannerProps) => <div>{ title }</div>
 
-const headerStyle = { backgroundColor: '#0ea5e9', padding: '20px' }
+const headerStyle = { backgroundColor: '#059669', padding: '20px' }//backgroundColor: '#0ea5e9', padding: '20px' }
 export const Header = (props: { title:string, children: ReactNode }) =>
     <header style={headerStyle}>
         <Banner title={props.title}/>

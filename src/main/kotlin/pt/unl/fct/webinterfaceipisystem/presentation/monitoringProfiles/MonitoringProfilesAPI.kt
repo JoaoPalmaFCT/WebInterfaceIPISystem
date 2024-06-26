@@ -11,6 +11,42 @@ import pt.unl.fct.webinterfaceipisystem.data.*
 @Tag(name = "MonitoringGProfiles", description = "Monitoring Profiles API")
 interface MonitoringProfilesAPI {
 
+    @PostMapping("/group")
+    @Operation(summary = "Create a monitoring profile group")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "204", description = "Monitoring profile group created successfully"),
+        ApiResponse(responseCode = "400", description = "Invalid monitoring profile group data"),
+        ApiResponse(responseCode = "500", description = "Internal Server Error")
+    ])
+    fun createGroup(@RequestBody profile: MonitoringProfileGroupDTO)
+
+    @PutMapping("/group")
+    @Operation(summary = "Update a monitoring profile group")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "204", description = "Monitoring profile group updated successfully"),
+        ApiResponse(responseCode = "400", description = "Invalid monitoring profile group data"),
+        ApiResponse(responseCode = "500", description = "Internal Server Error")
+    ])
+    fun updateGroup(@RequestBody profile: MonitoringProfileGroupDTO)
+
+    @DeleteMapping("/group")
+    @Operation(summary = "Delete a monitoring group")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "204", description = "Monitoring profile group deleted successfully"),
+        ApiResponse(responseCode = "400", description = "Invalid monitoring profile group data"),
+        ApiResponse(responseCode = "500", description = "Internal Server Error")
+    ])
+    fun deleteGroup(@RequestBody profile: MonitoringProfileGroupDTO)
+
+    @GetMapping("/group")
+    @Operation(summary = "Get all monitoring profile groups")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "Monitoring profile groups successfully listed"),
+        ApiResponse(responseCode = "400", description = "Invalid monitoring profile groups data"),
+        ApiResponse(responseCode = "500", description = "Internal Server Error")
+    ])
+    fun getAvailableProfilesGroups() : List<MonitoringProfileGroupDTO>
+
     @PostMapping("/")
     @Operation(summary = "Create a monitoring profile")
     @ApiResponses(value = [
@@ -30,7 +66,7 @@ interface MonitoringProfilesAPI {
     fun update(@RequestBody profile: MonitoringProfileDTO)
 
     @DeleteMapping("/")
-    @Operation(summary = "Delete a monitoring group")
+    @Operation(summary = "Delete a monitoring profile")
     @ApiResponses(value = [
         ApiResponse(responseCode = "204", description = "Monitoring profile deleted successfully"),
         ApiResponse(responseCode = "400", description = "Invalid monitoring profile data"),
@@ -45,5 +81,69 @@ interface MonitoringProfilesAPI {
         ApiResponse(responseCode = "400", description = "Invalid monitoring profile data"),
         ApiResponse(responseCode = "500", description = "Internal Server Error")
     ])
-    fun getAvailableProfiles()
+    fun getAvailableProfiles() : List<MonitoringProfileDTO>
+
+    @GetMapping("/posAdjust")
+    @Operation(summary = "Get all positions")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "Positions successfully listed"),
+        ApiResponse(responseCode = "400", description = "Invalid position adjustment data"),
+        ApiResponse(responseCode = "500", description = "Internal Server Error")
+    ])
+    fun getProfileAdjustmentData() : List<ProfilePositionAdjustmentDTO>
+
+    @PostMapping("/point")
+    @Operation(summary = "Create a point")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "204", description = "Point created successfully"),
+        ApiResponse(responseCode = "400", description = "Invalid point data"),
+        ApiResponse(responseCode = "500", description = "Internal Server Error")
+    ])
+    fun createPoint(@RequestBody point: PointDTO)
+
+    @GetMapping("/point/{mpId}")
+    @Operation(summary = "Get points")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "Points successfully listed"),
+        ApiResponse(responseCode = "400", description = "Invalid points data"),
+        ApiResponse(responseCode = "500", description = "Internal Server Error")
+    ])
+    fun getAvailablePoints(@PathVariable mpId:Int) : List<PointDTO>
+
+    @PostMapping("/marker")
+    @Operation(summary = "Create a marker")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "204", description = "Marker created successfully"),
+        ApiResponse(responseCode = "400", description = "Invalid marker data"),
+        ApiResponse(responseCode = "500", description = "Internal Server Error")
+    ])
+    fun createMarker(@RequestBody marker: MarkerDTO)
+
+    @GetMapping("/marker/{mpId}")
+    @Operation(summary = "Get markers")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "Markers successfully listed"),
+        ApiResponse(responseCode = "400", description = "Invalid markers data"),
+        ApiResponse(responseCode = "500", description = "Internal Server Error")
+    ])
+    fun getAvailableMarkers(@PathVariable mpId:Int) : List<MarkerDTO>
+
+    @PostMapping("/line")
+    @Operation(summary = "Create a Line")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "204", description = "Line created successfully"),
+        ApiResponse(responseCode = "400", description = "Invalid line data"),
+        ApiResponse(responseCode = "500", description = "Internal Server Error")
+    ])
+    fun createLine(@RequestBody line: LineCrossSectionDTO)
+
+    @GetMapping("/line/{mpId}")
+    @Operation(summary = "Get lines")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "Markers successfully listed"),
+        ApiResponse(responseCode = "400", description = "Invalid markers data"),
+        ApiResponse(responseCode = "500", description = "Internal Server Error")
+    ])
+    fun getAvailableLines(@PathVariable mpId: Int) : List<LineCrossSectionDTO>
+
 }

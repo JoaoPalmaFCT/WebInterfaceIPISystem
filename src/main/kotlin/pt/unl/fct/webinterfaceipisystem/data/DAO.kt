@@ -1,5 +1,6 @@
 package pt.unl.fct.webinterfaceipisystem.data
 
+import io.micrometer.core.instrument.Measurement
 import jakarta.persistence.*
 import java.util.Date
 
@@ -62,7 +63,21 @@ data class MonitoringGroupDAO(
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         val id:Int = 0,
         val name:String,
-        val description:String
+        val region:String,
+        val description:String,
+        val measurements:String,
+        val inclinometers:String
+)
+
+@Entity
+@Table(name = "Measurements")
+data class MeasurementsDAO(
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        val id:Int = 0,
+        val measurement:String,
+        val host:String,
+        val inclinometers:String
 )
 
 @Entity
@@ -110,15 +125,29 @@ data class LayerDAO(
 )
 
 @Entity
+@Table(name = "MonitoringProfileGroup")
+data class MonitoringProfileGroupDAO(
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        val id:Int = 0,
+        val monitoringGroup:String,
+        val measurements: String,
+        val monitoringGroupId:Int
+)
+
+@Entity
 @Table(name = "MonitoringProfile")
 data class MonitoringProfileDAO(
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         val id:Int = 0,
-        val name:String,
         val code:String,
+        val monitoringGroup:String,
+        val name:String,
         val description:String,
         val type:MonitoringProfDAO,
+        val attachedImage:String,
+        val inclinometers: String,
         val monitoringGroupId:Int
 )
 
@@ -128,8 +157,11 @@ data class ProfilePositionAdjustmentDAO(
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         val id:Int = 0,
+        val code:String,
+        val measurement:String,
+        val inc:String,
         val type:MonitoringProfDAO,
-        val imageURLPath:String? = null,
+        val positionAdjusted:Boolean,
         val monitoringProfileId:Int
 )
 
@@ -139,8 +171,32 @@ data class PointDAO(
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         val id:Int = 0,
-        val positionX:Long,
-        val positionY:Long,
+        val positionX:Double,
+        val positionY:Double,
+        val profilePositionAdjustmentId:Int
+)
+
+@Entity
+@Table(name = "Marker")
+data class MarkerDAO(
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        val id:Int = 0,
+        val lat:Double,
+        val lng:Double,
+        val profilePositionAdjustmentId:Int
+)
+
+@Entity
+@Table(name = "LineCrossSection")
+data class LineCrossSectionDAO(
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        val id:Int = 0,
+        val topX:Double,
+        val topY:Double,
+        val bottomX:Double,
+        val bottomY:Double,
         val profilePositionAdjustmentId:Int
 )
 
@@ -167,4 +223,3 @@ data class MQTTDAO(
         val username:String,
         val password:String
 )
-
