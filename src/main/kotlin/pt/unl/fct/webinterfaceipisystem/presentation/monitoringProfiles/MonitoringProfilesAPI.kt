@@ -92,6 +92,15 @@ interface MonitoringProfilesAPI {
     ])
     fun getProfileAdjustmentData() : List<ProfilePositionAdjustmentDTO>
 
+    @GetMapping("/posAdjust/{mpId}")
+    @Operation(summary = "Get all positions of a profile")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", description = "Positions successfully listed"),
+        ApiResponse(responseCode = "400", description = "Invalid position adjustment data"),
+        ApiResponse(responseCode = "500", description = "Internal Server Error")
+    ])
+    fun getProfileAdjustmentDataForAProfile(@PathVariable mpId:Int) : List<ProfilePositionAdjustmentDTO>
+
     @PostMapping("/point")
     @Operation(summary = "Create a point")
     @ApiResponses(value = [

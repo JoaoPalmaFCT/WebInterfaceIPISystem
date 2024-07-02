@@ -86,6 +86,7 @@ class MonitoringProfilesApplication (val groups : MonitoringProfileGroupReposito
         return posAdjust.findAll()
     }
 
+
     //Points
 
     fun registerPoint(newPoint: PointDAO) : PointDAO{

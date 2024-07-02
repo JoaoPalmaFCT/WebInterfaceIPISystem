@@ -2,7 +2,7 @@ import React, {useEffect, useState} from "react";
 function Settings() {
 
     return (
-        <div>
+        <div className="main-wrapper full-screen">
 
         </div>
     );

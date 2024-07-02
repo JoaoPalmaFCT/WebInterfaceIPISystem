@@ -69,6 +69,7 @@ data class MonitoringProfileDTO(
 )
 
 data class ProfilePositionAdjustmentDTO(
+        val uniqueId:Int,
         val code:String,
         val measurement:String,
         val inc:String,

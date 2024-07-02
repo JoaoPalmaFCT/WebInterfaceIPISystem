@@ -1,4 +1,4 @@
-import { InfluxDB, Point, QueryApi } from '@influxdata/influxdb-client';
+import { InfluxDB, QueryApi } from '@influxdata/influxdb-client';
 import React, {
     Fragment,
     PureComponent,
@@ -65,10 +65,44 @@ import {
     TableBody,
     Modal,
     Button,
-    IconButton
+    IconButton,
+    FormControl,
+    Select,
+    MenuItem
 } from '@mui/material';
-import {Clear} from "@mui/icons-material";
+import {
+    ArrowBack,
+    Clear,
+    InsertDriveFile
+} from "@mui/icons-material";
 import { visuallyHidden } from '@mui/utils';
+import {
+    MapContainer,
+    Marker,
+    Popup,
+    TileLayer
+} from "react-leaflet";
+import L, {
+    Icon
+} from "leaflet";
+import markerIconPng
+    from "leaflet/dist/images/marker-icon.png";
+import {
+    useAppDispatch,
+    useMeasurementsSelector,
+    useMPSelector
+} from "../../store/hooks";
+import {
+    getMeasurements
+} from "../../store/settings";
+import {
+    getLinesCrossSection,
+    getMarkers,
+    getMonitoringProfileGroups,
+    getMonitoringProfiles,
+    getPoints,
+    getProfilePositionAdjustments
+} from "../../store/monitoringProfile";
 /*
  * INCLINOMETER DATA
  */
@@ -167,6 +201,27 @@ interface PointData {
     value: number;
 }
 
+interface Measurement {
+    id: number;
+    measurement: string;
+    host: string;
+    inclinometers: string
+}
+
+function createMeasurement(
+    id: number,
+    measurement: string,
+    host: string,
+    inclinometers: string
+): Measurement {
+    return {
+        id,
+        measurement,
+        host,
+        inclinometers
+    };
+}
+
 interface ChartProps {
     graphData: InclinometerData[];
     //colorArray: string[];
@@ -222,6 +277,18 @@ interface ChartSoil {
 /*
  * PROFILE DATA
  */
+
+const createCustomIcon = (markerId: number) => {
+    return L.divIcon({
+        html: `<div class="custom-marker">
+                   <img src="/marker-icon-green.png" alt="Marker Icon" />
+                   <div class="marker-id">I${markerId}</div>
+               </div>`,
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        className: ''
+    });
+};
 
 interface ChartPropsProfileInc {
     graphData: InclinometerData[];
@@ -487,6 +554,138 @@ interface EnhancedTablePropsB {
     order: Order;
     orderBy: string;
     rowCount: number;
+}
+
+interface Point {
+    id: number;
+    posX: number;
+    posY: number;
+}
+
+function createPoint(
+    id: number,
+    posX: number,
+    posY: number
+): Point {
+    return {
+        id,
+        posX,
+        posY
+    };
+}
+
+interface PointsPerProfile {
+    id: number;
+    points: Point[];
+}
+
+function createPointPerProfile(
+    id: number,
+    points: Point[]
+): PointsPerProfile {
+    return {
+        id,
+        points
+    };
+}
+
+interface PointMarker {
+    id: number;
+    latLng: L.LatLng;
+}
+
+function createPointMarker(
+    id: number,
+    latLng: L.LatLng
+): PointMarker {
+    return {
+        id,
+        latLng
+    };
+}
+
+interface PointMarkerPerProfile {
+    id: number;
+    pm: PointMarker[];
+}
+
+function createPointMarkerPerProfile(
+    id: number,
+    pm: PointMarker[]
+): PointMarkerPerProfile {
+    return {
+        id,
+        pm
+    };
+}
+
+interface LinePoint {
+    id: number;
+    topX: number;
+    topY: number;
+    bottomX: number;
+    bottomY: number;
+}
+
+function createLinePoint(
+    id: number,
+    topX: number,
+    topY: number,
+    bottomX: number,
+    bottomY: number
+): LinePoint {
+    return {
+        id,
+        topX,
+        topY,
+        bottomX,
+        bottomY
+    };
+}
+
+interface LinePointPerProfile {
+    id: number;
+    lp: LinePoint[];
+}
+
+function createLinePointPerProfile(
+    id: number,
+    lp: LinePoint[]
+): LinePointPerProfile {
+    return {
+        id,
+        lp
+    };
+}
+
+interface PlanCheckbox {
+    id: number;
+    check: boolean;
+}
+
+function createPlanCheckbox(
+    id: number,
+    check: boolean
+): PlanCheckbox {
+    return {
+        id,
+        check
+    };
+}
+
+interface CrossSectionCheckbox {
+    id: number;
+    check: boolean;
+}
+
+function createCrossSectionCheckbox(
+    id: number,
+    check: boolean
+): CrossSectionCheckbox {
+    return {
+        id,
+        check
+    };
 }
 
 /*
@@ -756,25 +955,67 @@ const locations = [
     }
 ]
 
+interface Profile {
+    id: number;
+    code: string;
+    group: string;
+    name: string;
+    description: string;
+    type: string;
+    attachedImage: string;
+    inclinometers: string[];
+    monitoringGroupId: number;
+}
+
+function createProfile(
+    id: number,
+    code: string,
+    group: string,
+    name: string,
+    description: string,
+    type: string,
+    attachedImage: string,
+    inclinometers: string[],
+    monitoringGroupId: number
+): Profile {
+    return {
+        id,
+        code,
+        group,
+        name,
+        description,
+        type,
+        attachedImage,
+        inclinometers,
+        monitoringGroupId
+    };
+}
+
+
 const profiles = [
     {
         id: 1,
+        type: 'Plan',
         name: 'All - Plan',
     },
     {
         id: 2,
+        type: 'Cross-section',
         name: 'Profile 5 - Cross Section',
     },
     {
         id: 3,
+        type: 'Cross-section',
         name: 'Profile 7 - Cross Section',
     },
     {
         id: 4,
+        type: 'Cross-section',
         name: 'Profile 9  - Cross Section',
     },
     {
         id: 5,
+        type: 'Cross-section',
         name: 'Profile 13  - Cross Section',
     }
 ]
@@ -1456,7 +1697,7 @@ const CustomLabel: React.FC<{
                 <rect
                     x={viewBox.x - 90}
                     y={viewBox.y + 540}
-                    fill="#22c55e"
+                    fill="#10b981"
                     width={90}
                     height={30}
                     stroke="#000000"
@@ -1465,7 +1706,7 @@ const CustomLabel: React.FC<{
                 <rect
                     x={viewBox.x - 90}
                     y={viewBox.y + 540}
-                    fill="#22c55e"
+                    fill="#10b981"
                     width={90}
                     height={60}
                     stroke="#000000"
@@ -1625,7 +1866,7 @@ const Chart: React.FC<ChartPropsInc> = ({
                                 height: '100%'
                             }}>
                             <SyncLoader
-                                color="#22C55E"/>
+                                color="#10b981"/>
                         </div>
                     )
                     : (
@@ -1745,6 +1986,8 @@ const ChartTotal: React.FC<ChartPropsTotal> = ({
                                                    loadingData
                                                }) => {
     let data: InclinometerData[][] = ChartDataPrepTotal(graphDataX, graphDataY);
+    let positionX = -240;
+    let positionY = 25;
 
     return (
         <div
@@ -1761,7 +2004,7 @@ const ChartTotal: React.FC<ChartPropsTotal> = ({
                                 height: '100%'
                             }}>
                             <SyncLoader
-                                color="#22C55E"/>
+                                color="#10b981"/>
                         </div>
                     )
                     : (
@@ -1792,7 +2035,11 @@ const ChartTotal: React.FC<ChartPropsTotal> = ({
                             </YAxis>
                             <Tooltip
                                 content={
-                                    <CustomTooltip/>}/>
+                                    <CustomTooltip/>}
+                                position={{
+                                    x: positionX,
+                                    y: positionY
+                                }}/>
                             <Legend
                                 align="right"
                                 verticalAlign="top"
@@ -1841,7 +2088,7 @@ const ChartTemp: React.FC<ChartProps> = ({
                                 height: '100%'
                             }}>
                             <SyncLoader
-                                color="#22C55E"/>
+                                color="#10b981"/>
                         </div>
                     )
                     : (
@@ -1914,7 +2161,7 @@ const ChartClock: React.FC<ChartPropsClock> = ({
                                 height: '100%'
                             }}>
                             <SyncLoader
-                                color="#22C55E"/>
+                                color="#10b981"/>
                         </div>
                     )
                     : (
@@ -2013,7 +2260,7 @@ const ChartDetails: React.FC<ChartPropsDetails> = ({
                                 height: '100%'
                             }}>
                             <SyncLoader
-                                color="#22C55E"/>
+                                color="#10b981"/>
                         </div>
                     )
                     : (
@@ -2117,7 +2364,7 @@ const ChartDetailsTotal: React.FC<ChartPropsDetailsTotal> = ({
                                 height: '100%'
                             }}>
                             <SyncLoader
-                                color="#22C55E"/>
+                                color="#10b981"/>
                         </div>
                     )
                     : (
@@ -2201,7 +2448,7 @@ const ChartSoil: React.FC<ChartSoil> = ({
                                 height: '100%'
                             }}>
                             <SyncLoader
-                                color="#22C55E"/>
+                                color="#10b981"/>
                         </div>
                     )
                     : (
@@ -2391,7 +2638,7 @@ const ChartProfileA: React.FC<ChartPropsProfileInc> = ({
                                 height: '100%'
                             }}>
                             <SyncLoader
-                                color="#22C55E"/>
+                                color="#10b981"/>
                         </div>
                     )
                     : (
@@ -2514,7 +2761,15 @@ const ChartProfileA: React.FC<ChartPropsProfileInc> = ({
                                         dy={5}
                                     />
                                     </ReferenceLine>}
-                            {leftChart &&
+                        </LineChart>
+
+                    )}
+            </ResponsiveContainer>
+        </div>
+    );
+};
+
+/*{leftChart &&
                                 <ReferenceLine
                                     //x={0}
                                     stroke="#000000"
@@ -2605,14 +2860,7 @@ const ChartProfileA: React.FC<ChartPropsProfileInc> = ({
                                         x: (numberOfTotalInc >= 4) ? -maxData+130 : ((numberOfTotalInc === 3 ) ? -maxData+100 : -maxData+80),
                                         y: maxDepthOverall
                                     }]}
-                                />}
-                        </LineChart>
-
-                    )}
-            </ResponsiveContainer>
-        </div>
-    );
-};
+                                />}*/
 
 const calculateTopValueSlider = (numSensors: number) => {
     return numSensors / 2 - 0.5;
@@ -3322,7 +3570,7 @@ const PopupCSV: React.FC<PopupProps> = ({ open, handleClose }) => {
                                                     key={res.id}
                                                     className={({active}) =>
                                                         classNames(
-                                                            active ? 'bg-yellow-500 text-white' : 'text-gray-900',
+                                                            active ? 'bg-emerald-500 text-white' : 'text-gray-900',
                                                             'relative cursor-default select-none py-2 pl-3 pr-9'
                                                         )
                                                     }
@@ -3426,7 +3674,7 @@ function EnhancedTableHead(props: EnhancedTableProps) {
                         align={'center'}//{headCell.numeric ? 'right' : 'left'}
                         padding={'normal'}//{headCell.disablePadding ? 'none' : 'normal'}
                         sortDirection={orderBy === headCell.id ? order : false}
-                        sx={{ backgroundColor: '#22c55e' }}
+                        sx={{ backgroundColor: '#10b981' }}
                     >
                         <TableSortLabel
                             active={orderBy === headCell.id}
@@ -3465,7 +3713,7 @@ function EnhancedTableHeadA(props: EnhancedTablePropsA) {
                         align={'center'}//{headCell.numeric ? 'right' : 'left'}
                         padding={'normal'}//{headCell.disablePadding ? 'none' : 'normal'}
                         sortDirection={orderBy === headCell.id ? order : false}
-                        sx={{ backgroundColor: '#22c55e' }}
+                        sx={{ backgroundColor: '#10b981' }}
                     >
                         <TableSortLabel
                             active={orderBy === headCell.id}
@@ -3504,7 +3752,7 @@ function EnhancedTableHeadB(props: EnhancedTablePropsB) {
                         align={'center'}//{headCell.numeric ? 'right' : 'left'}
                         padding={'normal'}//{headCell.disablePadding ? 'none' : 'normal'}
                         sortDirection={orderBy === headCell.id ? order : false}
-                        sx={{ backgroundColor: '#22c55e' }}
+                        sx={{ backgroundColor: '#10b981' }}
                     >
                         <TableSortLabel
                             active={orderBy === headCell.id}
@@ -4169,6 +4417,51 @@ const makeCalcAgain = (maxDisplacementItem: InclinometerData, orthoNeeded: strin
 
 function ResultsVisualization() {
 
+    const sessionToken: string = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJqb2FvQGdtYWlsLmNvbSIsImlhdCI6MTcxOTM1NDM3MSwiZXhwIjoxNzIxOTgyNDY3fQ.ABHn1JqMi-TI0tns0G09aC80gm5NfbH6Zb3zlW7EqkiFx7fyPhojx6DdxPQx1JgJK2iCwppVU3m1WVaqCNXvtA";
+    const dispatch = useAppDispatch()
+    const dbMeasurementsList = useMeasurementsSelector(state => state.measurements)
+    const dbMPGroups = useMPSelector(state => state.mpGroups)
+    const dbMPs = useMPSelector(state => state.mp)
+    const dbMarkers = useMPSelector(state => state.marker)
+    const dbPoints = useMPSelector(state => state.point)
+
+    useEffect(() => {
+        dispatch(getMeasurements(sessionToken))
+        dispatch(getMonitoringProfileGroups(sessionToken))
+        dispatch(getMonitoringProfiles(sessionToken))
+        /*if(selectedDetailedProfileID === 0){
+            dispatch(getMarkers(1,sessionToken))
+        }*/
+    }, [dispatch]);
+
+    const [measurements, setMeasurements] = React.useState<Measurement[]>([]);
+
+    useEffect(() => {
+        if(dbMeasurementsList != undefined) {
+            let m = [];
+            let counterArray = 0;
+            for (let i = 0; i < (dbMeasurementsList ?? []).length; i++) {
+                let mIncString = dbMeasurementsList[i].inclinometers;
+                let incs: string[] = [];
+                if (mIncString !== undefined) {
+                    incs = mIncString.split("?");
+                } else {
+                    incs = [];
+                }
+
+                let measurementName = dbMeasurementsList[i].measurement;
+                let hostName = dbMeasurementsList[i].host;
+                if (measurementName !== undefined && hostName !== undefined) {
+                    for (let j = 0; j < incs.length; j++) {
+                        m.push(createMeasurement(counterArray, measurementName, hostName, incs[j]))
+                        counterArray++;
+                    }
+                }
+            }
+            setMeasurements(m)
+        }
+    }, [dbMeasurementsList]);
+
     const [arrayInitialized, setArrayInitialized] = useState(false);
     const [dataArrayX, setDataArrayX] = useState<InclinometerData[]>([]);
     const [dataArrayY, setDataArrayY] = useState<InclinometerData[]>([]);
@@ -4205,15 +4498,15 @@ function ResultsVisualization() {
     const [lastToggleRef, setLastToggleRef] = useState<number>(0);
     const [toggleIntervalRef, setToggleIntervalRef] = useState(false);
 
-    const [selectedMeasurement, setSelectedMeasurement] = useState<string>("PK150_PK200")
+    const [selectedMeasurement, setSelectedMeasurement] = useState<string>("Barragem do Azibo")
 
     const [loadingData, setLoadingData] = useState(true);
 
     useEffect(() => {
         setLoadingData(true)
-        if (selectedMeasurement === "PK150_PK200") {
+        if (selectedMeasurement === "Barragem do Azibo") {
             fetchData();
-        } else if (selectedMeasurement === "PK250_PK300") {
+        } else if (selectedMeasurement === "Lab Test") {
             fetchTestData()
         }
     }, [selectedMeasurement]);
@@ -4221,7 +4514,7 @@ function ResultsVisualization() {
     useEffect(() => {
         if (!arrayInitialized) {
             //fetchData();
-            setSelectedMeasurement("PK150_PK200");
+            setSelectedMeasurement("Barragem do Azibo");
         }
     }, [arrayInitialized]);
 
@@ -4290,7 +4583,7 @@ function ResultsVisualization() {
     }
 
     const defineInitialValues = (mappedData: InclinometerData[]) => {
-        if (selectedMeasurement === "PK250_PK300") {
+        if (selectedMeasurement === "Lab Test") {
             let auxRefDate = getRefDate(mappedData);
             setRefDate(auxRefDate);
             setRefDateDataX(getRefDateData(auxRefDate, mappedData, "aX"));
@@ -4384,7 +4677,7 @@ function ResultsVisualization() {
     }
 
 
-    const numberOfMeasurements: string[] = ["PK150_PK200", "PK250_PK300"]
+    const numberOfMeasurements: string[] = ["Barragem do Azibo", "Lab Test"]
     const numberOfInc: string[] = getUniqueInclinometers(filteredDataArrayX).sort((a, b) => Number(a) - Number(b))
     const numberOfDates: string[] = getUniqueDates(dataArrayX)
 
@@ -4787,13 +5080,14 @@ function ResultsVisualization() {
             setToggleTempChart(false)
         } else {
             setToggleTotalChart(true)
+            setToggleTempChart(false)
         }
     };
 
     const handleToogleTempChart = () => {
         if (toggleTempChart) {
             setToggleTempChart(false)
-        } else {
+        } else if(toggleTotalChart){
             setToggleTempChart(true)
         }
     };
@@ -4936,7 +5230,8 @@ function ResultsVisualization() {
     }
 
     const [profileInitialized, setProfileInitialized] = useState(false);
-    const [selectedProfile, setSelectedProfile] = useState(profiles[0]);
+    const [listOfProfiles, setListOfProfiles] = useState<Profile[]>([]);
+    const [selectedProfile, setSelectedProfile] = useState<Profile>(createProfile(1, '', '', '', '', 'Plan', '', [],1));
     const [selectedOrthoDirection, setSelectedOrthoDirection] = useState(orthoDirection[0]);
     const [selectedLocation, setSelectedLocation] = useState(locations[0]);
     const [toggleArrows, setToggleArrows] = useState(false);
@@ -4956,8 +5251,304 @@ function ResultsVisualization() {
     const arrowLayerRef = useRef<Konva.Layer | null>(null);
     const profileLineLayerRef = useRef<Konva.Layer | null>(null);
 
+    const stageCrossSectionRef = useRef<Konva.Stage | null>(null);
+    const crossSectionLayerRef = useRef<Konva.Layer | null>(null);
+
+    const [emptyPhoto, setEmptyPhoto] = React.useState(true);
+    const [selectedProfileAttachedImageName, setSelectedDetailedProfileAttachedImageName] = React.useState<string>('');
+    const [selectedProfileID, setSelectedProfileID] = React.useState<number>(0);
+    const [planCheckActiveImgSrc, setPlanCheckActiveImgSrc] = useState<string>('');
+    const [planCheckActiveOwn, setPlanCheckActiveOwn] = useState(false);
+    const [planCheckActive, setPlanCheckActive] = useState(false);
+    const [crossSectionCheckActive, setCrossSectionCheckActive] = useState(false);
+    const [planCheckboxs, setPlanCheckboxs] = useState<PlanCheckbox[]>([]);
+    const [crossSectionCheckboxs, setCrossSectionCheckboxs] = useState<CrossSectionCheckbox[]>([]);
+    const [replacePlanCheckValue, setReplacePlanCheckValue] = useState(false);
+    const [replaceCrossCheckValue, setReplaceCrossCheckValue] = useState(false);
+    const [markersPerProfile, setMarkersPerProfile] = useState<PointMarkerPerProfile[]>([]);
+    const [linesPerProfile, setLinesPerProfile] = useState<LinePointPerProfile[]>([]);
+    const [pointsPerProfile, setPointsPerProfile] = useState<PointsPerProfile[]>([]);
+    const [profilesCodeList, setProfilesCodeList] = React.useState<string[]>([]);
+    const [selectFromCodeList, setSelectFromCodeList] = React.useState<string>('1');
+    const [markersInitialized, setMarkersInitialized] = React.useState(false);
+
     useEffect(() => {
-        if(selectedVisualization.name === visualization[1].name && !profileInitialized){
+        if(!markersInitialized){
+            let tempMarks = [];
+            let tempLines = [];
+            let tempPoints = [];
+            for(let i = 0; i < 6; i++){
+                tempMarks.push(createPointMarkerPerProfile(i+1, []))
+                //if(i !== 1){
+                    tempLines.push(createLinePointPerProfile(i+1, []))
+                /*}else{//[218.03799436808558, 62.76342920870473, 256.13516198089565, 193.35288444871048, 387.21869380831976, 83.68927296500682, 402.5583678234895, 144.80141906632068]
+                    tempLines.push(createLinePointPerProfile(i+1, [createLinePoint(i,218.03799436808558, 62.76342920870473, 256.13516198089565, 193.35288444871048),
+                        createLinePoint(i,387.21869380831976, 83.68927296500682, 402.5583678234895, 144.80141906632068)]))
+                }*/
+                tempPoints.push(createPointPerProfile(i+1, []))
+            }
+            setMarkersPerProfile(tempMarks);
+            setLinesPerProfile(tempLines);
+            setPointsPerProfile(tempPoints);
+            setMarkersInitialized(true)
+        }
+    }, [markersInitialized]);
+
+
+    const handleSelectedProfile = (selected: Profile) => {
+        setSelectedProfileID(selected.id)
+    }
+
+    useEffect(() => {
+        setSelectedProfileID(selectedProfile.id)
+    }, [selectedProfile]);
+
+    useEffect(() => {
+        if(dbMPs != undefined) {
+            let mp = [];
+            let counterArray = 0;
+            let tempPlanCheckboxs = [];
+            let tempCrossSectionCheckboxs = [];
+            let tempCodeList = []
+            for (let i = 0; i < (dbMPs ?? []).length; i++) {
+
+                let mpCode = dbMPs[i].code;
+                let mpGroup = dbMPs[i].group;
+                let mpName = dbMPs[i].name;
+                let mpDescription = dbMPs[i].description;
+                let mpType = dbMPs[i].type;
+                let mpAttachedImage = dbMPs[i].attachedImage;
+                let mpMonitoringGroupId = dbMPs[i].monitoringGroupId;
+
+                let mIncString = dbMPs[i].inclinometers;
+                let incs: string[] = [];
+                if (mIncString !== undefined) {
+                    incs = mIncString.split("?");
+                } else {
+                    incs = [];
+                }
+
+                if(mpType === "PLAN"){
+                    mpType = "Plan"
+                }else if(mpType === "CROSSSECTION"){
+                    mpType = "Cross Section"
+                }
+
+                if (mpCode !== undefined && mpGroup !== undefined && mpName !== undefined && mpDescription !== undefined && mpType !== undefined
+                    && mpAttachedImage !== undefined && mpMonitoringGroupId !== undefined && mpMonitoringGroupId === 1) {
+                    mp.push(createProfile(i, mpCode, mpGroup, mpName, mpDescription, mpType, mpAttachedImage, incs,mpMonitoringGroupId))
+                    tempPlanCheckboxs.push(createPlanCheckbox(Number(mpCode), false))
+                    tempCrossSectionCheckboxs.push(createCrossSectionCheckbox(Number(mpCode), false))
+                    if(mpType === "Plan")
+                        tempCodeList.push(mpCode)
+                }
+            }
+            setListOfProfiles(mp)
+            setSelectedProfile(mp[0])
+            if(mp[0].attachedImage !== ''){
+                setEmptyPhoto(true)
+                let image = mp[0].attachedImage.split("profiles%2F")[1].split("?")[0]
+                setSelectedDetailedProfileAttachedImageName(image)
+            }else{
+                setEmptyPhoto(false)
+                setSelectedDetailedProfileAttachedImageName('')
+            }
+
+            setSelectedProfileID(Number(mp[0].id))
+            setPlanCheckboxs(tempPlanCheckboxs)
+            setCrossSectionCheckboxs(tempCrossSectionCheckboxs)
+            setProfilesCodeList(tempCodeList)
+        }
+    }, [dbMPs]);
+
+    useEffect(() => {
+        //if(selectedDetailedProfileID === 0 || selectedDetailedProfileID === 2){
+        dispatch(getMarkers(selectedProfileID+1,sessionToken)).then(markers => {
+
+            if(markers !== undefined){
+                if(selectedProfile.name === "All" && selectedProfileID === 0 || selectedProfile.name === "P5" && selectedProfileID === 1
+                    || selectedProfile.name === "P7" && selectedProfileID === 2 || selectedProfile.name === "P9" && selectedProfileID === 3
+                    || selectedProfile.name === "P13" && selectedProfileID === 4 || selectedProfile.name === "P1" && selectedProfileID === 5){
+
+                    let tempMarkers = [];
+                    for(let i = 0; i < markers.length; i++){
+                        let newLat = markers[i].lat;
+                        let newLng = markers[i].lng;
+                        if(newLat !== undefined && newLng !== undefined){
+                            let point = new L.LatLng(newLat, newLng)
+                            tempMarkers.push(createPointMarker(i+1, point))
+                        }
+                    }
+
+                    let tempMarkersPerProfile = markersPerProfile;
+                    tempMarkersPerProfile[selectedProfileID] = createPointMarkerPerProfile(selectedProfileID+1, tempMarkers) ;
+
+                    setMarkersPerProfile(tempMarkersPerProfile);
+                    //setMarkers(tempMarkers);
+                    /*}else if(selectedDetailedProfile === "Profile1: P5"){
+        */
+                }
+            }
+        });
+
+        dispatch(getLinesCrossSection(selectedProfileID+1,sessionToken)).then(lines => {
+            if(lines !== undefined){
+                if(selectedProfile.name === "All" && selectedProfileID === 0 || selectedProfile.name === "P5" && selectedProfileID === 1
+                    || selectedProfile.name === "P7" && selectedProfileID === 2 || selectedProfile.name === "P9" && selectedProfileID === 3
+                    || selectedProfile.name === "P13" && selectedProfileID === 4 || selectedProfile.name === "P1" && selectedProfileID === 5){
+
+                    let tempLines = [];
+
+                    for(let i = 0; i < lines.length; i++){
+                        let newTopX = lines[i].topX;
+                        let newTopY = lines[i].topY;
+                        let newBottomX = lines[i].bottomX;
+                        let newBottomY = lines[i].bottomY;
+                        let newAdjustId = lines[i].profilePositionAdjustmentId;
+                        if(newTopX !== undefined && newTopY !== undefined && newBottomX !== undefined && newBottomY !== undefined
+                            && newAdjustId !== undefined){
+                            tempLines.push(createLinePoint(newAdjustId, newTopX, newTopY, newBottomX, newBottomY))
+                        }
+                    }
+
+                    let tempLinesPerProfile = linesPerProfile;
+                    tempLinesPerProfile[selectedProfileID] = createLinePointPerProfile(selectedProfileID+1, tempLines) ;
+
+                    setLinesPerProfile(tempLinesPerProfile);
+                }
+            }
+        });
+
+        dispatch(getPoints(selectedProfileID+1,sessionToken)).then(pos => {
+            if(pos !== undefined){
+                if(selectedProfile.name === "All" && selectedProfileID === 0 || selectedProfile.name === "P5" && selectedProfileID === 1
+                    || selectedProfile.name === "P7" && selectedProfileID === 2 || selectedProfile.name === "P9" && selectedProfileID === 3
+                    || selectedProfile.name === "P13" && selectedProfileID === 4 || selectedProfile.name === "P1" && selectedProfileID === 5){
+
+                    let tempPos = [];
+
+                    for(let i = 0; i < pos.length; i++){
+                        let newPosX = pos[i].positionX;
+                        let newPosY = pos[i].positionY;
+                        let newPosAdjustId = pos[i].profilePositionAdjustmentId;
+
+                        if(newPosX !== undefined && newPosY !== undefined && newPosAdjustId !== undefined){
+                            tempPos.push(createPoint(newPosAdjustId, newPosX, newPosY));
+                        }
+                    }
+
+                    let tempPoints = pointsPerProfile;
+                    tempPoints[selectedProfileID] = createPointPerProfile(selectedProfileID, tempPos);
+                    setPointsPerProfile(tempPoints);
+                }
+            }
+        })
+    }, [dispatch, selectedProfile, selectedProfileID]);
+
+    const handleSelectFromCodeList = (e: string) =>{
+        setSelectFromCodeList(e)
+    }
+
+    useEffect(() => {
+        let temp = crossSectionCheckboxs;
+        if(crossSectionCheckboxs.length > 0 && replaceCrossCheckValue){
+            if(crossSectionCheckboxs[selectedProfileID].check){
+                temp[selectedProfileID].check = false;
+                setCrossSectionCheckboxs(temp)
+            }else{
+                temp[selectedProfileID].check = true;
+                setCrossSectionCheckboxs(temp)
+            }
+            setReplaceCrossCheckValue(false);
+        }
+
+    }, [replaceCrossCheckValue, crossSectionCheckboxs, selectedProfileID]);
+
+    useEffect(() => {
+        let temp = planCheckboxs;
+        if(planCheckboxs.length > 0  && replacePlanCheckValue){
+            if(planCheckboxs[selectedProfileID].check){
+                temp[selectedProfileID].check = false;
+                setPlanCheckboxs(temp)
+            }else{
+                temp[selectedProfileID].check = true;
+                setPlanCheckboxs(temp)
+            }
+            setReplacePlanCheckValue(false);
+            if(selectedProfile.type === "Plan"){
+                setPlanCheckActiveOwn(true)
+            }else{
+                setPlanCheckActiveOwn(false)
+            }
+        }
+
+    }, [replacePlanCheckValue, planCheckboxs, selectedProfileID]);
+
+    const handlePlanCheckbox = (event: React.ChangeEvent<HTMLInputElement>, from: string) =>{
+        if(event.target.checked){
+            let temp = planCheckboxs;
+            temp[selectedProfileID].check = false;
+            setReplacePlanCheckValue(true);
+            setPlanCheckboxs(temp)
+            setEmptyPhoto(false)
+
+            if(from !== "own"){
+                setPlanCheckActive(true)
+                setPlanCheckActiveOwn(false)
+
+                for(let i = 0; i < listOfProfiles.length; i++){
+                    if(Number(selectFromCodeList) === Number(listOfProfiles[i].code) && from === "other"){
+                        setPlanCheckActiveImgSrc(listOfProfiles[i].attachedImage)
+                    }else if(selectedProfileID === Number(listOfProfiles[i].code) && from === "own"){
+                        //setPlanCheckActiveImgSrc(monitoringProfilesTableData[i].imagedAttached)
+                        setPlanCheckActiveOwn(true)
+                    }
+                }
+            }else{
+                setPlanCheckActive(true)
+                setPlanCheckActiveOwn(true)
+            }
+        }else{
+            let temp = planCheckboxs;
+            temp[selectedProfileID].check = true;
+            setReplacePlanCheckValue(true);
+            setPlanCheckboxs(temp)
+            setEmptyPhoto(true)
+            setPlanCheckActive(false)
+            setPlanCheckActiveOwn(false)
+            setToggleArrows(false)
+
+            if(from === "own"){
+                if (stageRef.current) {
+                    const stage = stageRef.current;
+                    stage.destroy();
+                }
+            }
+        }
+    }
+
+    const handleCrossSectionCheckbox = (event: React.ChangeEvent<HTMLInputElement>) =>{
+        if(event.target.checked){
+            let temp = crossSectionCheckboxs;
+            temp[selectedProfileID].check = false;
+            setReplaceCrossCheckValue(true);
+            setCrossSectionCheckboxs(temp);
+
+            setCrossSectionCheckActive(true)
+
+        }else{
+            let temp = crossSectionCheckboxs;
+            temp[selectedProfileID].check = true;
+            setReplaceCrossCheckValue(true);
+            setCrossSectionCheckboxs(temp);
+
+            setCrossSectionCheckActive(false)
+        }
+    }
+
+
+    useEffect(() => {
+        if(selectedVisualization.name === visualization[1].name && !emptyPhoto && planCheckActiveOwn){//&& !profileInitialized
             updateTableData();
             setTimeout(function() {
                 const stage = new Konva.Stage({
@@ -4966,7 +5557,7 @@ function ResultsVisualization() {
                     height: 400
                 });
                 stageRef.current = stage;
-                setProfileInitialized(true)
+                //setProfileInitialized(true)
 
                 let backgroundLayer = new Konva.Layer();
                 stage.add(backgroundLayer);
@@ -4991,7 +5582,7 @@ function ResultsVisualization() {
                     backgroundLayer.add(border);
                     backgroundLayer.draw();
                 };
-                backgroundImage.src = '/profiles/imagePlan3.png';
+                backgroundImage.src = listOfProfiles[0].attachedImage;
 
                 let layer = new Konva.Layer({
                     scaleX: 1,
@@ -5007,7 +5598,21 @@ function ResultsVisualization() {
                 });
                 layer.add(group);
 
-                let posCounter = 0;
+                let pointsArray = pointsPerProfile[selectedProfileID].points;
+                console.log(pointsPerProfile[selectedProfileID].points)
+                for(let i = 0; i < pointsArray.length; i++){
+                    if(pointsArray[i].posX !== 0 || pointsArray[i].posY !== 0){
+                        let shape = new Konva.Circle({
+                            x: pointsArray[i].posX,
+                            y: pointsArray[i].posY,
+                            fill: 'red',
+                            radius: 5,
+                        });
+                        group.add(shape);
+                    }
+                }
+
+                /*let posCounter = 0;
                 for(let i = 0; i < 9; i++){
                     let shape = new Konva.Circle({
                         x: profilePosArray[posCounter],
@@ -5017,7 +5622,7 @@ function ResultsVisualization() {
                     });
                     group.add(shape);
                     posCounter += 2;
-                }
+                }*/
                 /*stage.on('click', function () {
                     let pos = group.getRelativePointerPosition();
                     if(pos !== null){
@@ -5034,8 +5639,8 @@ function ResultsVisualization() {
 
 
             },1);
-        }else if(selectedVisualization.name === visualization[0].name && profileInitialized){
-            setProfileInitialized(false)
+        }else if(selectedVisualization.name === visualization[0].name || emptyPhoto){// && profileInitialized){
+            //setProfileInitialized(false)
             if (stageRef.current) {
                 const stage = stageRef.current;
                 stage.destroy();
@@ -5044,7 +5649,7 @@ function ResultsVisualization() {
                 }
             }
         }
-    }, [selectedVisualization]);
+    }, [selectedVisualization, selectedProfile, emptyPhoto]);
 
 
     const [order, setOrder] = React.useState<Order>('asc');
@@ -5168,8 +5773,9 @@ function ResultsVisualization() {
     useEffect(() => {
         updateTableData();
 
+        if(listOfProfiles.length !== 0){
         let profileInc: number[] = [];
-        if(selectedProfile.name === profiles[1].name){
+        if(selectedProfile.name === listOfProfiles[1].name){
             /*setProfileIncChart([1,3,6,9])
             setDepthProfilesArray([31.5,39.5,51,34.5])
             setMaxProfileDepth(51)
@@ -5178,7 +5784,7 @@ function ResultsVisualization() {
             setDepthProfilesArray([31.5,14.5])
             setMaxProfileDepth(31.5)
             profileInc = [1,2];
-        }else if(selectedProfile.name === profiles[2].name){
+        }else if(selectedProfile.name === listOfProfiles[2].name){
             /*setProfileIncChart([2,4,10])
             setDepthProfilesArray([14.5,26,20])
             setMaxProfileDepth(26)
@@ -5187,7 +5793,7 @@ function ResultsVisualization() {
             setDepthProfilesArray([39.5,26,16.5])
             setMaxProfileDepth(39.5)
             profileInc = [3,4,5];
-        }else if(selectedProfile.name === profiles[3].name){
+        }else if(selectedProfile.name === listOfProfiles[3].name){
             /*setProfileIncChart([5,8])
             setDepthProfilesArray([16.5,20.5])
             setMaxProfileDepth(20.5)
@@ -5196,66 +5802,73 @@ function ResultsVisualization() {
             setDepthProfilesArray([51,20.5])
             setMaxProfileDepth(51)
             profileInc = [6,8];
-        }else if(selectedProfile.name === profiles[4].name){
+        }else if(selectedProfile.name === listOfProfiles[4].name){
             setProfileIncChart([9,10])
             setDepthProfilesArray([34.5,20])
             setMaxProfileDepth(34.5)
             profileInc = [9,10];
         }
 
-        if(selectedProfile.name !== "All - Plan" && selectedOrthoDirection.name === "A"){
+
+        if(selectedProfile.type !== "Plan" && selectedOrthoDirection.name === "A"){
             let tempArray: InclinometerData[][] = [];
             for (let i = 0; i < profileInc.length; i++) {
                 tempArray[i] = getDataArrayX(profileInc[i], filteredDataArrayX, refDateDataX, selectedResultsProfiles.name)
             }
             setSelectedProfileArrayChartDataX(tempArray)
 
-        }else if(selectedProfile.name !== "All - Plan" && selectedOrthoDirection.name === "B"){
+        }else if(selectedProfile.type !== "Plan" && selectedOrthoDirection.name === "B"){
             let tempArray: InclinometerData[][] = [];
             for (let i = 0; i < profileInc.length; i++) {
                 tempArray[i] = getDataArrayY(profileInc[i], filteredDataArrayY, refDateDataY, selectedResultsProfiles.name)
             }
             setSelectedProfileArrayChartDataY(tempArray)
         }
-    }, [selectedProfile, checkedDates, selectedOrthoDirection, selectedResultsProfiles, selectedLocation]);
+        }
+    }, [selectedProfile, checkedDates, selectedOrthoDirection, selectedResultsProfiles, selectedLocation, listOfProfiles, emptyPhoto]);
+
+    const [profileLine, setProfileLine] = useState<number[]>([])
 
     useEffect(() => {
-        let profileLine: number[] = [];
-        if(selectedProfile.name === profiles[1].name){
-            /*setProfileIncChart([1,3,6,9])
-            setDepthProfilesArray([31.5,39.5,51,34.5])
-            setMaxProfileDepth(51)
-            profileInc = [1,3,6,9];*/
-            setProfileIncChart([1,2])
-            setDepthProfilesArray([31.5,14.5])
-            setMaxProfileDepth(31.5)
-            profileLine = [1,2];
-        }else if(selectedProfile.name === profiles[2].name){
-            /*setProfileIncChart([2,4,10])
-            setDepthProfilesArray([14.5,26,20])
-            setMaxProfileDepth(26)
-            profileInc = [2,4,10];*/
-            setProfileIncChart([3,4,5])
-            setDepthProfilesArray([39.5,26,16.5])
-            setMaxProfileDepth(39.5)
-            profileLine = [3,4,5];
-        }else if(selectedProfile.name === profiles[3].name){
-            /*setProfileIncChart([5,8])
-            setDepthProfilesArray([16.5,20.5])
-            setMaxProfileDepth(20.5)
-            profileInc = [5,8];*/
-            setProfileIncChart([6,8])
-            setDepthProfilesArray([51,20.5])
-            setMaxProfileDepth(51)
-            profileLine = [6,8];
-        }else if(selectedProfile.name === profiles[4].name){
-            setProfileIncChart([9,10])
-            setDepthProfilesArray([34.5,20])
-            setMaxProfileDepth(34.5)
-            profileLine = [9,10];
+        if(listOfProfiles.length !== 0) {
+            let profileLine: number[] = [];
+            if (selectedProfile.name === listOfProfiles[1].name) {
+                /*setProfileIncChart([1,3,6,9])
+                setDepthProfilesArray([31.5,39.5,51,34.5])
+                setMaxProfileDepth(51)
+                profileInc = [1,3,6,9];*/
+                setProfileIncChart([1, 2])
+                setDepthProfilesArray([31.5, 14.5])
+                setMaxProfileDepth(31.5)
+                profileLine = [1, 2];
+            } else if (selectedProfile.name === listOfProfiles[2].name) {
+                /*setProfileIncChart([2,4,10])
+                setDepthProfilesArray([14.5,26,20])
+                setMaxProfileDepth(26)
+                profileInc = [2,4,10];*/
+                setProfileIncChart([3, 4, 5])
+                setDepthProfilesArray([39.5, 26, 16.5])
+                setMaxProfileDepth(39.5)
+                profileLine = [3, 4, 5];
+            } else if (selectedProfile.name === listOfProfiles[3].name) {
+                /*setProfileIncChart([5,8])
+                setDepthProfilesArray([16.5,20.5])
+                setMaxProfileDepth(20.5)
+                profileInc = [5,8];*/
+                setProfileIncChart([6, 8])
+                setDepthProfilesArray([51, 20.5])
+                setMaxProfileDepth(51)
+                profileLine = [6, 8];
+            } else if (selectedProfile.name === listOfProfiles[4].name) {
+                setProfileIncChart([9, 10])
+                setDepthProfilesArray([34.5, 20])
+                setMaxProfileDepth(34.5)
+                profileLine = [9, 10];
+            }
+            setProfileLine(profileLine)
+            //handleToogleProfileLine(profileLine);
         }
-        handleToogleProfileLine(profileLine);
-    }, [selectedProfile]);
+    }, [selectedProfile, listOfProfiles, emptyPhoto]);
 
     // only for testing
     /*const rows = [
@@ -5402,12 +6015,17 @@ function ResultsVisualization() {
                     const refPointX2 = 320.0369757491928;
                     const refPointY2 = 172.48439409197888;
                     let posCounter = 0;
+                    let pointsArray = pointsPerProfile[selectedProfileID].points;
 
-                    for(let i = 0; i < numberOfInc.length; i++) {
+                    for(let i = 0; i < 9; i++) {//numberOfInc.length
+                        console.log(pointsArray[i])
                         //let testValueX = ((x3-x1)*97.97)/100
                         //let testValueY = ((y3-y1)*31.5)/51
-                        let refPointIncX1 = profilePosArray[posCounter]
-                        let refPointIncY1 = profilePosArray[posCounter+1]
+                        //let refPointIncX1 = profilePosArray[posCounter]
+                        //let refPointIncY1 = profilePosArray[posCounter+1]
+                        let refPointIncX1 = pointsArray[i].posX
+                        let refPointIncY1 = pointsArray[i].posY
+
                         let newX = refPointIncX1 + ((refPointX2 - refPointX1) * arrowData[i][0].displacement) / maxDisplacement
                         let newY = refPointIncY1 + ((refPointY2 - refPointY1) * (arrowData[i][0].depth-0.5)) / maxDepth
 
@@ -5581,15 +6199,48 @@ function ResultsVisualization() {
         }
     };
 
-    const handleToogleProfileLine = (profileLine: number[]) => {
-        if (selectedProfile.name !== "All - Plan") {
-            if (stageRef.current) {
-                let stage = stageRef.current;
+    useEffect(() => {
+    //const handleToogleProfileLine = (profileLine: number[]) => {
+        if (selectedProfile.type !== "Plan" && !planCheckActiveOwn && !emptyPhoto) {
+            const stage = new Konva.Stage({
+                container: 'konvaContainer',
+                width: 600,
+                height: 400
+            });
+            stageRef.current = stage;
+
+            //if (stageRef.current) {
+                //let stage = stageRef.current;
                 if(profileLineLayerRef.current !== null){
                     const oldLayer = profileLineLayerRef.current;
                     oldLayer.destroy();
                     profileLineLayerRef.current = null;
                 }
+
+                let backgroundLayer = new Konva.Layer();
+                stage.add(backgroundLayer);
+
+                let backgroundImage = new Image();
+                backgroundImage.onload = function () {
+                    let background = new Konva.Image({
+                        image: backgroundImage,
+                        width: stage.width(),
+                        height: stage.height(),
+                    });
+                    backgroundLayer.add(background);
+
+                    let border = new Konva.Rect({
+                        x: 0,
+                        y: 0,
+                        width: stage.width(),
+                        height: stage.height(),
+                        stroke: 'black',
+                        strokeWidth: 2,
+                    });
+                    backgroundLayer.add(border);
+                    backgroundLayer.draw();
+                };
+                backgroundImage.src = listOfProfiles[0].attachedImage;
 
                 let layer = new Konva.Layer({
                     scaleX: 1,
@@ -5613,12 +6264,15 @@ function ResultsVisualization() {
                     incliLine = profileIncChart
                 }
 
+                let points = pointsPerProfile[selectedProfileID].points;
                 let pointsArray: number[]  = [];
                 for(let i = 0; i < numberOfInc.length; i++) {
                     for(let j = 0; j < incliLine.length; j++) {
                         if(Number(numberOfInc[i]) === incliLine[j]){
-                            pointsArray.push(profilePosArray[i*2])
-                            pointsArray.push(profilePosArray[i*2+1])
+                            //pointsArray.push(profilePosArray[i*2])
+                            //pointsArray.push(profilePosArray[i*2+1])
+                            pointsArray.push(points[i].posX)
+                            pointsArray.push(points[i].posY)
                         }
                     }
                 }
@@ -5646,7 +6300,7 @@ function ResultsVisualization() {
                 });
 
                 group.add(line);
-            }
+            //}
         } else {
             if(stageRef.current && profileLineLayerRef.current){
                  const stage = stageRef.current;
@@ -5655,7 +6309,169 @@ function ResultsVisualization() {
                  profileLineLayerRef.current = null;
             }
         }
-    };
+    //};
+    }, [profileLine]);
+
+
+
+    useEffect(() => {
+        if(selectedVisualization.name === visualization[1].name && selectedProfile.type !== "Plan"  && crossSectionCheckboxs[selectedProfileID].check && crossSectionCheckActive){
+            setTimeout(function() {
+
+                let imgWidth: number = 600;
+                let imgHeight: number = 400;
+
+                let measureImage = new Image();
+
+                let newSrc = listOfProfiles[0].attachedImage
+
+                for(let i = 0; i < listOfProfiles.length; i++){
+                    if(listOfProfiles[i].id === selectedProfileID){
+                        newSrc = listOfProfiles[i].attachedImage
+                    }
+                }
+                measureImage.src = newSrc;
+
+                measureImage.onload = () => {
+                    if (measureImage.width < 600) {
+                        let aspectRatio = measureImage.width / measureImage.height;
+                        imgWidth = 600;
+                        imgHeight = 600 / aspectRatio;
+                        //setImgCrossSectionWidth(600)
+                        //setImgCrossSectionHeight(newHeight)
+                    } else {
+                        imgWidth = measureImage.width;
+                        imgHeight = measureImage.height;
+                        //setImgCrossSectionWidth(image.width)
+                        //setImgCrossSectionHeight(image.height)
+                    }
+                }
+
+                const stage = new Konva.Stage({
+                    container: 'konvaContainerCrossSection',
+                    width: imgWidth,
+                    height: imgHeight
+                });
+                stageCrossSectionRef.current = stage;
+                //setProfileInitialized(true)
+
+                let backgroundLayer = new Konva.Layer();
+                stage.add(backgroundLayer);
+
+                let backgroundImage = new Image();
+                backgroundImage.onload = function () {
+                    let background = new Konva.Image({
+                        image: backgroundImage,
+                        width: imgWidth,
+                        height: imgHeight
+                    });
+                    backgroundLayer.add(background);
+
+                    let border = new Konva.Rect({
+                        x: 0,
+                        y: 0,
+                        width: imgWidth,
+                        height: imgHeight,
+                        stroke: 'black',
+                        strokeWidth: 2,
+                    });
+                    backgroundLayer.add(border);
+                    backgroundLayer.draw();
+                };
+
+                backgroundImage.src = measureImage.src;
+
+                let layer = new Konva.Layer({
+                    scaleX: 1,
+                    scaleY: 1,
+                    rotation: 5,
+                });
+                stage.add(layer);
+
+                let group = new Konva.Group({
+                    x: 30,
+                    rotation: 10,
+                    scaleX: 1,
+                });
+                layer.add(group);
+
+                let tempLinesProfile = linesPerProfile[selectedProfileID].lp;//positionsArrayCrossSection;
+
+                for(let i = 0; i < profileLine.length; i++) {
+                    for(let j = 0; j < tempLinesProfile.length; j++ ){
+                    if (tempLinesProfile[j].topX !== 0 && tempLinesProfile[j].bottomX !== 0) {
+                        //linha
+                        let shape = new Konva.Line({
+                            points: [tempLinesProfile[j].topX, tempLinesProfile[j].topY, tempLinesProfile[j].bottomX, tempLinesProfile[j].bottomY],
+                            stroke: 'red',
+                            strokeWidth: 5
+                        });
+                        group.add(shape);
+                    } else if (tempLinesProfile[j].topX !== 0) {
+                        //ponto
+                        let shape = new Konva.Circle({
+                            x: tempLinesProfile[j].topX,
+                            y: tempLinesProfile[j].topY,
+                            fill: 'red',
+                            radius: 5,
+                        });
+                        group.add(shape);
+                    } else if (tempLinesProfile[j].bottomX !== 0) {
+                        //ponto
+                        let shape = new Konva.Circle({
+                            x: tempLinesProfile[j].bottomX,
+                            y: tempLinesProfile[j].bottomY,
+                            fill: 'red',
+                            radius: 5,
+                        });
+                        group.add(shape);
+                    }
+                    }
+                }
+
+                /*let posCounter = 0;
+                for(let i = 0; i < 9; i++){
+                    let shape = new Konva.Circle({
+                        x: profilePosArray[posCounter],
+                        y: profilePosArray[posCounter+1],
+                        fill: 'red',
+                        radius: 5,
+                    });
+                    group.add(shape);
+                    posCounter += 2;
+                }*/
+
+            },1);
+        }else if(selectedVisualization.name === visualization[0].name || selectedProfile.type !== "Cross Section" || !crossSectionCheckboxs[selectedProfileID].check || !crossSectionCheckActive){// && profileInitialized){
+            //setProfileInitialized(false)
+            if (stageCrossSectionRef.current) {
+                const stage = stageCrossSectionRef.current;
+                stage.destroy();
+            }
+        }
+    }, [selectedVisualization, selectedProfile, crossSectionCheckActive]);
+
+
+    const [goBackButton, setGoBackButton] = useState(false)
+
+    useEffect(() => {
+        if(selectedVisualization === visualization[1]){
+            setGoBackButton(false)
+        }
+    }, [selectedVisualization]);
+
+    const handleInclinometerTableClick = (rowInc: number) => {
+        setGoBackButton(true);
+        setSelectedVisualization(visualization[0])
+        handleSelectedInclinometer(rowInc)
+    }
+
+    const handleIncMapClick = (markerId: number) => {
+        setGoBackButton(true);
+        setSelectedVisualization(visualization[0])
+        handleSelectedInclinometer(markerId)
+    }
+
 
     const [selectedExport, setSelectedExport] = useState(exportSelect[0])
 
@@ -5667,1438 +6483,30 @@ function ResultsVisualization() {
     };
 
     return (
-        <div className="main-wrapper">
-            { selectedVisualization.name === visualization[0].name ? (
+        <div
+            className="main-wrapper">
+            {goBackButton && (
+                <div className="goBackButtonParent">
+                <div className="goBackButton">
+                <button
+                    type="button"
+                    className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                    onClick={() => setSelectedVisualization(visualization[1])}>
+                    <ArrowBack
+                        sx={{color: 'white'}}/>
+                    Return
+                    to
+                    profile
+                </button>
+            </div></div>)}
+            {selectedVisualization.name === visualization[0].name ? (
                 /*
                  * INCLINOMETER SECTION
                  */
                 <div
-                className="row-container">
-                <div
-                    className="column-container left-column">
-                    <div
-                        className="filter-container-typeViz">
-                        <Listbox
-                            value={selectedVisualization}
-                            onChange={setSelectedVisualization}>
-                            {({open}) => (
-                                <>
-                                    <Listbox.Label
-                                        className="block text-lg font-medium leading-6 text-gray-900 text-left">Type
-                                        of
-                                        visualization</Listbox.Label>
-                                    <div
-                                        className="relative mt-2 ">
-                                        <Listbox.Button
-                                            className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
-                                      <span
-                                          className="flex items-center">
-                                          <span
-                                              className="ml-3 block truncate">{selectedVisualization.name}</span>
-                                      </span>
-                                            <span
-                                                className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
-                                      <ChevronUpDownIcon
-                                          className="h-5 w-5 text-gray-400"
-                                          aria-hidden="true"/>
-                                      </span>
-                                        </Listbox.Button>
-                                        <Transition
-                                            show={open}
-                                            as={Fragment}
-                                            leave="transition ease-in duration-100"
-                                            leaveFrom="opacity-100"
-                                            leaveTo="opacity-0"
-                                        >
-                                            <Listbox.Options
-                                                className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                {visualization.map((viz) => (
-                                                    <Listbox.Option
-                                                        key={viz.id}
-                                                        className={({active}) =>
-                                                            classNames(
-                                                                active ? 'bg-yellow-500 text-white' : 'text-gray-900',
-                                                                'relative cursor-default select-none py-2 pl-3 pr-9'
-                                                            )
-                                                        }
-                                                        value={viz}
-                                                    >
-                                                        {({
-                                                              selected,
-                                                              active
-                                                          }) => (
-                                                            <>
-                                                                <div
-                                                                    className="flex items-center">
-                                                                <span
-                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
-                                                                >
-                            {viz.name}
-                          </span>
-                                                                </div>
-
-                                                                {selected ? (
-                                                                    <span
-                                                                        className={classNames(
-                                                                            active ? 'text-white' : 'text-green-600',
-                                                                            'absolute inset-y-0 right-0 flex items-center pr-4'
-                                                                        )}
-                                                                    >
-                            <CheckIcon
-                                className="h-5 w-5"
-                                aria-hidden="true"/>
-                          </span>
-                                                                ) : null}
-                                                            </>
-                                                        )}
-                                                    </Listbox.Option>
-                                                ))}
-                                            </Listbox.Options>
-                                        </Transition>
-                                    </div>
-                                </>
-                            )}
-                        </Listbox>
-                    </div>
-                    <div
-                        className="filter-container-typeViz">
-                        <Listbox
-                            value={selectedResults}
-                            onChange={(selectResultOption) => {
-                                handleSelectedResults(selectResultOption.name)
-                            }}>
-                            {({open}) => (
-                                <>
-                                    <Listbox.Label
-                                        className="block text-lg font-medium leading-6 text-gray-900 text-left">Type
-                                        of
-                                        result</Listbox.Label>
-                                    <div
-                                        className="relative mt-2">
-                                        <Listbox.Button
-                                            className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
-                                      <span
-                                          className="flex items-center">
-                                          <span
-                                              className="ml-3 block truncate">{selectedResults.name}</span>
-                                      </span>
-                                            <span
-                                                className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
-                                      <ChevronUpDownIcon
-                                          className="h-5 w-5 text-gray-400"
-                                          aria-hidden="true"/>
-                                      </span>
-                                        </Listbox.Button>
-                                        <Transition
-                                            show={open}
-                                            as={Fragment}
-                                            leave="transition ease-in duration-100"
-                                            leaveFrom="opacity-100"
-                                            leaveTo="opacity-0"
-                                        >
-                                            <Listbox.Options
-                                                className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                {results.map((res) => (
-                                                    <Listbox.Option
-                                                        key={res.id}
-                                                        className={({active}) =>
-                                                            classNames(
-                                                                active ? 'bg-yellow-500 text-white' : 'text-gray-900',
-                                                                'relative cursor-default select-none py-2 pl-3 pr-9'
-                                                            )
-                                                        }
-                                                        value={res}
-                                                    >
-                                                        {({
-                                                              selected,
-                                                              active
-                                                          }) => (
-                                                            <>
-                                                                <div
-                                                                    className="flex items-center">
-                                                                <span
-                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
-                                                                >
-                            {res.name}
-                          </span>
-                                                                </div>
-
-                                                                {selected ? (
-                                                                    <span
-                                                                        className={classNames(
-                                                                            active ? 'text-white' : 'text-green-600',
-                                                                            'absolute inset-y-0 right-0 flex items-center pr-4'
-                                                                        )}
-                                                                    >
-                            <CheckIcon
-                                className="h-5 w-5"
-                                aria-hidden="true"/>
-                          </span>
-                                                                ) : null}
-                                                            </>
-                                                        )}
-                                                    </Listbox.Option>
-                                                ))}
-                                            </Listbox.Options>
-                                        </Transition>
-                                    </div>
-                                </>
-                            )}
-                        </Listbox>
-                    </div>
-                    <div
-                        className="filter-container-typeViz">
-                        <Listbox
-                            value={selectedDatesTypes}
-                            onChange={(selectedOption) => {
-                                setSelectedDatesTypes(selectedOption);
-                                handleToogleSelectDates();
-                            }}>
-                            {({open}) => (
-                                <>
-                                    <Listbox.Label
-                                        className="block text-lg font-medium leading-6 text-gray-900 text-left">Dates</Listbox.Label>
-                                    <div
-                                        className="relative mt-2">
-                                        <Listbox.Button
-                                            className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
-                                      <span
-                                          className="flex items-center">
-                                          <span
-                                              className="ml-3 block truncate">{selectedDatesTypes.name}</span>
-                                      </span>
-                                            <span
-                                                className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
-                                      <ChevronUpDownIcon
-                                          className="h-5 w-5 text-gray-400"
-                                          aria-hidden="true"/>
-                                      </span>
-                                        </Listbox.Button>
-                                        <Transition
-                                            show={open}
-                                            as={Fragment}
-                                            leave="transition ease-in duration-100"
-                                            leaveFrom="opacity-100"
-                                            leaveTo="opacity-0"
-                                        >
-                                            <Listbox.Options
-                                                className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                {datesTypes.map((dat) => (
-                                                    <Listbox.Option
-                                                        key={dat.id}
-                                                        className={({active}) =>
-                                                            classNames(
-                                                                active ? 'bg-yellow-500 text-white' : 'text-gray-900',
-                                                                'relative cursor-default select-none py-2 pl-3 pr-9'
-                                                            )
-                                                        }
-                                                        value={dat}
-                                                    >
-                                                        {({
-                                                              selected,
-                                                              active
-                                                          }) => (
-                                                            <>
-                                                                <div
-                                                                    className="flex items-center">
-                                                                <span
-                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
-                                                                >{dat.name}</span>
-                                                                </div>
-
-                                                                {selected ? (
-                                                                    <span
-                                                                        className={classNames(
-                                                                            active ? 'text-white' : 'text-green-600',
-                                                                            'absolute inset-y-0 right-0 flex items-center pr-4'
-                                                                        )}
-                                                                    >
-                            <CheckIcon
-                                className="h-5 w-5"
-                                aria-hidden="true"/>
-                          </span>
-                                                                ) : null}
-                                                            </>
-                                                        )}
-                                                    </Listbox.Option>
-                                                ))}
-                                            </Listbox.Options>
-                                        </Transition>
-                                    </div>
-                                </>
-                            )}
-                        </Listbox>
-                    </div>
-                    {!toggleSelectDates && (
-                        <div
-                            className="filter-container-typeViz">
-                            <div
-                                className="column-container">
-                                <div
-                                    className="pb-8 flex items-center">
-                                    <div
-                                        className="pr-2">
-                                        <Listbox>
-                                            <Listbox.Label
-                                                className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">First</Listbox.Label>
-                                        </Listbox>
-                                    </div>
-                                    <DatePicker
-                                        oneTap
-                                        placeholder="YYYY-MM-DD"
-                                        style={{width: 190}}
-                                        onChange={(e) => {
-                                            handleFirstDateInterval(e?.getFullYear(), e?.getMonth(), e?.getDay())
-                                            if (lastToggleRef == 1) {
-                                                if (e?.getFullYear() !== undefined && e?.getMonth() !== undefined && e?.getDay() !== undefined) {
-                                                    let date = e?.getFullYear() + "-" + e?.getMonth() + "-" + e?.getDay();
-                                                    let expectedDate = handleGetClosestDate(date);
-                                                    //handleRefDate(expectedDate);
-
-                                                }
-                                            }
-                                        }}
-                                        onClean={handleFirstDateIntervalReset}
-                                    />
-                                </div>
-                                <div
-                                    className="flex items-center">
-                                    <div
-                                        className="pr-2">
-                                        <Listbox>
-                                            <Listbox.Label
-                                                className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Last</Listbox.Label>
-                                        </Listbox>
-                                    </div>
-                                    <DatePicker
-                                        oneTap
-                                        placeholder="YYYY-MM-DD"
-                                        style={{width: 190}}
-                                        onChange={(e) => handleLastDateInterval(e?.getFullYear(), e?.getMonth(), e?.getDay())}
-                                        onClean={handleLastDateIntervalReset}
-                                    />
-                                </div>
-                                <div
-                                    className="relative inline-block pl-12 pt-5 w-30 mr-2 ml-2 align-middle select-none">
-                                    <button
-                                        type="button"
-                                        className="py-2 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                                        onClick={handleResetDates}>Reset
-                                        dates
-                                    </button>
-                                </div>
-                            </div>
-
-                        </div>)}
-                    {toggleSelectDates && (
-                        <div
-                            className="pl-6 pt-5">
-                            <div
-                                id="dropdownSearch"
-                                className="z-10 bg-white rounded-lg shadow w-60 dark:bg-green-500">
-                                <div
-                                    className="p-3">
-                                    <label
-                                        htmlFor="input-group-search"
-                                        className="sr-only">Search</label>
-                                    <div
-                                        className="relative">
-                                        <div
-                                            className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                                            <svg
-                                                className="w-4 h-4 text-gray-900"
-                                                aria-hidden="true"
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                fill="none"
-                                                viewBox="0 0 20 20">
-                                                <path
-                                                    stroke="currentColor"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth="2"
-                                                    d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
-                                            </svg>
-                                        </div>
-                                        <input
-                                            type="text"
-                                            id="input-group-search"
-                                            className="bg-green-50 border border-gray-300 text-gray-950 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5"
-                                            placeholder="Search date"
-                                            value={searchTerm}
-                                            onChange={(e) => handleSearchChange(e.target.value)}/>
-                                    </div>
-                                </div>
-                                <ul className="h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700"
-                                    aria-labelledby="dropdownSearchButton">
-                                    {searchTerm ? filteredDates.map((date, index) => (
-                                        <li key={index}>
-                                            <div
-                                                className="flex items-center p-2 rounded hover:bg-gray-100 ">
-                                                <input
-                                                    id={`checkbox-item-${index}`}
-                                                    type="checkbox"
-                                                    value={`${date}`}
-                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 "
-                                                    checked={isDateChecked(date, checkedDates)}
-                                                    onChange={(e) => handleDateCheck(e.target.value)}
-                                                />
-                                                <label
-                                                    htmlFor={`checkbox-item-${index}`}
-                                                    className="w-full ms-2 text-sm font-medium text-gray-900 rounded">{date.split(" ")[1] === "00:00:00" ? date.split(" ")[0]: date}</label>
-                                            </div>
-                                        </li>
-                                    )) : (
-                                        <>
-                                        <li>
-                                            <div className="flex items-center p-2 rounded hover:bg-gray-100">
-                                                <input
-                                                    id="checkbox-all-dates"
-                                                    type="checkbox"
-                                                    value={'All dates'}
-                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                                                    checked={areAllDatesChecked(numberOfDates.length, checkedDates)}
-                                                    onChange={handleAllDatesCheck}
-                                                />
-                                                <label htmlFor="checkbox-all-dates" className="w-full ms-2 text-sm font-medium text-white rounded hover:text-black">All Dates</label>
-                                            </div>
-                                        </li>
-                                        {
-                                        numberOfDates.map((date, index) => (
-                                        <li key={index}>
-                                            <div
-                                                className="flex items-center p-2 rounded hover:bg-gray-100 ">
-                                                <input
-                                                    id={`checkbox-item-${index}`}
-                                                    type="checkbox"
-                                                    value={`${date}`}
-                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 "
-                                                    checked={isDateChecked(date, checkedDates)}
-                                                    onChange={(e) => handleDateCheck(e.target.value)}
-                                                />
-                                                <label
-                                                    htmlFor={`checkbox-item-${index}`}
-                                                    className="w-full ms-2 text-sm font-medium text-white rounded hover:text-black">{date.split(" ")[1] === "00:00:00" ? date.split(" ")[0]: date}</label>
-                                            </div>
-                                        </li>
-                                    ))}
-                                        </>
-                                    )}
-                                </ul>
-
-                            </div>
-                        </div>
-                    )}
-                    <div
-                        className="filter-container-typeDepth">
-                        <Listbox
-                            value={selectedDesiredDepth}
-                            onChange={(selectedOption) => {
-                                setSelectedDesiredDepth(selectedOption);
-                                handleToogleDepthInterval();
-                            }}>
-                            {({open}) => (
-                                <>
-                                    <Listbox.Label
-                                        className="block text-lg font-medium leading-6 text-gray-900 text-left">Desired depth</Listbox.Label>
-                                    <div
-                                        className="relative mt-2">
-                                        <Listbox.Button
-                                            className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
-                                      <span
-                                          className="flex items-center">
-                                          <span
-                                              className="ml-3 block truncate">{selectedDesiredDepth.name}</span>
-                                      </span>
-                                            <span
-                                                className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
-                                      <ChevronUpDownIcon
-                                          className="h-5 w-5 text-gray-400"
-                                          aria-hidden="true"/>
-                                      </span>
-                                        </Listbox.Button>
-                                        <Transition
-                                            show={open}
-                                            as={Fragment}
-                                            leave="transition ease-in duration-100"
-                                            leaveFrom="opacity-100"
-                                            leaveTo="opacity-0"
-                                        >
-                                            <Listbox.Options
-                                                className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                {desiredDepthTypes.map((dat) => (
-                                                    <Listbox.Option
-                                                        key={dat.id}
-                                                        className={({active}) =>
-                                                            classNames(
-                                                                active ? 'bg-yellow-500 text-white' : 'text-gray-900',
-                                                                'relative cursor-default select-none py-2 pl-3 pr-9'
-                                                            )
-                                                        }
-                                                        value={dat}
-                                                    >
-                                                        {({
-                                                              selected,
-                                                              active
-                                                          }) => (
-                                                            <>
-                                                                <div
-                                                                    className="flex items-center">
-                                                                <span
-                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
-                                                                >{dat.name}</span>
-                                                                </div>
-
-                                                                {selected ? (
-                                                                    <span
-                                                                        className={classNames(
-                                                                            active ? 'text-white' : 'text-green-600',
-                                                                            'absolute inset-y-0 right-0 flex items-center pr-4'
-                                                                        )}
-                                                                    >
-                            <CheckIcon
-                                className="h-5 w-5"
-                                aria-hidden="true"/>
-                          </span>
-                                                                ) : null}
-                                                            </>
-                                                        )}
-                                                    </Listbox.Option>
-                                                ))}
-                                            </Listbox.Options>
-                                        </Transition>
-                                    </div>
-                                </>
-                            )}
-                        </Listbox>
-                    </div>
-                {toggleDepthInterval && (
-                    <div
-                        className="filter-container-typeViz">
-                        <div
-                            className="column-container">
-                            <div
-                                className="pb-8 flex items-center">
-                                <div
-                                    className="pr-2">
-                                    <Listbox>
-                                        <Listbox.Label
-                                            className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">First</Listbox.Label>
-                                    </Listbox>
-                                </div>
-                                <Listbox
-                                    value={selectedFirstDesiredDepth}
-                                    onChange={(selectedOption) => {
-                                        setSelectedFirstDesiredDepth(selectedOption);
-                                        handleFirstDesiredDepth(selectedOption.toString());
-                                    }}>
-                                    {({open}) => (
-                                        <>
-                                            <div
-                                                className="relative mt-2">
-                                                <Listbox.Button
-                                                    className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
-                                      <span
-                                          className="flex items-center">
-                                          <span
-                                              className="ml-3 block truncate">{selectedFirstDesiredDepth.toString()}</span>
-                                      </span>
-                                                    <span
-                                                        className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
-                                      <ChevronUpDownIcon
-                                          className="h-5 w-5 text-gray-400"
-                                          aria-hidden="true"/>
-                                      </span>
-                                                </Listbox.Button>
-                                                <Transition
-                                                    show={open}
-                                                    as={Fragment}
-                                                    leave="transition ease-in duration-100"
-                                                    leaveFrom="opacity-100"
-                                                    leaveTo="opacity-0"
-                                                >
-                                                    <Listbox.Options
-                                                        className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                        {depthArray.filter(value => value < selectedLastDesiredDepth).map((d) => (
-                                                            <Listbox.Option
-                                                                key={d}
-                                                                className={({active}) =>
-                                                                    classNames(
-                                                                        active ? 'bg-yellow-500 text-white' : 'text-gray-900',
-                                                                        'relative cursor-default select-none py-2 pl-3 pr-9'
-                                                                    )
-                                                                }
-                                                                value={d}
-                                                            >
-                                                                {({
-                                                                      selected,
-                                                                      active
-                                                                  }) => (
-                                                                    <>
-                                                                        <div
-                                                                            className="flex items-center">
-                                                                <span
-                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
-                                                                >{d}</span>
-                                                                        </div>
-
-                                                                        {selected ? (
-                                                                            <span
-                                                                                className={classNames(
-                                                                                    active ? 'text-white' : 'text-green-600',
-                                                                                    'absolute inset-y-0 right-0 flex items-center pr-4'
-                                                                                )}
-                                                                            >
-                            <CheckIcon
-                                className="h-5 w-5"
-                                aria-hidden="true"/>
-                          </span>
-                                                                        ) : null}
-                                                                    </>
-                                                                )}
-                                                            </Listbox.Option>
-                                                        ))}
-                                                    </Listbox.Options>
-                                                </Transition>
-                                            </div>
-                                        </>
-                                    )}
-                                </Listbox>
-                            </div>
-                            <div
-                                className="flex items-center">
-                                <div
-                                    className="pr-2">
-                                    <Listbox>
-                                        <Listbox.Label
-                                            className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Last</Listbox.Label>
-                                    </Listbox>
-                                </div>
-                                <Listbox
-                                    value={selectedLastDesiredDepth}
-                                    onChange={(selectedOption) => {
-                                        setSelectedLastDesiredDepth(selectedOption);
-                                        handleLastDesiredDepth(selectedOption.toString());
-                                    }}>
-                                    {({open}) => (
-                                        <>
-                                            <div
-                                                className="relative mt-2">
-                                                <Listbox.Button
-                                                    className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
-                                      <span
-                                          className="flex items-center">
-                                          <span
-                                              className="ml-3 block truncate">{selectedLastDesiredDepth.toString()}</span>
-                                      </span>
-                                                    <span
-                                                        className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
-                                      <ChevronUpDownIcon
-                                          className="h-5 w-5 text-gray-400"
-                                          aria-hidden="true"/>
-                                      </span>
-                                                </Listbox.Button>
-                                                <Transition
-                                                    show={open}
-                                                    as={Fragment}
-                                                    leave="transition ease-in duration-100"
-                                                    leaveFrom="opacity-100"
-                                                    leaveTo="opacity-0"
-                                                >
-                                                    <Listbox.Options
-                                                        className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                        {depthArray.filter(value => value > selectedFirstDesiredDepth && value <= topValueSlider).map((d) => (
-                                                            <Listbox.Option
-                                                                key={d}
-                                                                className={({active}) =>
-                                                                    classNames(
-                                                                        active ? 'bg-yellow-500 text-white' : 'text-gray-900',
-                                                                        'relative cursor-default select-none py-2 pl-3 pr-9'
-                                                                    )
-                                                                }
-                                                                value={d}
-                                                            >
-                                                                {({
-                                                                      selected,
-                                                                      active
-                                                                  }) => (
-                                                                    <>
-                                                                        <div
-                                                                            className="flex items-center">
-                                                                <span
-                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
-                                                                >{d}</span>
-                                                                        </div>
-
-                                                                        {selected ? (
-                                                                            <span
-                                                                                className={classNames(
-                                                                                    active ? 'text-white' : 'text-green-600',
-                                                                                    'absolute inset-y-0 right-0 flex items-center pr-4'
-                                                                                )}
-                                                                            >
-                            <CheckIcon
-                                className="h-5 w-5"
-                                aria-hidden="true"/>
-                          </span>
-                                                                        ) : null}
-                                                                    </>
-                                                                )}
-                                                            </Listbox.Option>
-                                                        ))}
-                                                    </Listbox.Options>
-                                                </Transition>
-                                            </div>
-                                        </>
-                                    )}
-                                </Listbox>
-                            </div>
-                            <div
-                                className="relative inline-block pl-12 pt-5 w-30 mr-2 ml-2 align-middle select-none">
-                                <button
-                                    type="button"
-                                    className="py-2 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                                    onClick={handleDesiredDepthIntervalReset}>Reset interval
-                                </button>
-                            </div>
-                        </div>
-
-                    </div>)}
-                </div>
-                <div>
-                    <div
-                        className="row-container">
-                        <div
-                            className="column-container middle-column">
-                            <div
-                                className="middle-col-select">
-                                <div
-                                    className="filter-container-typeViz">
-                                    <Listbox
-                                        value={selectedMeasurement}
-                                        onChange={(selectedOption) => {
-                                            setSelectedMeasurement(selectedOption);
-                                            handleSelectedMeasurement(selectedOption.toString());
-                                        }}>
-                                        {({open}) => (
-                                            <>
-                                                <Listbox.Label
-                                                    className="block text-lg font-medium leading-6 text-gray-900 text-left">Measurement</Listbox.Label>
-                                                <div
-                                                    className="relative mt-2">
-                                                    <Listbox.Button
-                                                        className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
-                                      <span
-                                          className="flex items-center">
-                                          <span
-                                              className="ml-3 block truncate">{selectedMeasurement}</span>
-                                      </span>
-                                                        <span
-                                                            className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
-                                      <ChevronUpDownIcon
-                                          className="h-5 w-5 text-gray-400"
-                                          aria-hidden="true"/>
-                                      </span>
-                                                    </Listbox.Button>
-                                                    <Transition
-                                                        show={open}
-                                                        as={Fragment}
-                                                        leave="transition ease-in duration-100"
-                                                        leaveFrom="opacity-100"
-                                                        leaveTo="opacity-0"
-                                                    >
-                                                        <Listbox.Options
-                                                            className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                            {numberOfMeasurements.map((m) => (
-                                                                <Listbox.Option
-                                                                    key={m}
-                                                                    className={({active}) =>
-                                                                        classNames(
-                                                                            active ? 'bg-yellow-500 text-white' : 'text-gray-900',
-                                                                            'relative cursor-default select-none py-2 pl-3 pr-9'
-                                                                        )
-                                                                    }
-                                                                    value={m}
-                                                                >
-                                                                    {({
-                                                                          selected,
-                                                                          active
-                                                                      }) => (
-                                                                        <>
-                                                                            <div
-                                                                                className="flex items-center">
-                                                                <span
-                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
-                                                                >{m}</span>
-                                                                            </div>
-
-                                                                            {selected ? (
-                                                                                <span
-                                                                                    className={classNames(
-                                                                                        active ? 'text-white' : 'text-green-600',
-                                                                                        'absolute inset-y-0 right-0 flex items-center pr-4'
-                                                                                    )}
-                                                                                >
-                            <CheckIcon
-                                className="h-5 w-5"
-                                aria-hidden="true"/>
-                          </span>
-                                                                    ) : null}
-                                                                </>
-                                                            )}
-                                                        </Listbox.Option>
-                                                        ))}
-                                                    </Listbox.Options>
-                                                </Transition>
-                                            </div>
-                                        </>
-                                    )}
-                                </Listbox>
-                            </div>
-                            <div
-                                className="filter-container-typeViz">
-                                <Listbox
-                                    value={selectedInclinometer}
-                                    onChange={(selectedOption) => {
-                                        setSelectedInclinometer(selectedOption);
-                                       handleSelectedInclinometer(parseInt(selectedOption.toString()));
-                                    }}>
-                                    {({open}) => (
-                                        <>
-                                            <Listbox.Label
-                                                className="block text-lg font-medium leading-6 text-gray-900 text-left">Inclinometer</Listbox.Label>
-                                            <div
-                                                className="relative mt-2">
-                                                <Listbox.Button
-                                                    className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
-                                      <span
-                                          className="flex items-center">
-                                          <span
-                                              className="ml-3 block truncate">I{selectedInclinometer.toString()}</span>
-                                      </span>
-                                                    <span
-                                                        className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
-                                      <ChevronUpDownIcon
-                                          className="h-5 w-5 text-gray-400"
-                                          aria-hidden="true"/>
-                                      </span>
-                                                </Listbox.Button>
-                                                <Transition
-                                                    show={open}
-                                                    as={Fragment}
-                                                    leave="transition ease-in duration-100"
-                                                    leaveFrom="opacity-100"
-                                                    leaveTo="opacity-0"
-                                                >
-                                                    <Listbox.Options
-                                                        className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                        {numberOfInc.map((inc) => (
-                                                            <Listbox.Option
-                                                                key={inc}
-                                                                className={({active}) =>
-                                                                    classNames(
-                                                                        active ? 'bg-yellow-500 text-white' : 'text-gray-900',
-                                                                        'relative cursor-default select-none py-2 pl-3 pr-9'
-                                                                    )
-                                                                }
-                                                                value={inc}
-                                                            >
-                                                                {({
-                                                                      selected,
-                                                                      active
-                                                                  }) => (
-                                                                    <>
-                                                                        <div
-                                                                            className="flex items-center">
-                                                                <span
-                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
-                                                                >I{inc}</span>
-                                                                        </div>
-
-                                                                        {selected ? (
-                                                                            <span
-                                                                                className={classNames(
-                                                                                    active ? 'text-white' : 'text-green-600',
-                                                                                    'absolute inset-y-0 right-0 flex items-center pr-4'
-                                                                                )}
-                                                                            >
-                            <CheckIcon
-                                className="h-5 w-5"
-                                aria-hidden="true"/>
-                          </span>
-                                                                        ) : null}
-                                                                    </>
-                                                                )}
-                                                            </Listbox.Option>
-                                                        ))}
-                                                    </Listbox.Options>
-                                                </Transition>
-                                            </div>
-                                        </>
-                                    )}
-                                </Listbox>
-                            </div>
-                            </div>
-                            <div
-                                className="filter-container-graphClock chart-wrapper"
-                                ref={chartClock}
-                            >
-                                <ChartClock
-                                    graphDataA={selectedAXChartData}
-                                    graphDataB={selectedAYChartData}
-                                    loadingData={loadingData}
-                                />
-                            </div>
-
-                        </div>
-                        <div
-                            className="column-container right-column">
-                            <div
-                                className="filter-container-ref">
-                                <Listbox>
-                                    <Listbox.Label
-                                        className="block text-lg font-medium leading-6 text-gray-900 text-left pb-2">Reference</Listbox.Label>
-                                </Listbox>
-
-                                <ul className="items-center w-300 text-base font-medium text-gray-900 bg-white border border-gray-200 rounded-lg sm:flex dark:bg-green-500 dark:border-gray-700 dark:text-white">
-                                    <li className="w-full border-b border-gray-200 sm:border-b-0 sm:border-r dark:border-gray-600">
-                                        <div
-                                            className="flex items-center ps-3 pr-1">
-                                            <input
-                                                id="earliestDate"
-                                                type="radio"
-                                                value="false"
-                                                name="list-radio"
-                                                checked={handleToogleReference(0)}
-                                                onChange={(e) => {
-                                                    handleEarliestDate(false);
-                                                    handleResetRefDate()
-                                                    setLastToggleRef(0)
-                                                }}
-                                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 "/>
-                                            <label
-                                                htmlFor="earliestDate"
-                                                className="w-full py-3 ms-2 text-sm font-medium text-white-50 ">Earliest
-                                                date</label>
-                                        </div>
-                                    </li>
-                                    <li className="w-full border-b border-gray-200 sm:border-b-0 sm:border-r dark:border-gray-600">
-                                        <div
-                                            className="flex items-center ps-3">
-                                            <input
-                                                id="fromselectdate"
-                                                type="radio"
-                                                value="true"
-                                                name="list-radio"
-                                                checked={handleToogleReference(1)}
-                                                onChange={(e) => {
-                                                    handleEarliestDate(true)
-                                                    setLastToggleRef(1)
-
-                                                }}
-                                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300  "/>
-                                            <label
-                                                htmlFor="fromselectdate"
-                                                className="w-full py-3 ms-2 text-sm font-medium text-white-50">Select<br/>date</label>
-                                        </div>
-                                    </li>
-                                    <li className="w-full dark:border-gray-600">
-                                        <div
-                                            className="flex items-center ps-3">
-                                            <input
-                                                id="fromInterval"
-                                                type="radio"
-                                                value="true"
-                                                name="list-radio"
-                                                checked={handleToogleReference(2)}
-                                                onChange={(e) => {
-                                                    handleEarliestDate(false)
-                                                    handleResetRefDate()
-                                                    setLastToggleRef(2)
-                                                    setSelectedDatesTypes(datesTypes[0]);
-                                                    if(toggleSelectDates) {
-                                                        handleToogleSelectDates();
-                                                    }
-                                                }}
-                                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300  "/>
-                                            <label
-                                                htmlFor="fromInterval"
-                                                className="w-full py-3 ms-2 text-sm font-medium text-white-50">From interval</label>
-                                        </div>
-                                    </li>
-                                </ul>
-                                <div
-                                    className="pt-3">
-                                    {toggleIntervalRef ? (
-                                        <select
-                                            id="selectRefDateId"
-                                            onChange={(e) => handleRefDate(e.target.value)}
-                                            style={{
-                                                padding: '8px',
-                                                fontSize: '16px',
-                                                borderRadius: '5px',
-                                                border: '1px solid #ccc'
-                                            }}>
-                                            {numberOfDates.map(date => (
-                                                <option
-                                                    key={date}
-                                                    value={date}>{date.split(" ")[0]}</option>
-                                            ))}
-                                        </select>) : (
-                                        <select
-                                            onChange={(e) => handleRefDate(e.target.value)}
-                                            style={{
-                                                padding: '8px',
-                                                fontSize: '16px',
-                                                borderRadius: '5px',
-                                                border: '1px solid #ccc'
-                                            }}
-                                            disabled>
-                                                <option
-                                                    key={earliestRefDate}
-                                                    value={earliestRefDate}>{earliestRefDate.split(" ")[0]}</option>
-
-                                        </select>
-                                    )}
-                                </div>
-                            </div>
-                            <div
-                                className="filter-container-elevation">
-                                <Listbox
-                                    value={selectedElevation}
-                                    onChange={setSelectedElevation}>
-                                    {({open}) => (
-                                        <>
-                                            <Listbox.Label
-                                                className="block text-lg font-medium leading-6 text-gray-900 text-left">Elevation</Listbox.Label>
-                                            <div
-                                                className="relative mt-2">
-                                                <Listbox.Button
-                                                    className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
-                                      <span
-                                          className="flex items-center">
-                                          <span
-                                              className="ml-3 block truncate">{selectedElevation.name}</span>
-                                      </span>
-                                                    <span
-                                                        className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
-                                      <ChevronUpDownIcon
-                                          className="h-5 w-5 text-gray-400"
-                                          aria-hidden="true"/>
-                                      </span>
-                                                </Listbox.Button>
-                                                <Transition
-                                                    show={open}
-                                                    as={Fragment}
-                                                    leave="transition ease-in duration-100"
-                                                    leaveFrom="opacity-100"
-                                                    leaveTo="opacity-0"
-                                                >
-                                                    <Listbox.Options
-                                                        className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                        {elevation.map((res) => (
-                                                            <Listbox.Option
-                                                                key={res.id}
-                                                                className={({active}) =>
-                                                                    classNames(
-                                                                        active ? 'bg-yellow-500 text-white' : 'text-gray-900',
-                                                                        'relative cursor-default select-none py-2 pl-3 pr-9'
-                                                                    )
-                                                                }
-                                                                value={res}
-                                                            >
-                                                                {({
-                                                                      selected,
-                                                                      active
-                                                                  }) => (
-                                                                    <>
-                                                                        <div
-                                                                            className="flex items-center">
-                                                                <span
-                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
-                                                                >
-                            {res.name}
-                          </span>
-                                                                        </div>
-
-                                                                        {selected ? (
-                                                                            <span
-                                                                                className={classNames(
-                                                                                    active ? 'text-white' : 'text-green-600',
-                                                                                    'absolute inset-y-0 right-0 flex items-center pr-4'
-                                                                                )}
-                                                                            >
-                            <CheckIcon
-                                className="h-5 w-5"
-                                aria-hidden="true"/>
-                          </span>
-                                                                        ) : null}
-                                                                    </>
-                                                                )}
-                                                            </Listbox.Option>
-                                                        ))}
-                                                    </Listbox.Options>
-                                                </Transition>
-                                            </div>
-                                        </>
-                                    )}
-                                </Listbox>
-                            </div>
-                            <div
-                                className="filter-container-typeInputs1">
-                                <Listbox>
-                                    <Listbox.Label
-                                        className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Show
-                                        total
-                                        displacement</Listbox.Label>
-                                </Listbox>
-                                <div
-                                    className="relative inline-block w-10 mr-2 align-middle select-none">
-                                    <input
-                                        id="Green"
-                                        type="checkbox"
-                                        onChange={(e) => handleToogleTotalChart()}
-                                        className="checked:bg-green-500 outline-none focus:outline-none right-4 checked:right-0 duration-200 ease-in absolute block w-6 h-6 rounded-full bg-white border-4 border-green-500 appearance-none cursor-pointer"/>
-                                    <label
-                                        htmlFor="Green"
-                                        className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"/>
-                                </div>
-                            </div>
-                            <div
-                                className="filter-container-typeInputs2">
-                                <Listbox>
-                                    <Listbox.Label
-                                        className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Show
-                                        temperature</Listbox.Label>
-                                </Listbox>
-                                <div
-                                    className="relative inline-block w-10 mr-2 align-middle select-none">
-                                    <input
-                                        id="Green"
-                                        type="checkbox"
-                                        onChange={(e) => handleToogleTempChart()}
-                                        className={`checked:bg-green-500 outline-none focus:outline-none right-4 checked:right-0 duration-200 ease-in absolute block w-6 h-6 rounded-full bg-white border-4 ${!toggleTotalChart ? 'border-gray-500' : 'border-green-500'} appearance-none cursor-pointer ${!toggleTotalChart ? 'opacity-50' : ''}`}
-                                        disabled={!toggleTotalChart}
-                                        style={{ transform: (!toggleTotalChart && toggleTempChart) ? 'translateX(-50%)' : 'none' }}
-                                    />
-                                    <label
-                                        htmlFor="Green"
-                                        className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"/>
-                                </div>
-                            </div>
-                            <div className="export-data">
-                                <div
-                                    className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
-                                <button type="button"
-                                        className="py-2 px-4  bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                                        onClick={handleOpen}>
-                                    Export data
-                                </button>
-                                </div>
-                            </div>
-                            <Modal
-                                open={open}
-                                onClose={handleClose}
-                                aria-labelledby="modal-title"
-                                aria-describedby="modal-description"
-                            >
-                                <Box sx={{
-                                    position: 'absolute' as 'absolute',
-                                    top: '50%',
-                                    left: '50%',
-                                    transform: 'translate(-50%, -50%)',
-                                    width: 400,
-                                    bgcolor: 'background.paper',
-                                    border: '2px solid #000',
-                                    boxShadow: 24,
-                                    p: 4,
-                                    '& .close-button': {
-                                        position: 'absolute',
-                                        top: 8,
-                                        right: 8,
-                                    },
-                                }}>
-                                    <IconButton className="close-button" aria-label="close" onClick={handleClose}>
-                                        <Clear />
-                                    </IconButton>
-                                    <div
-                                        className="filter-container-elevation">
-                                        <Listbox
-                                            value={selectedExport}
-                                            onChange={setSelectedExport}>
-                                            {({open}) => (
-                                                <>
-                                                    <Listbox.Label
-                                                        className="block text-lg font-medium leading-6 text-gray-900 text-left">Export
-                                                        results</Listbox.Label>
-                                                    <div
-                                                        className="relative mt-2">
-                                                        <Listbox.Button
-                                                            className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
-                                      <span
-                                          className="flex items-center">
-                                          <span
-                                              className="ml-3 block truncate">{selectedExport.name}</span>
-                                      </span>
-                                                            <span
-                                                                className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
-                                      <ChevronUpDownIcon
-                                          className="h-5 w-5 text-gray-400"
-                                          aria-hidden="true"/>
-                                      </span>
-                                                        </Listbox.Button>
-                                                        <Transition
-                                                            show={open}
-                                                            as={Fragment}
-                                                            leave="transition ease-in duration-100"
-                                                            leaveFrom="opacity-100"
-                                                            leaveTo="opacity-0"
-                                                        >
-                                                            <Listbox.Options
-                                                                className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                                {exportSelect.map((res) => (
-                                                                    <Listbox.Option
-                                                                        key={res.id}
-                                                                        className={({active}) =>
-                                                                            classNames(
-                                                                                active ? 'bg-yellow-500 text-white' : 'text-gray-900',
-                                                                                'relative cursor-default select-none py-2 pl-3 pr-9'
-                                                                            )
-                                                                        }
-                                                                        value={res}
-                                                                    >
-                                                                        {({
-                                                                              selected,
-                                                                              active
-                                                                          }) => (
-                                                                            <>
-                                                                                <div
-                                                                                    className="flex items-center">
-                                                                <span
-                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
-                                                                >
-                            {res.name}
-                          </span>
-                                                                                </div>
-
-                                                                                {selected ? (
-                                                                                    <span
-                                                                                        className={classNames(
-                                                                                            active ? 'text-white' : 'text-green-600',
-                                                                                            'absolute inset-y-0 right-0 flex items-center pr-4'
-                                                                                        )}
-                                                                                    >
-                            <CheckIcon
-                                className="h-5 w-5"
-                                aria-hidden="true"/>
-                          </span>
-                                                                                ) : null}
-                                                                            </>
-                                                                        )}
-                                                                    </Listbox.Option>
-                                                                ))}
-                                                            </Listbox.Options>
-                                                        </Transition>
-                                                    </div>
-                                                    <div
-                                                        className="filter-container-typeViz">
-                                                        <Listbox>
-                                                            <Listbox.Label
-                                                                className="pb-4 block text-lg font-medium leading-6 text-gray-900 text-left">Graph
-                                                                to
-                                                                export</Listbox.Label>
-                                                        </Listbox>
-                                                        <select
-                                                            onChange={(e) => handleSelectedGraphExport(e.target.value)}
-                                                            style={{
-                                                                padding: '8px',
-                                                                fontSize: '16px',
-                                                                borderRadius: '5px',
-                                                                border: '1px solid #ccc'
-                                                            }}>
-                                                            {!toggleTotalChart && (
-                                                                <option
-                                                                    key={"A"}
-                                                                    value={"A"}>A
-                                                                </option>)};
-                                                            {!toggleTempChart && (
-                                                                <option
-                                                                    key={"B"}
-                                                                    value={"B"}>B
-                                                                </option>)}
-                                                            {toggleTotalChart && (
-                                                                <option
-                                                                    key={"TOTAL"}
-                                                                    value={"TOTAL"}>Total
-                                                                </option>)}
-                                                            {toggleTempChart && (
-                                                                <option
-                                                                    key={"TEMP"}
-                                                                    value={"TEMP"}>Temp
-                                                                </option>)}
-
-                                                        </select>
-                                                        <div
-                                                            className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
-                                                            <button
-                                                                type="button"
-                                                                className="py-2 px-4  bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                                                                onClick={handleExportSVG}>Export
-                                                                SVG
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </>
-                                            )}
-                                        </Listbox>
-                                    </div>
-                                </Box>
-                            </Modal>
-                        </div>
-                    </div>
-
-                    <div
-                        className="charts-container">
-                        <div
-                            className="filter-container-slider">
-                            <div
-                                className="container-slider">
-                                <Slider
-                                    sx={{
-                                        '& .MuiSlider-thumb': {
-                                            color: "#22c55e"
-                                        },
-                                        '& .MuiSlider-track': {
-                                            color: "#15803d"
-                                        },
-                                        '& .MuiSlider-rail': {
-                                            color: "#86efac"
-                                        },
-                                        '& .MuiSlider-active': {
-                                            color: "#15803d"
-                                        }
-                                    }}
-                                    //getAriaLabel={() => 'Temperature range'}
-                                    orientation="vertical"
-                                    min={lowerValueSlider}
-                                    step={1}
-                                    marks
-                                    max={topValueSlider}
-                                    value={selectedValuesSlider}
-                                    onChange={handleSliderChange}
-                                    valueLabelDisplay="on"
-                                    valueLabelFormat={value =>
-                                        <div>{`${Math.abs(maxDepthInc - value)} (m)`}</div>}
-                                    disableSwap
-                                    //getAriaValueText={valuetext}
-                                />
-
-                            </div>
-                        </div>
-                        {!toggleTotalChart ? (
-                            <>
-                                <div
-                                    className="chart-wrapper left-graph"
-                                    ref={chartAXRef}>
-                                    <Chart
-                                        graphData={selectedAXChartData}
-                                        loadingData={loadingData}
-                                        refDate={refDate}
-                                    />
-                                </div>
-                                <div
-                                    className="chart-wrapper"
-                                    ref={chartAYRef}>
-                                    <Chart
-                                        graphData={selectedAYChartData}
-                                        loadingData={loadingData}
-                                        refDate={refDate}
-                                    />
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <div
-                                    className="chart-wrapper"
-                                    ref={chartTotalRef}>
-
-                                    <ChartTotal
-                                        graphDataX={selectedAXChartData}
-                                        graphDataY={selectedAYChartData}
-                                        loadingData={loadingData}/>
-                                </div>
-                            </>
-                        )}
-                        {!toggleTempChart ? (
-                            <>
-
-                            </>
-                        ) : (
-                            <>
-                                <div
-                                    className="chart-wrapper"
-                                    ref={chartTempRef}>
-                                    <ChartTemp
-                                        graphData={auxDataTemp}
-                                        loadingData={loadingData}/>
-                                </div>
-                            </>
-                        )}
-                        <div
-                            className="chart-wrapper"
-                            ref={chartSoil}>
-                            <ChartSoil
-                                graphData={soilData}
-                                loadingData={loadingData}
-                                totalChart={toggleTotalChart}
-                                tempChart={toggleTempChart}/>
-                        </div>
-                    </div>
-                    {!toggleTotalChart ? (
-                        <>
-                    <div>
-                        <ChartDetails
-                            graphData={selectedAXChartData}
-                            initialMaxDepth={maxDepthInc}
-                            minDepth={minDepthGraph}
-                            maxDepth={maxDepthGraph}
-                            loadingData={loadingData}
-                        />
-                    </div>
-                    <div>
-                        <ChartDetails
-                            graphData={selectedAYChartData}
-                            initialMaxDepth={maxDepthInc}
-                            minDepth={minDepthGraph}
-                            maxDepth={maxDepthGraph}
-                            loadingData={loadingData}
-                        />
-                    </div>
-                        </>
-                    ) : (
-                        <>
-                            <div>
-                                <ChartDetailsTotal
-                                    graphDataX={selectedAXChartData}
-                                    graphDataY={selectedAYChartData}
-                                    initialMaxDepth={maxDepthInc}
-                                    minDepth={minDepthGraph}
-                                    maxDepth={maxDepthGraph}
-                                    loadingData={loadingData}
-                                />
-                        </div>
-                        </>
-                        )}
-                </div>
-            </div> ): (
-                /*
-                 * PROFILE SECTION
-                 */
-                <div className="row-container">
-                    <div>
-                <div
                     className="row-container">
                     <div
-                        className="column-container left-column-p">
+                        className="column-container left-column">
                         <div
                             className="filter-container-typeViz">
                             <Listbox
@@ -7140,7 +6548,7 @@ function ResultsVisualization() {
                                                             key={viz.id}
                                                             className={({active}) =>
                                                                 classNames(
-                                                                    active ? 'bg-yellow-500 text-white' : 'text-gray-900',
+                                                                    active ? 'bg-emerald-500 text-white' : 'text-gray-900',
                                                                     'relative cursor-default select-none py-2 pl-3 pr-9'
                                                                 )
                                                             }
@@ -7186,9 +6594,9 @@ function ResultsVisualization() {
                         <div
                             className="filter-container-typeViz">
                             <Listbox
-                                value={selectedResultsProfiles}
+                                value={selectedResults}
                                 onChange={(selectResultOption) => {
-                                    handleSelectedResultsProfiles(selectResultOption.name)
+                                    handleSelectedResults(selectResultOption.name)
                                 }}>
                                 {({open}) => (
                                     <>
@@ -7203,7 +6611,7 @@ function ResultsVisualization() {
                                       <span
                                           className="flex items-center">
                                           <span
-                                              className="ml-3 block truncate">{selectedResultsProfiles.name}</span>
+                                              className="ml-3 block truncate">{selectedResults.name}</span>
                                       </span>
                                                 <span
                                                     className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
@@ -7221,12 +6629,12 @@ function ResultsVisualization() {
                                             >
                                                 <Listbox.Options
                                                     className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                    {resultsProfiles.map((res) => (
+                                                    {results.map((res) => (
                                                         <Listbox.Option
                                                             key={res.id}
                                                             className={({active}) =>
                                                                 classNames(
-                                                                    active ? 'bg-yellow-500 text-white' : 'text-gray-900',
+                                                                    active ? 'bg-emerald-500 text-white' : 'text-gray-900',
                                                                     'relative cursor-default select-none py-2 pl-3 pr-9'
                                                                 )
                                                             }
@@ -7311,7 +6719,7 @@ function ResultsVisualization() {
                                                             key={dat.id}
                                                             className={({active}) =>
                                                                 classNames(
-                                                                    active ? 'bg-yellow-500 text-white' : 'text-gray-900',
+                                                                    active ? 'bg-emerald-500 text-white' : 'text-gray-900',
                                                                     'relative cursor-default select-none py-2 pl-3 pr-9'
                                                                 )
                                                             }
@@ -7405,7 +6813,7 @@ function ResultsVisualization() {
                                         className="relative inline-block pl-12 pt-5 w-30 mr-2 ml-2 align-middle select-none">
                                         <button
                                             type="button"
-                                            className="py-2 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                            className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-emerald-400 focus:ring-offset-emerald-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
                                             onClick={handleResetDates}>Reset
                                             dates
                                         </button>
@@ -7418,7 +6826,7 @@ function ResultsVisualization() {
                                 className="pl-6 pt-5">
                                 <div
                                     id="dropdownSearch"
-                                    className="z-10 bg-white rounded-lg shadow w-60 dark:bg-green-500">
+                                    className="z-10 bg-white rounded-lg shadow w-60 dark:bg-emerald-500">
                                     <div
                                         className="p-3">
                                         <label
@@ -7467,13 +6875,14 @@ function ResultsVisualization() {
                                                     />
                                                     <label
                                                         htmlFor={`checkbox-item-${index}`}
-                                                        className="w-full ms-2 text-sm font-medium text-gray-900 rounded">{date.split(" ")[1] === "00:00:00" ? date.split(" ")[0]: date}</label>
+                                                        className="w-full ms-2 text-sm font-medium text-gray-900 rounded">{date.split(" ")[1] === "00:00:00" ? date.split(" ")[0] : date}</label>
                                                 </div>
                                             </li>
                                         )) : (
                                             <>
                                                 <li>
-                                                    <div className="flex items-center p-2 rounded hover:bg-gray-100">
+                                                    <div
+                                                        className="flex items-center p-2 rounded hover:bg-gray-100">
                                                         <input
                                                             id="checkbox-all-dates"
                                                             type="checkbox"
@@ -7482,7 +6891,10 @@ function ResultsVisualization() {
                                                             checked={areAllDatesChecked(numberOfDates.length, checkedDates)}
                                                             onChange={handleAllDatesCheck}
                                                         />
-                                                        <label htmlFor="checkbox-all-dates" className="w-full ms-2 text-sm font-medium text-white rounded hover:text-black">All Dates</label>
+                                                        <label
+                                                            htmlFor="checkbox-all-dates"
+                                                            className="w-full ms-2 text-sm font-medium text-white rounded hover:text-black">All
+                                                            Dates</label>
                                                     </div>
                                                 </li>
                                                 {
@@ -7500,7 +6912,7 @@ function ResultsVisualization() {
                                                                 />
                                                                 <label
                                                                     htmlFor={`checkbox-item-${index}`}
-                                                                    className="w-full ms-2 text-sm font-medium text-white rounded hover:text-black">{date.split(" ")[1] === "00:00:00" ? date.split(" ")[0]: date}</label>
+                                                                    className="w-full ms-2 text-sm font-medium text-white rounded hover:text-black">{date.split(" ")[1] === "00:00:00" ? date.split(" ")[0] : date}</label>
                                                             </div>
                                                         </li>
                                                     ))}
@@ -7511,25 +6923,112 @@ function ResultsVisualization() {
                                 </div>
                             </div>
                         )}
-                    </div>
-                    <div>
                         <div
-                            className="row-container left-column-profile">
+                            className="filter-container-typeDepth">
+                            <Listbox
+                                value={selectedDesiredDepth}
+                                onChange={(selectedOption) => {
+                                    setSelectedDesiredDepth(selectedOption);
+                                    handleToogleDepthInterval();
+                                }}>
+                                {({open}) => (
+                                    <>
+                                        <Listbox.Label
+                                            className="block text-lg font-medium leading-6 text-gray-900 text-left">Desired
+                                            depth</Listbox.Label>
+                                        <div
+                                            className="relative mt-2">
+                                            <Listbox.Button
+                                                className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                      <span
+                                          className="flex items-center">
+                                          <span
+                                              className="ml-3 block truncate">{selectedDesiredDepth.name}</span>
+                                      </span>
+                                                <span
+                                                    className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                      <ChevronUpDownIcon
+                                          className="h-5 w-5 text-gray-400"
+                                          aria-hidden="true"/>
+                                      </span>
+                                            </Listbox.Button>
+                                            <Transition
+                                                show={open}
+                                                as={Fragment}
+                                                leave="transition ease-in duration-100"
+                                                leaveFrom="opacity-100"
+                                                leaveTo="opacity-0"
+                                            >
+                                                <Listbox.Options
+                                                    className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                    {desiredDepthTypes.map((dat) => (
+                                                        <Listbox.Option
+                                                            key={dat.id}
+                                                            className={({active}) =>
+                                                                classNames(
+                                                                    active ? 'bg-emerald-500 text-white' : 'text-gray-900',
+                                                                    'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                                )
+                                                            }
+                                                            value={dat}
+                                                        >
+                                                            {({
+                                                                  selected,
+                                                                  active
+                                                              }) => (
+                                                                <>
+                                                                    <div
+                                                                        className="flex items-center">
+                                                                <span
+                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
+                                                                >{dat.name}</span>
+                                                                    </div>
+
+                                                                    {selected ? (
+                                                                        <span
+                                                                            className={classNames(
+                                                                                active ? 'text-white' : 'text-green-600',
+                                                                                'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                            )}
+                                                                        >
+                            <CheckIcon
+                                className="h-5 w-5"
+                                aria-hidden="true"/>
+                          </span>
+                                                                    ) : null}
+                                                                </>
+                                                            )}
+                                                        </Listbox.Option>
+                                                    ))}
+                                                </Listbox.Options>
+                                            </Transition>
+                                        </div>
+                                    </>
+                                )}
+                            </Listbox>
+                        </div>
+                        {toggleDepthInterval && (
                             <div
-                                className="column-container middle-column-p">
+                                className="filter-container-typeViz">
                                 <div
-                                    className="middle-col-select">
+                                    className="column-container">
                                     <div
-                                        className="filter-container-typeViz">
+                                        className="pb-8 flex items-center">
+                                        <div
+                                            className="pr-2">
+                                            <Listbox>
+                                                <Listbox.Label
+                                                    className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">First</Listbox.Label>
+                                            </Listbox>
+                                        </div>
                                         <Listbox
-                                            value={selectedProfile}
+                                            value={selectedFirstDesiredDepth}
                                             onChange={(selectedOption) => {
-                                                setSelectedProfile(selectedOption);
+                                                setSelectedFirstDesiredDepth(selectedOption);
+                                                handleFirstDesiredDepth(selectedOption.toString());
                                             }}>
                                             {({open}) => (
                                                 <>
-                                                    <Listbox.Label
-                                                        className="block text-lg font-medium leading-6 text-gray-900 text-left">Profile</Listbox.Label>
                                                     <div
                                                         className="relative mt-2">
                                                         <Listbox.Button
@@ -7537,7 +7036,7 @@ function ResultsVisualization() {
                                       <span
                                           className="flex items-center">
                                           <span
-                                              className="ml-3 block truncate">{selectedProfile.name}</span>
+                                              className="ml-3 block truncate">{selectedFirstDesiredDepth.toString()}</span>
                                       </span>
                                                             <span
                                                                 className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
@@ -7555,16 +7054,16 @@ function ResultsVisualization() {
                                                         >
                                                             <Listbox.Options
                                                                 className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                                {profiles.map((m) => (
+                                                                {depthArray.filter(value => value < selectedLastDesiredDepth).map((d) => (
                                                                     <Listbox.Option
-                                                                        key={m.id}
+                                                                        key={d}
                                                                         className={({active}) =>
                                                                             classNames(
-                                                                                active ? 'bg-yellow-500 text-white' : 'text-gray-900',
+                                                                                active ? 'bg-emerald-500 text-white' : 'text-gray-900',
                                                                                 'relative cursor-default select-none py-2 pl-3 pr-9'
                                                                             )
                                                                         }
-                                                                        value={m}
+                                                                        value={d}
                                                                     >
                                                                         {({
                                                                               selected,
@@ -7575,7 +7074,7 @@ function ResultsVisualization() {
                                                                                     className="flex items-center">
                                                                 <span
                                                                     className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
-                                                                >{m.name}</span>
+                                                                >{d}</span>
                                                                                 </div>
 
                                                                                 {selected ? (
@@ -7601,128 +7100,295 @@ function ResultsVisualization() {
                                             )}
                                         </Listbox>
                                     </div>
-                                    {selectedProfile.name !== "All - Plan" && (
+                                    <div
+                                        className="flex items-center">
                                         <div
-                                            className="filter-container-typeViz">
-                                            <Listbox
-                                                value={selectedOrthoDirection}
-                                                onChange={(selectedOption) => {
-                                                    setSelectedOrthoDirection(selectedOption);
-                                                }}>
-                                                {({open}) => (
-                                                    <>
-                                                        <Listbox.Label
-                                                            className="block text-lg font-medium leading-6 text-gray-900 text-left">Results</Listbox.Label>
-                                                        <div
-                                                            className="relative mt-2">
-                                                            <Listbox.Button
-                                                                className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                            className="pr-2">
+                                            <Listbox>
+                                                <Listbox.Label
+                                                    className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Last</Listbox.Label>
+                                            </Listbox>
+                                        </div>
+                                        <Listbox
+                                            value={selectedLastDesiredDepth}
+                                            onChange={(selectedOption) => {
+                                                setSelectedLastDesiredDepth(selectedOption);
+                                                handleLastDesiredDepth(selectedOption.toString());
+                                            }}>
+                                            {({open}) => (
+                                                <>
+                                                    <div
+                                                        className="relative mt-2">
+                                                        <Listbox.Button
+                                                            className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
                                       <span
                                           className="flex items-center">
                                           <span
-                                              className="ml-3 block truncate">{selectedOrthoDirection.name}</span>
+                                              className="ml-3 block truncate">{selectedLastDesiredDepth.toString()}</span>
                                       </span>
-                                                                <span
-                                                                    className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                                            <span
+                                                                className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
                                       <ChevronUpDownIcon
                                           className="h-5 w-5 text-gray-400"
                                           aria-hidden="true"/>
                                       </span>
-                                                            </Listbox.Button>
-                                                            <Transition
-                                                                show={open}
-                                                                as={Fragment}
-                                                                leave="transition ease-in duration-100"
-                                                                leaveFrom="opacity-100"
-                                                                leaveTo="opacity-0"
-                                                            >
-                                                                <Listbox.Options
-                                                                    className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                                    {orthoDirection.map((m) => (
-                                                                        <Listbox.Option
-                                                                            key={m.id}
-                                                                            className={({active}) =>
-                                                                                classNames(
-                                                                                    active ? 'bg-yellow-500 text-white' : 'text-gray-900',
-                                                                                    'relative cursor-default select-none py-2 pl-3 pr-9'
-                                                                                )
-                                                                            }
-                                                                            value={m}
-                                                                        >
-                                                                            {({
-                                                                                  selected,
-                                                                                  active
-                                                                              }) => (
-                                                                                <>
-                                                                                    <div
-                                                                                        className="flex items-center">
+                                                        </Listbox.Button>
+                                                        <Transition
+                                                            show={open}
+                                                            as={Fragment}
+                                                            leave="transition ease-in duration-100"
+                                                            leaveFrom="opacity-100"
+                                                            leaveTo="opacity-0"
+                                                        >
+                                                            <Listbox.Options
+                                                                className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                                {depthArray.filter(value => value > selectedFirstDesiredDepth && value <= topValueSlider).map((d) => (
+                                                                    <Listbox.Option
+                                                                        key={d}
+                                                                        className={({active}) =>
+                                                                            classNames(
+                                                                                active ? 'bg-emerald-500 text-white' : 'text-gray-900',
+                                                                                'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                                            )
+                                                                        }
+                                                                        value={d}
+                                                                    >
+                                                                        {({
+                                                                              selected,
+                                                                              active
+                                                                          }) => (
+                                                                            <>
+                                                                                <div
+                                                                                    className="flex items-center">
                                                                 <span
                                                                     className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
-                                                                >{m.name}</span>
-                                                                                    </div>
+                                                                >{d}</span>
+                                                                                </div>
 
-                                                                                    {selected ? (
-                                                                                        <span
-                                                                                            className={classNames(
-                                                                                                active ? 'text-white' : 'text-green-600',
-                                                                                                'absolute inset-y-0 right-0 flex items-center pr-4'
-                                                                                            )}
-                                                                                        >
+                                                                                {selected ? (
+                                                                                    <span
+                                                                                        className={classNames(
+                                                                                            active ? 'text-white' : 'text-green-600',
+                                                                                            'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                                        )}
+                                                                                    >
                             <CheckIcon
                                 className="h-5 w-5"
                                 aria-hidden="true"/>
                           </span>
-                                                                                    ) : null}
-                                                                                </>
-                                                                            )}
-                                                                        </Listbox.Option>
-                                                                    ))}
-                                                                </Listbox.Options>
-                                                            </Transition>
-                                                        </div>
-                                                    </>
-                                                )}
-                                            </Listbox>
-                                        </div>
-                                    )}
-                                    <div
-                                        className="pl-5 pb-5">
-                                        <div
-                                            style={{
-                                                paddingBottom: '25px',
-                                                paddingLeft: '10px',
-                                                paddingTop: '30px'
-                                            }}>
-                                            <Listbox>
-                                                <Listbox.Label
-                                                    className="block text-lg font-medium leading-6 text-gray-900 text-left">Azimute</Listbox.Label>
-                                            </Listbox>
-                                        </div>
-                                        <div
-                                            className="azimute">
-                                            <img
-                                                src="/azimuteWithoutArrow.png"
-                                                width="200"
-                                                height="200"
-                                                className="base-image"
-                                                style={{transform: `rotate(${rotationAB}deg)`}}
-                                            />
-                                            <img
-                                                src="/azimuteArrow.png"
-                                                width="60"
-                                                height="60"
-                                                className="overlay-image"
-                                                style={{transform: `translate(-50%, -50%) rotate(${rotationNorth}deg)`}}
-                                            />
-                                        </div>
+                                                                                ) : null}
+                                                                            </>
+                                                                        )}
+                                                                    </Listbox.Option>
+                                                                ))}
+                                                            </Listbox.Options>
+                                                        </Transition>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </Listbox>
                                     </div>
                                     <div
-                                        style={{paddingBottom: '20px'}}>
+                                        className="relative inline-block pl-12 pt-5 w-30 mr-2 ml-2 align-middle select-none">
+                                        <button
+                                            type="button"
+                                            className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                            onClick={handleDesiredDepthIntervalReset}>Reset
+                                            interval
+                                        </button>
                                     </div>
                                 </div>
+
+                            </div>)}
+                    </div>
+                    <div>
+                        <div
+                            className="row-container">
+                            <div
+                                className="column-container middle-column">
+                                <div
+                                    className="middle-col-select">
+                                    <div
+                                        className="filter-container-typeViz">
+                                        <Listbox
+                                            value={selectedMeasurement}
+                                            onChange={(selectedOption) => {
+                                                setSelectedMeasurement(selectedOption);
+                                                handleSelectedMeasurement(selectedOption.toString());
+                                            }}>
+                                            {({open}) => (
+                                                <>
+                                                    <Listbox.Label
+                                                        className="block text-lg font-medium leading-6 text-gray-900 text-left">Structures</Listbox.Label>
+                                                    <div
+                                                        className="relative mt-2">
+                                                        <Listbox.Button
+                                                            className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                      <span
+                                          className="flex items-center">
+                                          <span
+                                              className="ml-3 block truncate">{selectedMeasurement}</span>
+                                      </span>
+                                                            <span
+                                                                className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                      <ChevronUpDownIcon
+                                          className="h-5 w-5 text-gray-400"
+                                          aria-hidden="true"/>
+                                      </span>
+                                                        </Listbox.Button>
+                                                        <Transition
+                                                            show={open}
+                                                            as={Fragment}
+                                                            leave="transition ease-in duration-100"
+                                                            leaveFrom="opacity-100"
+                                                            leaveTo="opacity-0"
+                                                        >
+                                                            <Listbox.Options
+                                                                className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                                {numberOfMeasurements.map((m) => (
+                                                                    <Listbox.Option
+                                                                        key={m}
+                                                                        className={({active}) =>
+                                                                            classNames(
+                                                                                active ? 'bg-emerald-500 text-white' : 'text-gray-900',
+                                                                                'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                                            )
+                                                                        }
+                                                                        value={m}
+                                                                    >
+                                                                        {({
+                                                                              selected,
+                                                                              active
+                                                                          }) => (
+                                                                            <>
+                                                                                <div
+                                                                                    className="flex items-center">
+                                                                <span
+                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
+                                                                >{m}</span>
+                                                                                </div>
+
+                                                                                {selected ? (
+                                                                                    <span
+                                                                                        className={classNames(
+                                                                                            active ? 'text-white' : 'text-green-600',
+                                                                                            'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                                        )}
+                                                                                    >
+                            <CheckIcon
+                                className="h-5 w-5"
+                                aria-hidden="true"/>
+                          </span>
+                                                                                ) : null}
+                                                                            </>
+                                                                        )}
+                                                                    </Listbox.Option>
+                                                                ))}
+                                                            </Listbox.Options>
+                                                        </Transition>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </Listbox>
+                                    </div>
+                                    <div
+                                        className="filter-container-typeViz">
+                                        <Listbox
+                                            value={selectedInclinometer}
+                                            onChange={(selectedOption) => {
+                                                setSelectedInclinometer(selectedOption);
+                                                handleSelectedInclinometer(parseInt(selectedOption.toString()));
+                                            }}>
+                                            {({open}) => (
+                                                <>
+                                                    <Listbox.Label
+                                                        className="block text-lg font-medium leading-6 text-gray-900 text-left">Inclinometer</Listbox.Label>
+                                                    <div
+                                                        className="relative mt-2">
+                                                        <Listbox.Button
+                                                            className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                      <span
+                                          className="flex items-center">
+                                          <span
+                                              className="ml-3 block truncate">I{selectedInclinometer.toString()}</span>
+                                      </span>
+                                                            <span
+                                                                className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                      <ChevronUpDownIcon
+                                          className="h-5 w-5 text-gray-400"
+                                          aria-hidden="true"/>
+                                      </span>
+                                                        </Listbox.Button>
+                                                        <Transition
+                                                            show={open}
+                                                            as={Fragment}
+                                                            leave="transition ease-in duration-100"
+                                                            leaveFrom="opacity-100"
+                                                            leaveTo="opacity-0"
+                                                        >
+                                                            <Listbox.Options
+                                                                className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                                {numberOfInc.map((inc) => (
+                                                                    <Listbox.Option
+                                                                        key={inc}
+                                                                        className={({active}) =>
+                                                                            classNames(
+                                                                                active ? 'bg-emerald-500 text-white' : 'text-gray-900',
+                                                                                'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                                            )
+                                                                        }
+                                                                        value={inc}
+                                                                    >
+                                                                        {({
+                                                                              selected,
+                                                                              active
+                                                                          }) => (
+                                                                            <>
+                                                                                <div
+                                                                                    className="flex items-center">
+                                                                <span
+                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
+                                                                >I{inc}</span>
+                                                                                </div>
+
+                                                                                {selected ? (
+                                                                                    <span
+                                                                                        className={classNames(
+                                                                                            active ? 'text-white' : 'text-green-600',
+                                                                                            'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                                        )}
+                                                                                    >
+                            <CheckIcon
+                                className="h-5 w-5"
+                                aria-hidden="true"/>
+                          </span>
+                                                                                ) : null}
+                                                                            </>
+                                                                        )}
+                                                                    </Listbox.Option>
+                                                                ))}
+                                                            </Listbox.Options>
+                                                        </Transition>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </Listbox>
+                                    </div>
+                                </div>
+                                <div
+                                    className="filter-container-graphClock chart-wrapper"
+                                    ref={chartClock}
+                                >
+                                    <ChartClock
+                                        graphDataA={selectedAXChartData}
+                                        graphDataB={selectedAYChartData}
+                                        loadingData={loadingData}
+                                    />
+                                </div>
+
                             </div>
                             <div
-                                className="column-container right-column-p">
+                                className="column-container right-column">
                                 <div
                                     className="filter-container-ref">
                                     <Listbox>
@@ -7730,7 +7396,7 @@ function ResultsVisualization() {
                                             className="block text-lg font-medium leading-6 text-gray-900 text-left pb-2">Reference</Listbox.Label>
                                     </Listbox>
 
-                                    <ul className="items-center w-300 text-base font-medium text-gray-900 bg-white border border-gray-200 rounded-lg sm:flex dark:bg-green-500 dark:border-gray-700 dark:text-white">
+                                    <ul className="items-center w-300 text-base font-medium text-gray-900 bg-white border border-gray-200 rounded-lg sm:flex dark:bg-emerald-500 dark:border-gray-700 dark:text-white">
                                         <li className="w-full border-b border-gray-200 sm:border-b-0 sm:border-r dark:border-gray-600">
                                             <div
                                                 className="flex items-center ps-3 pr-1">
@@ -7836,12 +7502,12 @@ function ResultsVisualization() {
                                 <div
                                     className="filter-container-elevation">
                                     <Listbox
-                                        value={selectedLocation}
-                                        onChange={setSelectedLocation}>
+                                        value={selectedElevation}
+                                        onChange={setSelectedElevation}>
                                         {({open}) => (
                                             <>
                                                 <Listbox.Label
-                                                    className="block text-lg font-medium leading-6 text-gray-900 text-left">Location</Listbox.Label>
+                                                    className="block text-lg font-medium leading-6 text-gray-900 text-left">Elevation</Listbox.Label>
                                                 <div
                                                     className="relative mt-2">
                                                     <Listbox.Button
@@ -7849,7 +7515,7 @@ function ResultsVisualization() {
                                       <span
                                           className="flex items-center">
                                           <span
-                                              className="ml-3 block truncate">{selectedLocation.name}</span>
+                                              className="ml-3 block truncate">{selectedElevation.name}</span>
                                       </span>
                                                         <span
                                                             className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
@@ -7867,12 +7533,12 @@ function ResultsVisualization() {
                                                     >
                                                         <Listbox.Options
                                                             className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                            {locations.map((res) => (
+                                                            {elevation.map((res) => (
                                                                 <Listbox.Option
                                                                     key={res.id}
                                                                     className={({active}) =>
                                                                         classNames(
-                                                                            active ? 'bg-yellow-500 text-white' : 'text-gray-900',
+                                                                            active ? 'bg-emerald-500 text-white' : 'text-gray-900',
                                                                             'relative cursor-default select-none py-2 pl-3 pr-9'
                                                                         )
                                                                     }
@@ -7916,98 +7582,1515 @@ function ResultsVisualization() {
                                     </Listbox>
                                 </div>
                                 <div
-                                    className="filter-container-typeInputsLocation">
+                                    className="filter-container-typeInputs1">
                                     <Listbox>
                                         <Listbox.Label
-                                            className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Show displacement
-                                            arrows</Listbox.Label>
+                                            className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Show
+                                            total
+                                            displacement</Listbox.Label>
                                     </Listbox>
                                     <div
                                         className="relative inline-block w-10 mr-2 align-middle select-none">
                                         <input
-                                            id="Green"
+                                            id="GreenTotal"
                                             type="checkbox"
-                                            onChange={(e) => handleToogleArrows()}
-                                            className="checked:bg-green-500 outline-none focus:outline-none right-4 checked:right-0 duration-200 ease-in absolute block w-6 h-6 rounded-full bg-white border-4 border-green-500 appearance-none cursor-pointer"/>
+                                            onChange={(e) => handleToogleTotalChart()}
+                                            className="checked:bg-emerald-500 outline-none focus:outline-none right-4 checked:right-0 duration-200 ease-in absolute block w-6 h-6 rounded-full bg-white border-4 border-emerald-500 appearance-none cursor-pointer"/>
                                         <label
-                                            htmlFor="Green"
+                                            htmlFor="GreenTotal"
                                             className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"/>
                                     </div>
                                 </div>
+                                <div
+                                    className="filter-container-typeInputs2">
+                                    <Listbox>
+                                        <Listbox.Label
+                                            className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Show
+                                            temperature</Listbox.Label>
+                                    </Listbox>
+                                    <div
+                                        className="relative inline-block w-10 mr-2 align-middle select-none">
+                                        <input
+                                            id="GreenTemp"
+                                            type="checkbox"
+                                            checked={toggleTempChart}
+                                            onChange={(e) => handleToogleTempChart()}
+                                            className={`checked:bg-emerald-500 outline-none focus:outline-none right-4 checked:right-0 duration-200 ease-in absolute block w-6 h-6 rounded-full bg-white border-4 ${!toggleTotalChart ? 'border-gray-500' : 'border-emerald-500'} appearance-none cursor-pointer ${!toggleTotalChart ? 'opacity-50' : ''}`}
+                                            disabled={!toggleTotalChart}
+                                            //style={{transform: (!toggleTotalChart && toggleTempChart) ? 'translateX(-50%)' : 'none'}}
+                                        />
+                                        <label
+                                            htmlFor="GreenTemp"
+                                            className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"/>
+                                    </div>
+                                </div>
+                                <div
+                                    className="export-data">
+                                    <div
+                                        className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
+                                        <button
+                                            type="button"
+                                            className="py-2 px-4  bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                            onClick={handleOpen}>
+                                            Export
+                                            data
+                                        </button>
+                                    </div>
+                                </div>
+                                <Modal
+                                    open={open}
+                                    onClose={handleClose}
+                                    aria-labelledby="modal-title"
+                                    aria-describedby="modal-description"
+                                >
+                                    <Box
+                                        sx={{
+                                            position: 'absolute' as 'absolute',
+                                            top: '50%',
+                                            left: '50%',
+                                            transform: 'translate(-50%, -50%)',
+                                            width: 400,
+                                            bgcolor: 'background.paper',
+                                            border: '2px solid #000',
+                                            boxShadow: 24,
+                                            p: 4,
+                                            '& .close-button': {
+                                                position: 'absolute',
+                                                top: 8,
+                                                right: 8,
+                                            },
+                                        }}>
+                                        <IconButton
+                                            className="close-button"
+                                            aria-label="close"
+                                            onClick={handleClose}>
+                                            <Clear/>
+                                        </IconButton>
+                                        <div
+                                            className="filter-container-elevation">
+                                            <Listbox
+                                                value={selectedExport}
+                                                onChange={setSelectedExport}>
+                                                {({open}) => (
+                                                    <>
+                                                        <Listbox.Label
+                                                            className="block text-lg font-medium leading-6 text-gray-900 text-left">Export
+                                                            results</Listbox.Label>
+                                                        <div
+                                                            className="relative mt-2">
+                                                            <Listbox.Button
+                                                                className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                      <span
+                                          className="flex items-center">
+                                          <span
+                                              className="ml-3 block truncate">{selectedExport.name}</span>
+                                      </span>
+                                                                <span
+                                                                    className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                      <ChevronUpDownIcon
+                                          className="h-5 w-5 text-gray-400"
+                                          aria-hidden="true"/>
+                                      </span>
+                                                            </Listbox.Button>
+                                                            <Transition
+                                                                show={open}
+                                                                as={Fragment}
+                                                                leave="transition ease-in duration-100"
+                                                                leaveFrom="opacity-100"
+                                                                leaveTo="opacity-0"
+                                                            >
+                                                                <Listbox.Options
+                                                                    className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                                    {exportSelect.map((res) => (
+                                                                        <Listbox.Option
+                                                                            key={res.id}
+                                                                            className={({active}) =>
+                                                                                classNames(
+                                                                                    active ? 'bg-emerald-500 text-white' : 'text-gray-900',
+                                                                                    'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                                                )
+                                                                            }
+                                                                            value={res}
+                                                                        >
+                                                                            {({
+                                                                                  selected,
+                                                                                  active
+                                                                              }) => (
+                                                                                <>
+                                                                                    <div
+                                                                                        className="flex items-center">
+                                                                <span
+                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
+                                                                >
+                            {res.name}
+                          </span>
+                                                                                    </div>
+
+                                                                                    {selected ? (
+                                                                                        <span
+                                                                                            className={classNames(
+                                                                                                active ? 'text-white' : 'text-green-600',
+                                                                                                'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                                            )}
+                                                                                        >
+                            <CheckIcon
+                                className="h-5 w-5"
+                                aria-hidden="true"/>
+                          </span>
+                                                                                    ) : null}
+                                                                                </>
+                                                                            )}
+                                                                        </Listbox.Option>
+                                                                    ))}
+                                                                </Listbox.Options>
+                                                            </Transition>
+                                                        </div>
+                                                        <div
+                                                            className="filter-container-typeViz">
+                                                            <Listbox>
+                                                                <Listbox.Label
+                                                                    className="pb-4 block text-lg font-medium leading-6 text-gray-900 text-left">Graph
+                                                                    to
+                                                                    export</Listbox.Label>
+                                                            </Listbox>
+                                                            <select
+                                                                onChange={(e) => handleSelectedGraphExport(e.target.value)}
+                                                                style={{
+                                                                    padding: '8px',
+                                                                    fontSize: '16px',
+                                                                    borderRadius: '5px',
+                                                                    border: '1px solid #ccc'
+                                                                }}>
+                                                                {!toggleTotalChart && (
+                                                                    <option
+                                                                        key={"A"}
+                                                                        value={"A"}>A
+                                                                    </option>)};
+                                                                {!toggleTempChart && (
+                                                                    <option
+                                                                        key={"B"}
+                                                                        value={"B"}>B
+                                                                    </option>)}
+                                                                {toggleTotalChart && (
+                                                                    <option
+                                                                        key={"TOTAL"}
+                                                                        value={"TOTAL"}>Total
+                                                                    </option>)}
+                                                                {toggleTempChart && (
+                                                                    <option
+                                                                        key={"TEMP"}
+                                                                        value={"TEMP"}>Temp
+                                                                    </option>)}
+
+                                                            </select>
+                                                            <div
+                                                                className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
+                                                                <button
+                                                                    type="button"
+                                                                    className="py-2 px-4  bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                                                    onClick={handleExportSVG}>Export
+                                                                    SVG
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </Listbox>
+                                        </div>
+                                    </Box>
+                                </Modal>
                             </div>
                         </div>
+
                         <div
-                            style={{
-                                paddingTop: '20px',
-                                paddingBottom: '20px',
-                                width: '10%'
-                            }}>
-                            <Listbox>
-                                <Listbox.Label
-                                    className="block text-lg font-medium leading-6 text-gray-900 text-left">Plan</Listbox.Label>
-                            </Listbox>
-                        </div>
-                        <div
-                            id="konvaContainer"
-                            className="container-profile-p"></div>
-                        {(selectedProfile.name !== "All - Plan") && (<div>
+                            className="charts-container">
                             <div
-                            style={{
-                                paddingTop: '20px',
-                                paddingBottom: '20px',
-                                width: '20%'
-                            }}>
-                            <Listbox>
-                                <Listbox.Label
-                                    className="block text-lg font-medium leading-6 text-gray-900 text-left">Cross-Section</Listbox.Label>
-                            </Listbox>
-                        </div>
-                            <img src="https://firebasestorage.googleapis.com/v0/b/webipisystemimagestorage.appspot.com/o/profiles%2FInclinometers_perfil5_v2.svg?alt=media&token=53a9f417-d178-426d-b26f-8ca05bd481ad"
-                            width="600" height="400" alt="" style={{border: '1px solid black'}}/>
-                        </div>)}
-                        <div
-                            className="flex-charts-container">
-                            {(selectedProfile.name !== "All - Plan" && selectedOrthoDirection.name === "A") && selectedProfileArrayChartDataX.length > 0 && (
-                                profileIncChart.map((inc, index) => (
-                                    <div
-                                        className="chart-wrapper2"
-                                        key={index}>
-                                        <ChartProfileA
-                                            graphData={selectedProfileArrayChartDataX[index]}
-                                            loadingData={loadingData}
-                                            maxDepthOverall={maxProfileDepth}
-                                            maxDepthInc={depthProfilesArray[index]}
-                                            maxData={maxProfileDisplacementX + 2}
-                                            inc={inc}
-                                            numberOfTotalInc={profileIncChart.length}
-                                            leftChart={index === 0}
-                                        />
-                                    </div>))
+                                className="filter-container-slider">
+                                <div
+                                    className="container-slider">
+                                    <Slider
+                                        sx={{
+                                            '& .MuiSlider-thumb': {
+                                                color: "#10b981"
+                                            },
+                                            '& .MuiSlider-track': {
+                                                color: "#15803d"
+                                            },
+                                            '& .MuiSlider-rail': {
+                                                color: "#86efac"
+                                            },
+                                            '& .MuiSlider-active': {
+                                                color: "#15803d"
+                                            }
+                                        }}
+                                        //getAriaLabel={() => 'Temperature range'}
+                                        orientation="vertical"
+                                        min={lowerValueSlider}
+                                        step={1}
+                                        marks
+                                        max={topValueSlider}
+                                        value={selectedValuesSlider}
+                                        onChange={handleSliderChange}
+                                        valueLabelDisplay="on"
+                                        valueLabelFormat={value =>
+                                            <div>{`${Math.abs(maxDepthInc - value)} (m)`}</div>}
+                                        disableSwap
+                                        //getAriaValueText={valuetext}
+                                    />
 
-                            )}
-                            {(selectedProfile.name !== "All - Plan" && selectedOrthoDirection.name === "B") && selectedProfileArrayChartDataY.length > 0 && (
-                                profileIncChart.map((inc, index) => (
+                                </div>
+                            </div>
+                            {!toggleTotalChart ? (
+                                <>
                                     <div
-                                        className="chart-wrapper2"
-                                        key={index}>
-                                        <ChartProfileA
-                                            graphData={selectedProfileArrayChartDataY[index]}
+                                        className="chart-wrapper left-graph"
+                                        ref={chartAXRef}>
+                                        <Chart
+                                            graphData={selectedAXChartData}
                                             loadingData={loadingData}
-                                            maxDepthOverall={maxProfileDepth}
-                                            maxDepthInc={depthProfilesArray[index]}
-                                            maxData={maxProfileDisplacementY + 2}
-                                            inc={inc}
-                                            numberOfTotalInc={profileIncChart.length}
-                                            leftChart={index === 0}
+                                            refDate={refDate}
                                         />
-                                    </div>))
+                                    </div>
+                                    <div
+                                        className="chart-wrapper"
+                                        ref={chartAYRef}>
+                                        <Chart
+                                            graphData={selectedAYChartData}
+                                            loadingData={loadingData}
+                                            refDate={refDate}
+                                        />
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div
+                                        className="chart-wrapper"
+                                        ref={chartTotalRef}>
 
+                                        <ChartTotal
+                                            graphDataX={selectedAXChartData}
+                                            graphDataY={selectedAYChartData}
+                                            loadingData={loadingData}/>
+                                    </div>
+                                </>
                             )}
+                            {!toggleTempChart ? (
+                                <>
+
+                                </>
+                            ) : (
+                                <>
+                                    <div
+                                        className="chart-wrapper"
+                                        ref={chartTempRef}>
+                                        <ChartTemp
+                                            graphData={auxDataTemp}
+                                            loadingData={loadingData}/>
+                                    </div>
+                                </>
+                            )}
+                            <div
+                                className="chart-wrapper"
+                                ref={chartSoil}>
+                                <ChartSoil
+                                    graphData={soilData}
+                                    loadingData={loadingData}
+                                    totalChart={toggleTotalChart}
+                                    tempChart={toggleTempChart}/>
+                            </div>
                         </div>
+                        {!toggleTotalChart ? (
+                            <>
+                                <div>
+                                    <ChartDetails
+                                        graphData={selectedAXChartData}
+                                        initialMaxDepth={maxDepthInc}
+                                        minDepth={minDepthGraph}
+                                        maxDepth={maxDepthGraph}
+                                        loadingData={loadingData}
+                                    />
+                                </div>
+                                <div>
+                                    <ChartDetails
+                                        graphData={selectedAYChartData}
+                                        initialMaxDepth={maxDepthInc}
+                                        minDepth={minDepthGraph}
+                                        maxDepth={maxDepthGraph}
+                                        loadingData={loadingData}
+                                    />
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div>
+                                    <ChartDetailsTotal
+                                        graphDataX={selectedAXChartData}
+                                        graphDataY={selectedAYChartData}
+                                        initialMaxDepth={maxDepthInc}
+                                        minDepth={minDepthGraph}
+                                        maxDepth={maxDepthGraph}
+                                        loadingData={loadingData}
+                                    />
+                                </div>
+                            </>
+                        )}
                     </div>
-                </div>
+                </div>) : (
+                /*
+                 * PROFILE SECTION
+                 */
+                <div
+                    className="row-container">
+                    <div>
+                        <div
+                            className="row-container">
+                            <div
+                                className="column-container left-column-p">
+                                <div
+                                    className="filter-container-typeViz">
+                                    <Listbox
+                                        value={selectedVisualization}
+                                        onChange={setSelectedVisualization}>
+                                        {({open}) => (
+                                            <>
+                                                <Listbox.Label
+                                                    className="block text-lg font-medium leading-6 text-gray-900 text-left">Type
+                                                    of
+                                                    visualization</Listbox.Label>
+                                                <div
+                                                    className="relative mt-2 ">
+                                                    <Listbox.Button
+                                                        className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                      <span
+                                          className="flex items-center">
+                                          <span
+                                              className="ml-3 block truncate">{selectedVisualization.name}</span>
+                                      </span>
+                                                        <span
+                                                            className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                      <ChevronUpDownIcon
+                                          className="h-5 w-5 text-gray-400"
+                                          aria-hidden="true"/>
+                                      </span>
+                                                    </Listbox.Button>
+                                                    <Transition
+                                                        show={open}
+                                                        as={Fragment}
+                                                        leave="transition ease-in duration-100"
+                                                        leaveFrom="opacity-100"
+                                                        leaveTo="opacity-0"
+                                                    >
+                                                        <Listbox.Options
+                                                            className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                            {visualization.map((viz) => (
+                                                                <Listbox.Option
+                                                                    key={viz.id}
+                                                                    className={({active}) =>
+                                                                        classNames(
+                                                                            active ? 'bg-emerald-500 text-white' : 'text-gray-900',
+                                                                            'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                                        )
+                                                                    }
+                                                                    value={viz}
+                                                                >
+                                                                    {({
+                                                                          selected,
+                                                                          active
+                                                                      }) => (
+                                                                        <>
+                                                                            <div
+                                                                                className="flex items-center">
+                                                                <span
+                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
+                                                                >
+                            {viz.name}
+                          </span>
+                                                                            </div>
+
+                                                                            {selected ? (
+                                                                                <span
+                                                                                    className={classNames(
+                                                                                        active ? 'text-white' : 'text-green-600',
+                                                                                        'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                                    )}
+                                                                                >
+                            <CheckIcon
+                                className="h-5 w-5"
+                                aria-hidden="true"/>
+                          </span>
+                                                                            ) : null}
+                                                                        </>
+                                                                    )}
+                                                                </Listbox.Option>
+                                                            ))}
+                                                        </Listbox.Options>
+                                                    </Transition>
+                                                </div>
+                                            </>
+                                        )}
+                                    </Listbox>
+                                </div>
+                                <div
+                                    className="filter-container-typeViz">
+                                    <Listbox
+                                        value={selectedResultsProfiles}
+                                        onChange={(selectResultOption) => {
+                                            handleSelectedResultsProfiles(selectResultOption.name)
+                                        }}>
+                                        {({open}) => (
+                                            <>
+                                                <Listbox.Label
+                                                    className="block text-lg font-medium leading-6 text-gray-900 text-left">Type
+                                                    of
+                                                    result</Listbox.Label>
+                                                <div
+                                                    className="relative mt-2">
+                                                    <Listbox.Button
+                                                        className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                      <span
+                                          className="flex items-center">
+                                          <span
+                                              className="ml-3 block truncate">{selectedResultsProfiles.name}</span>
+                                      </span>
+                                                        <span
+                                                            className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                      <ChevronUpDownIcon
+                                          className="h-5 w-5 text-gray-400"
+                                          aria-hidden="true"/>
+                                      </span>
+                                                    </Listbox.Button>
+                                                    <Transition
+                                                        show={open}
+                                                        as={Fragment}
+                                                        leave="transition ease-in duration-100"
+                                                        leaveFrom="opacity-100"
+                                                        leaveTo="opacity-0"
+                                                    >
+                                                        <Listbox.Options
+                                                            className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                            {resultsProfiles.map((res) => (
+                                                                <Listbox.Option
+                                                                    key={res.id}
+                                                                    className={({active}) =>
+                                                                        classNames(
+                                                                            active ? 'bg-emerald-500 text-white' : 'text-gray-900',
+                                                                            'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                                        )
+                                                                    }
+                                                                    value={res}
+                                                                >
+                                                                    {({
+                                                                          selected,
+                                                                          active
+                                                                      }) => (
+                                                                        <>
+                                                                            <div
+                                                                                className="flex items-center">
+                                                                <span
+                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
+                                                                >
+                            {res.name}
+                          </span>
+                                                                            </div>
+
+                                                                            {selected ? (
+                                                                                <span
+                                                                                    className={classNames(
+                                                                                        active ? 'text-white' : 'text-green-600',
+                                                                                        'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                                    )}
+                                                                                >
+                            <CheckIcon
+                                className="h-5 w-5"
+                                aria-hidden="true"/>
+                          </span>
+                                                                            ) : null}
+                                                                        </>
+                                                                    )}
+                                                                </Listbox.Option>
+                                                            ))}
+                                                        </Listbox.Options>
+                                                    </Transition>
+                                                </div>
+                                            </>
+                                        )}
+                                    </Listbox>
+                                </div>
+                                <div
+                                    className="filter-container-typeViz">
+                                    <Listbox
+                                        value={selectedDatesTypes}
+                                        onChange={(selectedOption) => {
+                                            setSelectedDatesTypes(selectedOption);
+                                            handleToogleSelectDates();
+                                        }}>
+                                        {({open}) => (
+                                            <>
+                                                <Listbox.Label
+                                                    className="block text-lg font-medium leading-6 text-gray-900 text-left">Dates</Listbox.Label>
+                                                <div
+                                                    className="relative mt-2">
+                                                    <Listbox.Button
+                                                        className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                      <span
+                                          className="flex items-center">
+                                          <span
+                                              className="ml-3 block truncate">{selectedDatesTypes.name}</span>
+                                      </span>
+                                                        <span
+                                                            className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                      <ChevronUpDownIcon
+                                          className="h-5 w-5 text-gray-400"
+                                          aria-hidden="true"/>
+                                      </span>
+                                                    </Listbox.Button>
+                                                    <Transition
+                                                        show={open}
+                                                        as={Fragment}
+                                                        leave="transition ease-in duration-100"
+                                                        leaveFrom="opacity-100"
+                                                        leaveTo="opacity-0"
+                                                    >
+                                                        <Listbox.Options
+                                                            className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                            {datesTypes.map((dat) => (
+                                                                <Listbox.Option
+                                                                    key={dat.id}
+                                                                    className={({active}) =>
+                                                                        classNames(
+                                                                            active ? 'bg-emerald-500 text-white' : 'text-gray-900',
+                                                                            'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                                        )
+                                                                    }
+                                                                    value={dat}
+                                                                >
+                                                                    {({
+                                                                          selected,
+                                                                          active
+                                                                      }) => (
+                                                                        <>
+                                                                            <div
+                                                                                className="flex items-center">
+                                                                <span
+                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
+                                                                >{dat.name}</span>
+                                                                            </div>
+
+                                                                            {selected ? (
+                                                                                <span
+                                                                                    className={classNames(
+                                                                                        active ? 'text-white' : 'text-green-600',
+                                                                                        'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                                    )}
+                                                                                >
+                            <CheckIcon
+                                className="h-5 w-5"
+                                aria-hidden="true"/>
+                          </span>
+                                                                            ) : null}
+                                                                        </>
+                                                                    )}
+                                                                </Listbox.Option>
+                                                            ))}
+                                                        </Listbox.Options>
+                                                    </Transition>
+                                                </div>
+                                            </>
+                                        )}
+                                    </Listbox>
+                                </div>
+                                {!toggleSelectDates && (
+                                    <div
+                                        className="filter-container-typeViz">
+                                        <div
+                                            className="column-container">
+                                            <div
+                                                className="pb-8 flex items-center">
+                                                <div
+                                                    className="pr-2">
+                                                    <Listbox>
+                                                        <Listbox.Label
+                                                            className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">First</Listbox.Label>
+                                                    </Listbox>
+                                                </div>
+                                                <DatePicker
+                                                    oneTap
+                                                    placeholder="YYYY-MM-DD"
+                                                    style={{width: 190}}
+                                                    onChange={(e) => {
+                                                        handleFirstDateInterval(e?.getFullYear(), e?.getMonth(), e?.getDay())
+                                                        if (lastToggleRef == 1) {
+                                                            if (e?.getFullYear() !== undefined && e?.getMonth() !== undefined && e?.getDay() !== undefined) {
+                                                                let date = e?.getFullYear() + "-" + e?.getMonth() + "-" + e?.getDay();
+                                                                let expectedDate = handleGetClosestDate(date);
+                                                                //handleRefDate(expectedDate);
+
+                                                            }
+                                                        }
+                                                    }}
+                                                    onClean={handleFirstDateIntervalReset}
+                                                />
+                                            </div>
+                                            <div
+                                                className="flex items-center">
+                                                <div
+                                                    className="pr-2">
+                                                    <Listbox>
+                                                        <Listbox.Label
+                                                            className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Last</Listbox.Label>
+                                                    </Listbox>
+                                                </div>
+                                                <DatePicker
+                                                    oneTap
+                                                    placeholder="YYYY-MM-DD"
+                                                    style={{width: 190}}
+                                                    onChange={(e) => handleLastDateInterval(e?.getFullYear(), e?.getMonth(), e?.getDay())}
+                                                    onClean={handleLastDateIntervalReset}
+                                                />
+                                            </div>
+                                            <div
+                                                className="relative inline-block pl-12 pt-5 w-30 mr-2 ml-2 align-middle select-none">
+                                                <button
+                                                    type="button"
+                                                    className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                                    onClick={handleResetDates}>Reset
+                                                    dates
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                    </div>)}
+                                {toggleSelectDates && (
+                                    <div
+                                        className="pl-6 pt-5">
+                                        <div
+                                            id="dropdownSearch"
+                                            className="z-10 bg-white rounded-lg shadow w-60 dark:bg-emerald-500">
+                                            <div
+                                                className="p-3">
+                                                <label
+                                                    htmlFor="input-group-search"
+                                                    className="sr-only">Search</label>
+                                                <div
+                                                    className="relative">
+                                                    <div
+                                                        className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                                                        <svg
+                                                            className="w-4 h-4 text-gray-900"
+                                                            aria-hidden="true"
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            fill="none"
+                                                            viewBox="0 0 20 20">
+                                                            <path
+                                                                stroke="currentColor"
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth="2"
+                                                                d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                                                        </svg>
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        id="input-group-search"
+                                                        className="bg-green-50 border border-gray-300 text-gray-950 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5"
+                                                        placeholder="Search date"
+                                                        value={searchTerm}
+                                                        onChange={(e) => handleSearchChange(e.target.value)}/>
+                                                </div>
+                                            </div>
+                                            <ul className="h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700"
+                                                aria-labelledby="dropdownSearchButton">
+                                                {searchTerm ? filteredDates.map((date, index) => (
+                                                    <li key={index}>
+                                                        <div
+                                                            className="flex items-center p-2 rounded hover:bg-gray-100 ">
+                                                            <input
+                                                                id={`checkbox-item-${index}`}
+                                                                type="checkbox"
+                                                                value={`${date}`}
+                                                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 "
+                                                                checked={isDateChecked(date, checkedDates)}
+                                                                onChange={(e) => handleDateCheck(e.target.value)}
+                                                            />
+                                                            <label
+                                                                htmlFor={`checkbox-item-${index}`}
+                                                                className="w-full ms-2 text-sm font-medium text-gray-900 rounded">{date.split(" ")[1] === "00:00:00" ? date.split(" ")[0] : date}</label>
+                                                        </div>
+                                                    </li>
+                                                )) : (
+                                                    <>
+                                                        <li>
+                                                            <div
+                                                                className="flex items-center p-2 rounded hover:bg-gray-100">
+                                                                <input
+                                                                    id="checkbox-all-dates"
+                                                                    type="checkbox"
+                                                                    value={'All dates'}
+                                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                                                    checked={areAllDatesChecked(numberOfDates.length, checkedDates)}
+                                                                    onChange={handleAllDatesCheck}
+                                                                />
+                                                                <label
+                                                                    htmlFor="checkbox-all-dates"
+                                                                    className="w-full ms-2 text-sm font-medium text-white rounded hover:text-black">All
+                                                                    Dates</label>
+                                                            </div>
+                                                        </li>
+                                                        {
+                                                            numberOfDates.map((date, index) => (
+                                                                <li key={index}>
+                                                                    <div
+                                                                        className="flex items-center p-2 rounded hover:bg-gray-100 ">
+                                                                        <input
+                                                                            id={`checkbox-item-${index}`}
+                                                                            type="checkbox"
+                                                                            value={`${date}`}
+                                                                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 "
+                                                                            checked={isDateChecked(date, checkedDates)}
+                                                                            onChange={(e) => handleDateCheck(e.target.value)}
+                                                                        />
+                                                                        <label
+                                                                            htmlFor={`checkbox-item-${index}`}
+                                                                            className="w-full ms-2 text-sm font-medium text-white rounded hover:text-black">{date.split(" ")[1] === "00:00:00" ? date.split(" ")[0] : date}</label>
+                                                                    </div>
+                                                                </li>
+                                                            ))}
+                                                    </>
+                                                )}
+                                            </ul>
+
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <div
+                                    className="row-container left-column-profile">
+                                    <div
+                                        className="column-container middle-column-p">
+                                        <div
+                                            className="middle-col-select">
+                                            <div
+                                                className="filter-container-typeViz">
+                                                <Listbox
+                                                    value={selectedProfile}
+                                                    onChange={(selectedOption) => {
+                                                        setSelectedProfile(selectedOption);
+                                                        handleSelectedProfile(selectedOption);
+                                                    }}>
+                                                    {({open}) => (
+                                                        <>
+                                                            <Listbox.Label
+                                                                className="block text-lg font-medium leading-6 text-gray-900 text-left">Profile</Listbox.Label>
+                                                            <div
+                                                                className="relative mt-2">
+                                                                <Listbox.Button
+                                                                    className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                      <span
+                                          className="flex items-center">
+                                          <span
+                                              className="ml-3 block truncate">{`${selectedProfile.name} - ${selectedProfile.type}`}</span>
+                                      </span>
+                                                                    <span
+                                                                        className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                      <ChevronUpDownIcon
+                                          className="h-5 w-5 text-gray-400"
+                                          aria-hidden="true"/>
+                                      </span>
+                                                                </Listbox.Button>
+                                                                <Transition
+                                                                    show={open}
+                                                                    as={Fragment}
+                                                                    leave="transition ease-in duration-100"
+                                                                    leaveFrom="opacity-100"
+                                                                    leaveTo="opacity-0"
+                                                                >
+                                                                    <Listbox.Options
+                                                                        className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                                        {listOfProfiles.map((m) => (
+                                                                            <Listbox.Option
+                                                                                key={m.id}
+                                                                                className={({active}) =>
+                                                                                    classNames(
+                                                                                        active ? 'bg-emerald-500 text-white' : 'text-gray-900',
+                                                                                        'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                                                    )
+                                                                                }
+                                                                                value={m}
+                                                                            >
+                                                                                {({
+                                                                                      selected,
+                                                                                      active
+                                                                                  }) => (
+                                                                                    <>
+                                                                                        <div
+                                                                                            className="flex items-center">
+                                                                <span
+                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
+                                                                >{`${m.name} - ${m.type}`}</span>
+                                                                                        </div>
+
+                                                                                        {selected ? (
+                                                                                            <span
+                                                                                                className={classNames(
+                                                                                                    active ? 'text-white' : 'text-green-600',
+                                                                                                    'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                                                )}
+                                                                                            >
+                            <CheckIcon
+                                className="h-5 w-5"
+                                aria-hidden="true"/>
+                          </span>
+                                                                                        ) : null}
+                                                                                    </>
+                                                                                )}
+                                                                            </Listbox.Option>
+                                                                        ))}
+                                                                    </Listbox.Options>
+                                                                </Transition>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </Listbox>
+                                            </div>
+                                            {selectedProfile.type !== "Plan" && (
+                                                <div
+                                                    className="filter-container-typeViz">
+                                                    <Listbox
+                                                        value={selectedOrthoDirection}
+                                                        onChange={(selectedOption) => {
+                                                            setSelectedOrthoDirection(selectedOption);
+                                                        }}>
+                                                        {({open}) => (
+                                                            <>
+                                                                <Listbox.Label
+                                                                    className="block text-lg font-medium leading-6 text-gray-900 text-left">Results</Listbox.Label>
+                                                                <div
+                                                                    className="relative mt-2">
+                                                                    <Listbox.Button
+                                                                        className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                      <span
+                                          className="flex items-center">
+                                          <span
+                                              className="ml-3 block truncate">{selectedOrthoDirection.name}</span>
+                                      </span>
+                                                                        <span
+                                                                            className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                      <ChevronUpDownIcon
+                                          className="h-5 w-5 text-gray-400"
+                                          aria-hidden="true"/>
+                                      </span>
+                                                                    </Listbox.Button>
+                                                                    <Transition
+                                                                        show={open}
+                                                                        as={Fragment}
+                                                                        leave="transition ease-in duration-100"
+                                                                        leaveFrom="opacity-100"
+                                                                        leaveTo="opacity-0"
+                                                                    >
+                                                                        <Listbox.Options
+                                                                            className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                                            {orthoDirection.map((m) => (
+                                                                                <Listbox.Option
+                                                                                    key={m.id}
+                                                                                    className={({active}) =>
+                                                                                        classNames(
+                                                                                            active ? 'bg-emerald-500 text-white' : 'text-gray-900',
+                                                                                            'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                                                        )
+                                                                                    }
+                                                                                    value={m}
+                                                                                >
+                                                                                    {({
+                                                                                          selected,
+                                                                                          active
+                                                                                      }) => (
+                                                                                        <>
+                                                                                            <div
+                                                                                                className="flex items-center">
+                                                                <span
+                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
+                                                                >{m.name}</span>
+                                                                                            </div>
+
+                                                                                            {selected ? (
+                                                                                                <span
+                                                                                                    className={classNames(
+                                                                                                        active ? 'text-white' : 'text-green-600',
+                                                                                                        'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                                                    )}
+                                                                                                >
+                            <CheckIcon
+                                className="h-5 w-5"
+                                aria-hidden="true"/>
+                          </span>
+                                                                                            ) : null}
+                                                                                        </>
+                                                                                    )}
+                                                                                </Listbox.Option>
+                                                                            ))}
+                                                                        </Listbox.Options>
+                                                                    </Transition>
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                    </Listbox>
+                                                </div>
+                                            )}
+                                            <div
+                                                className="pl-5 pb-5">
+                                                <div
+                                                    style={{
+                                                        paddingBottom: '25px',
+                                                        paddingLeft: '10px',
+                                                        paddingTop: '30px'
+                                                    }}>
+                                                    <Listbox>
+                                                        <Listbox.Label
+                                                            className="block text-lg font-medium leading-6 text-gray-900 text-left">Azimuth</Listbox.Label>
+                                                    </Listbox>
+                                                </div>
+                                                <div
+                                                    className="azimute">
+                                                    <img
+                                                        src="/azimuteWithoutArrow.png"
+                                                        width="200"
+                                                        height="200"
+                                                        className="base-image"
+                                                        style={{transform: `rotate(${rotationAB}deg)`}}
+                                                    />
+                                                    <img
+                                                        src="/azimuteArrow.png"
+                                                        width="60"
+                                                        height="60"
+                                                        className="overlay-image"
+                                                        style={{transform: `translate(-50%, -50%) rotate(${rotationNorth}deg)`}}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div
+                                                style={{paddingBottom: '20px'}}>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div
+                                        className="column-container right-column-p">
+                                        <div
+                                            className="filter-container-ref">
+                                            <Listbox>
+                                                <Listbox.Label
+                                                    className="block text-lg font-medium leading-6 text-gray-900 text-left pb-2">Reference</Listbox.Label>
+                                            </Listbox>
+
+                                            <ul className="items-center w-300 text-base font-medium text-gray-900 bg-white border border-gray-200 rounded-lg sm:flex dark:bg-emerald-500 dark:border-gray-700 dark:text-white">
+                                                <li className="w-full border-b border-gray-200 sm:border-b-0 sm:border-r dark:border-gray-600">
+                                                    <div
+                                                        className="flex items-center ps-3 pr-1">
+                                                        <input
+                                                            id="earliestDate"
+                                                            type="radio"
+                                                            value="false"
+                                                            name="list-radio"
+                                                            checked={handleToogleReference(0)}
+                                                            onChange={(e) => {
+                                                                handleEarliestDate(false);
+                                                                handleResetRefDate()
+                                                                setLastToggleRef(0)
+                                                            }}
+                                                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 "/>
+                                                        <label
+                                                            htmlFor="earliestDate"
+                                                            className="w-full py-3 ms-2 text-sm font-medium text-white-50 ">Earliest
+                                                            date</label>
+                                                    </div>
+                                                </li>
+                                                <li className="w-full border-b border-gray-200 sm:border-b-0 sm:border-r dark:border-gray-600">
+                                                    <div
+                                                        className="flex items-center ps-3">
+                                                        <input
+                                                            id="fromselectdate"
+                                                            type="radio"
+                                                            value="true"
+                                                            name="list-radio"
+                                                            checked={handleToogleReference(1)}
+                                                            onChange={(e) => {
+                                                                handleEarliestDate(true)
+                                                                setLastToggleRef(1)
+
+                                                            }}
+                                                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300  "/>
+                                                        <label
+                                                            htmlFor="fromselectdate"
+                                                            className="w-full py-3 ms-2 text-sm font-medium text-white-50">Select<br/>date</label>
+                                                    </div>
+                                                </li>
+                                                <li className="w-full dark:border-gray-600">
+                                                    <div
+                                                        className="flex items-center ps-3">
+                                                        <input
+                                                            id="fromInterval"
+                                                            type="radio"
+                                                            value="true"
+                                                            name="list-radio"
+                                                            checked={handleToogleReference(2)}
+                                                            onChange={(e) => {
+                                                                handleEarliestDate(false)
+                                                                handleResetRefDate()
+                                                                setLastToggleRef(2)
+                                                                setSelectedDatesTypes(datesTypes[0]);
+                                                                if (toggleSelectDates) {
+                                                                    handleToogleSelectDates();
+                                                                }
+                                                            }}
+                                                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300  "/>
+                                                        <label
+                                                            htmlFor="fromInterval"
+                                                            className="w-full py-3 ms-2 text-sm font-medium text-white-50">From
+                                                            interval</label>
+                                                    </div>
+                                                </li>
+                                            </ul>
+                                            <div
+                                                className="pt-3">
+                                                {toggleIntervalRef ? (
+                                                    <select
+                                                        id="selectRefDateId"
+                                                        className="selectedRefDate"
+                                                        onChange={(e) => handleRefDate(e.target.value)}
+                                                        style={{
+                                                            padding: '8px',
+                                                            fontSize: '16px',
+                                                            borderRadius: '5px',
+                                                            border: '1px solid #ccc'
+                                                        }}>
+                                                        {numberOfDates.map(date => (
+                                                            <option
+                                                                key={date}
+                                                                value={date}>{date.split(" ")[0]}</option>
+                                                        ))}
+                                                    </select>) : (
+                                                    <select
+                                                        onChange={(e) => handleRefDate(e.target.value)}
+                                                        style={{
+                                                            padding: '8px',
+                                                            fontSize: '16px',
+                                                            borderRadius: '5px',
+                                                            border: '1px solid #ccc'
+                                                        }}
+                                                        disabled>
+                                                        <option
+                                                            key={earliestRefDate}
+                                                            value={earliestRefDate}>{earliestRefDate.split(" ")[0]}</option>
+
+                                                    </select>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div
+                                            className="filter-container-elevation">
+                                            <Listbox
+                                                value={selectedLocation}
+                                                onChange={setSelectedLocation}>
+                                                {({open}) => (
+                                                    <>
+                                                        <Listbox.Label
+                                                            className="block text-lg font-medium leading-6 text-gray-900 text-left">Location</Listbox.Label>
+                                                        <div
+                                                            className="relative mt-2">
+                                                            <Listbox.Button
+                                                                className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                      <span
+                                          className="flex items-center">
+                                          <span
+                                              className="ml-3 block truncate">{selectedLocation.name}</span>
+                                      </span>
+                                                                <span
+                                                                    className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                      <ChevronUpDownIcon
+                                          className="h-5 w-5 text-gray-400"
+                                          aria-hidden="true"/>
+                                      </span>
+                                                            </Listbox.Button>
+                                                            <Transition
+                                                                show={open}
+                                                                as={Fragment}
+                                                                leave="transition ease-in duration-100"
+                                                                leaveFrom="opacity-100"
+                                                                leaveTo="opacity-0"
+                                                            >
+                                                                <Listbox.Options
+                                                                    className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                                    {locations.map((res) => (
+                                                                        <Listbox.Option
+                                                                            key={res.id}
+                                                                            className={({active}) =>
+                                                                                classNames(
+                                                                                    active ? 'bg-emerald-500 text-white' : 'text-gray-900',
+                                                                                    'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                                                )
+                                                                            }
+                                                                            value={res}
+                                                                        >
+                                                                            {({
+                                                                                  selected,
+                                                                                  active
+                                                                              }) => (
+                                                                                <>
+                                                                                    <div
+                                                                                        className="flex items-center">
+                                                                <span
+                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
+                                                                >
+                            {res.name}
+                          </span>
+                                                                                    </div>
+
+                                                                                    {selected ? (
+                                                                                        <span
+                                                                                            className={classNames(
+                                                                                                active ? 'text-white' : 'text-green-600',
+                                                                                                'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                                            )}
+                                                                                        >
+                            <CheckIcon
+                                className="h-5 w-5"
+                                aria-hidden="true"/>
+                          </span>
+                                                                                    ) : null}
+                                                                                </>
+                                                                            )}
+                                                                        </Listbox.Option>
+                                                                    ))}
+                                                                </Listbox.Options>
+                                                            </Transition>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </Listbox>
+                                        </div>
+                                        <div
+                                            className="filter-container-typeInputsLocation">
+                                            <Listbox>
+                                                <Listbox.Label
+                                                    className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Show
+                                                    displacement
+                                                    arrows</Listbox.Label>
+                                            </Listbox>
+                                            {(selectedProfile.type === 'Plan' && planCheckboxs[selectedProfileID].check) ? (
+                                                <div
+                                                className="relative inline-block w-10 mr-2 align-middle select-none">
+                                                <input
+                                                    id="Green"
+                                                    type="checkbox"
+                                                    checked={toggleArrows}
+                                                    onChange={(e) => handleToogleArrows()}
+                                                    className="checked:bg-emerald-500 outline-none focus:outline-none right-4 checked:right-0 duration-200 ease-in absolute block w-6 h-6 rounded-full bg-white border-4 border-emerald-500 appearance-none cursor-pointer"/>
+                                                <label
+                                                    htmlFor="Green"
+                                                    className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"/>
+                                            </div>) : (
+                                                <div
+                                                    className="relative inline-block w-10 mr-2 align-middle select-none">
+                                                    <input
+                                                        disabled
+                                                        id="Green"
+                                                        type="checkbox"
+                                                        checked={toggleArrows}
+                                                        onChange={(e) => handleToogleArrows()}
+                                                        className="checked:bg-emerald-500 outline-none focus:outline-none right-4 checked:right-0 duration-200 ease-in absolute block w-6 h-6 rounded-full bg-gray-200 border-4 border-gray-400 appearance-none cursor-pointer"/>
+                                                    <label
+                                                        htmlFor="Green"
+                                                        className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"/>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div
+                                    style={{
+                                        paddingTop: '20px',
+                                        paddingBottom: '20px',
+                                        width: '10%'
+                                    }}>
+                                    <Listbox>
+                                        <Listbox.Label
+                                            className="block text-lg font-medium leading-6 text-gray-900 text-left">Plan</Listbox.Label>
+                                    </Listbox>
+                                </div>
+                                <div>
+                                    {(selectedProfile.type !== "Plan") ? (
+                                        <div
+                                            className="flex pb-5 availableImageContainer">
+                                            <div
+                                                style={{display: 'flex'}}>
+                                                <div
+                                                    style={{width: '290px'}}>
+                                                    <FormControlLabel
+                                                        control={
+                                                            <Checkbox
+                                                                id={selectedProfileID.toString().concat("plan")}
+                                                                checked={planCheckboxs[selectedProfileID].check}
+                                                                onChange={(event) => (handlePlanCheckbox(event, "other"))}
+                                                                color="success"/>}
+                                                        label="Use available image from profile"
+                                                    />
+                                                </div>
+                                                <FormControl>
+                                                    <Select
+                                                        labelId="simple-select-label"
+                                                        id="simple-select"
+                                                        value={selectFromCodeList === '' ? '' : selectFromCodeList}
+                                                        onChange={(e) => {
+                                                            handleSelectFromCodeList(e.target.value)
+                                                        }}
+                                                        sx={{height: '40px'}}
+                                                    >
+                                                        {profilesCodeList.map((p, index) => (
+                                                            <MenuItem
+                                                                key={p}
+                                                                value={p}>{p}</MenuItem>
+                                                        ))}
+                                                    </Select>
+                                                </FormControl>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div
+                                            className="flex pb-5 availableImageContainer">
+                                            <div
+                                                className="availableImageName">
+                                                <IconButton
+                                                    className=""
+                                                    aria-label="close">
+                                                    <InsertDriveFile/>
+                                                </IconButton>
+                                                <div
+                                                    className="imageNameContainer">
+                                                    {selectedProfileAttachedImageName !== '' ? (
+                                                        <Typography
+                                                            variant="subtitle1"
+                                                            gutterBottom>
+                                                            {selectedProfileAttachedImageName}
+                                                        </Typography>
+                                                    ) : (
+                                                        <Typography
+                                                            variant="subtitle1"
+                                                            gutterBottom>
+                                                            No
+                                                            file
+                                                            available
+                                                        </Typography>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            {(selectedProfileAttachedImageName !== '') ? (
+                                                <div
+                                                    style={{paddingLeft: '10px'}}>
+                                                    <FormControlLabel
+                                                        control={
+                                                            <Checkbox
+                                                                id={selectedProfileID.toString().concat("plan")}
+                                                                checked={planCheckboxs[selectedProfileID].check}
+                                                                color="success"
+                                                                onChange={(event) => (handlePlanCheckbox(event, "own"))}
+                                                            />}
+                                                        label="Use available image"
+                                                    />
+                                                </div>) : (
+                                                <div
+                                                    style={{paddingLeft: '10px'}}>
+                                                    <FormControlLabel
+                                                        control={
+                                                            <Checkbox
+                                                                disabled/>}
+                                                        label="Use available image"
+                                                    />
+                                                </div>)}
+                                        </div>)}
+                                </div>
+                                {emptyPhoto &&
+                                    <div
+                                        className="maps"
+                                        style={{
+                                            width: '600px',
+                                            height: '400px'
+                                        }}>
+                                        <MapContainer
+                                            center={[41.55648, -6.88924]}//{[41.5559, -6.8889]}
+                                            zoom={17} //13
+                                            scrollWheelZoom={false}
+                                            style={{
+                                                width: '100%',
+                                                height: '100%'
+                                            }}
+                                        >
+                                            <TileLayer
+                                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                            />
+                                            <TileLayer
+                                                attribution='&copy; <a href="https://localhost:3000/">Lincs</a>'
+                                                url=""
+                                            />
+                                            {markersPerProfile[selectedProfileID].pm.map((marker, index) => (
+                                                <Marker
+                                                    key={index}
+                                                    position={marker.latLng}
+                                                    icon={/*new Icon({
+                                                        iconUrl: '/marker-icon-green.png',*/
+                                                        createCustomIcon(marker.id)}
+                                                        //iconSize: [25, 41],
+                                                        //iconAnchor: [12, 41]
+                                                    //})}
+                                                >
+                                                    <Popup>
+                                                        <div
+                                                            style={{width: '180px'}}>
+                                                            <h3 style={{
+                                                                textAlign: 'center',
+                                                                fontSize: '20px'
+                                                            }}>Inclinometer {marker.id}</h3>
+                                                            <p style={{
+                                                                textAlign: 'center'
+                                                            }}>Location: {marker.latLng.lat}, {marker.latLng.lng}</p>
+                                                            <button
+                                                                type="button"
+                                                                className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                                                onClick={() => handleIncMapClick(marker.id)}>View inclinometer
+                                                            </button>
+                                                        </div>
+                                                    </Popup>
+                                                </Marker>
+                                            ))}
+                                        </MapContainer>
+                                    </div>
+                                }
+                                <div
+                                    id="konvaContainer"
+                                    className="container-profile-p"></div>
+                                {(selectedProfile.type !== "Plan") && (
+                                    <div>
+                                    <div
+                                            style={{
+                                                paddingTop: '20px',
+                                                paddingBottom: '20px',
+                                                width: '20%'
+                                            }}>
+                                            <Listbox>
+                                                <Listbox.Label
+                                                    className="block text-lg font-medium leading-6 text-gray-900 text-left">Cross-Section</Listbox.Label>
+                                            </Listbox>
+                                        </div>
+                                        <div>
+                                            <div
+                                                className="flex pb-5 availableImageContainer">
+                                                <div
+                                                    className="availableImageName">
+                                                    <IconButton
+                                                        className=""
+                                                        aria-label="close">
+                                                        <InsertDriveFile/>
+                                                    </IconButton>
+                                                    <div
+                                                        className="imageNameContainer">
+                                                        {selectedProfileAttachedImageName !== '' ? (
+                                                            <Typography
+                                                                variant="subtitle1"
+                                                                gutterBottom>
+                                                                {selectedProfileAttachedImageName}
+                                                            </Typography>
+                                                        ) : (
+                                                            <Typography
+                                                                variant="subtitle1"
+                                                                gutterBottom>
+                                                                No
+                                                                file
+                                                                available
+                                                            </Typography>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                {(selectedProfileAttachedImageName !== '') ? (
+                                                    <div
+                                                        style={{paddingLeft: '10px'}}>
+                                                        <FormControlLabel
+                                                            control={
+                                                                <Checkbox
+                                                                    id={selectedProfileID.toString().concat("cross")}
+                                                                    checked={crossSectionCheckboxs[selectedProfileID].check}
+                                                                    color="success"
+                                                                    onChange={(event) => (handleCrossSectionCheckbox(event))}
+                                                                />}
+                                                            label="Use available image"
+                                                        />
+                                                    </div>) : (
+                                                    <div
+                                                        style={{paddingLeft: '10px'}}>
+                                                        <FormControlLabel
+                                                            control={
+                                                                <Checkbox
+                                                                    disabled/>}
+                                                            label="Use available image"
+                                                        />
+                                                    </div>)}
+                                            </div>
+                                        </div>
+                                    </div>)}
+                                <div
+                                    id="konvaContainerCrossSection"
+                                    className="container-profile-p"></div>
+                                <div
+                                    className="flex-charts-container">
+                                    {(selectedProfile.type !== "Plan" && selectedOrthoDirection.name === "A") && selectedProfileArrayChartDataX.length > 0 && (
+                                        profileIncChart.map((inc, index) => (
+                                            <div
+                                                className="chart-wrapper2"
+                                                key={index}>
+                                                <ChartProfileA
+                                                    graphData={selectedProfileArrayChartDataX[index]}
+                                                    loadingData={loadingData}
+                                                    maxDepthOverall={maxProfileDepth}
+                                                    maxDepthInc={depthProfilesArray[index]}
+                                                    maxData={maxProfileDisplacementX + 2}
+                                                    inc={inc}
+                                                    numberOfTotalInc={profileIncChart.length}
+                                                    leftChart={index === 0}
+                                                />
+                                            </div>))
+                                    )}
+                                    {(selectedProfile.type !== "Plan" && selectedOrthoDirection.name === "B") && selectedProfileArrayChartDataY.length > 0 && (
+                                        profileIncChart.map((inc, index) => (
+                                            <div
+                                                className="chart-wrapper2"
+                                                key={index}>
+                                                <ChartProfileA
+                                                    graphData={selectedProfileArrayChartDataY[index]}
+                                                    loadingData={loadingData}
+                                                    maxDepthOverall={maxProfileDepth}
+                                                    maxDepthInc={depthProfilesArray[index]}
+                                                    maxData={maxProfileDisplacementY + 2}
+                                                    inc={inc}
+                                                    numberOfTotalInc={profileIncChart.length}
+                                                    leftChart={index === 0}
+                                                />
+                                            </div>))
+
+                                    )}
+                                </div>
+                                {(selectedProfile.type !== "Plan" && selectedOrthoDirection.name === "A") && selectedProfileArrayChartDataX.length > 0 && (<img
+                                    src="/profiles/ElevationA.png"
+                                    width="150"
+                                    height="150"
+                                />)}
+                                {(selectedProfile.type !== "Plan" && selectedOrthoDirection.name === "B") && selectedProfileArrayChartDataX.length > 0 && (<img
+                                    src="/profiles/ElevationB.png"
+                                    width="150"
+                                    height="150"
+                                />)}
+                            </div>
+                        </div>
                         <div>
-                            {(selectedProfile.name !== "All - Plan" && selectedOrthoDirection.name === "B") && (
+                            {(selectedProfile.type !== "Plan" && selectedOrthoDirection.name === "B") && (
                                 <div>
 
                                 </div>
@@ -8017,245 +9100,248 @@ function ResultsVisualization() {
                                 <Listbox>
                                     <Listbox.Label
                                         className="block text-lg font-medium leading-6 text-gray-900 text-left pb-2">Summary
-                                    of
-                                    Results</Listbox.Label>
-                            </Listbox>
+                                        of
+                                        Results</Listbox.Label>
+                                </Listbox>
+                            </div>
+                            {selectedProfile.type === "Plan" && (
+                                <Box
+                                    sx={{width: '100%'}}>
+                                    <Paper
+                                        sx={{
+                                            width: '100%',
+                                            mb: 2
+                                        }}>
+                                        <TableContainer>
+                                            <Table
+                                                sx={{minWidth: 750}}
+                                                aria-labelledby="tableTitle"
+                                                size={dense ? 'small' : 'medium'}
+                                            >
+                                                <EnhancedTableHead
+                                                    order={order}
+                                                    orderBy={orderBy}
+                                                    onRequestSort={handleRequestSort}
+                                                    rowCount={rows.length}
+                                                />
+                                                <TableBody>
+                                                    {visibleRows.map((row, index) => {
+                                                        const labelId = `enhanced-table-checkbox-${index}`;
+
+                                                        return (
+                                                            <TableRow
+                                                                hover
+                                                                tabIndex={-1}
+                                                                key={row.id}
+                                                                sx={{cursor: 'pointer'}}
+                                                            >
+                                                                <TableCell
+                                                                    component="th"
+                                                                    id={labelId}
+                                                                    scope="row"
+                                                                    padding="none"
+                                                                    align="center"
+                                                                    onClick={() => handleInclinometerTableClick(row.inc)}
+                                                                >
+                                                                    {row.inc}
+                                                                </TableCell>
+                                                                <TableCell
+                                                                    align="center">{parseFloat(row.a.toFixed(2))}</TableCell>
+                                                                <TableCell
+                                                                    align="center">{parseFloat(row.b.toFixed(2))}</TableCell>
+                                                                <TableCell
+                                                                    align="center">{parseFloat(row.total.toFixed(2))}</TableCell>
+                                                                <TableCell
+                                                                    align="center">{row.direction}</TableCell>
+                                                                <TableCell
+                                                                    align="center">{row.node}</TableCell>
+                                                                <TableCell
+                                                                    align="center">{row.level}</TableCell>
+                                                                <TableCell
+                                                                    align="center">{row.date.split(" ")[0]}</TableCell>
+                                                            </TableRow>
+                                                        );
+                                                    })}
+                                                    {emptyRows > 0 && (
+                                                        <TableRow
+                                                            style={{
+                                                                height: (dense ? 33 : 53) * emptyRows,
+                                                            }}
+                                                        >
+                                                            <TableCell
+                                                                colSpan={6}/>
+                                                        </TableRow>
+                                                    )}
+                                                </TableBody>
+                                            </Table>
+                                        </TableContainer>
+                                        <TablePagination
+                                            rowsPerPageOptions={[5, 10, 25]}
+                                            component="div"
+                                            count={rows.length}
+                                            rowsPerPage={rowsPerPage}
+                                            page={page}
+                                            onPageChange={handleChangePage}
+                                            onRowsPerPageChange={handleChangeRowsPerPage}
+                                            //sx={{ backgroundColor: '#22c55e' }}
+                                        />
+                                    </Paper>
+                                </Box>)}
+                            {(selectedProfile.type !== "Plan" && selectedOrthoDirection.name === "A") && (
+                                <Box
+                                    sx={{width: '100%'}}>
+                                    <Paper
+                                        sx={{
+                                            width: '100%',
+                                            mb: 2
+                                        }}>
+                                        <TableContainer>
+                                            <Table
+                                                sx={{minWidth: 750}}
+                                                aria-labelledby="tableTitle"
+                                                size={dense ? 'small' : 'medium'}
+                                            >
+                                                <EnhancedTableHeadA
+                                                    order={order}
+                                                    orderBy={orderBy}
+                                                    onRequestSort={handleRequestSortA}
+                                                    rowCount={rowsA.length}
+                                                />
+                                                <TableBody>
+                                                    {visibleRowsA.map((row, index) => {
+                                                        const labelId = `enhanced-table-checkbox-${index}`;
+
+                                                        return (
+                                                            <TableRow
+                                                                hover
+                                                                tabIndex={-1}
+                                                                key={row.id}
+                                                                sx={{cursor: 'pointer'}}
+                                                            >
+                                                                <TableCell
+                                                                    component="th"
+                                                                    id={labelId}
+                                                                    scope="row"
+                                                                    padding="none"
+                                                                    align="center"
+                                                                    onClick={() => handleInclinometerTableClick(row.inc)}
+                                                                >
+                                                                    {row.inc}
+                                                                </TableCell>
+                                                                <TableCell
+                                                                    align="center">{parseFloat(row.a.toFixed(2))}</TableCell>
+                                                                <TableCell
+                                                                    align="center">{row.node}</TableCell>
+                                                                <TableCell
+                                                                    align="center">{row.level}</TableCell>
+                                                                <TableCell
+                                                                    align="center">{row.date.split(" ")[0]}</TableCell>
+                                                            </TableRow>
+                                                        );
+                                                    })}
+                                                    {emptyRowsA > 0 && (
+                                                        <TableRow
+                                                            style={{
+                                                                height: (dense ? 33 : 53) * emptyRowsA,
+                                                            }}
+                                                        >
+                                                            <TableCell
+                                                                colSpan={6}/>
+                                                        </TableRow>
+                                                    )}
+                                                </TableBody>
+                                            </Table>
+                                        </TableContainer>
+                                        <TablePagination
+                                            rowsPerPageOptions={[5, 10, 25]}
+                                            component="div"
+                                            count={rowsA.length}
+                                            rowsPerPage={rowsPerPage}
+                                            page={page}
+                                            onPageChange={handleChangePage}
+                                            onRowsPerPageChange={handleChangeRowsPerPage}
+                                            //sx={{ backgroundColor: '#22c55e' }}
+                                        />
+                                    </Paper>
+                                </Box>)}
+                            {(selectedProfile.type !== "Plan" && selectedOrthoDirection.name === "B") && (
+                                <Box
+                                    sx={{width: '100%'}}>
+                                    <Paper
+                                        sx={{
+                                            width: '100%',
+                                            mb: 2
+                                        }}>
+                                        <TableContainer>
+                                            <Table
+                                                sx={{minWidth: 750}}
+                                                aria-labelledby="tableTitle"
+                                                size={dense ? 'small' : 'medium'}
+                                            >
+                                                <EnhancedTableHeadB
+                                                    order={order}
+                                                    orderBy={orderBy}
+                                                    onRequestSort={handleRequestSortB}
+                                                    rowCount={rows.length}
+                                                />
+                                                <TableBody>
+                                                    {visibleRowsB.map((row, index) => {
+                                                        const labelId = `enhanced-table-checkbox-${index}`;
+
+                                                        return (
+                                                            <TableRow
+                                                                hover
+                                                                tabIndex={-1}
+                                                                key={row.id}
+                                                                sx={{cursor: 'pointer'}}
+                                                            >
+                                                                <TableCell
+                                                                    component="th"
+                                                                    id={labelId}
+                                                                    scope="row"
+                                                                    padding="none"
+                                                                    align="center"
+                                                                    onClick={() => handleInclinometerTableClick(row.inc)}
+                                                                >
+                                                                    {row.inc}
+                                                                </TableCell>
+                                                                <TableCell
+                                                                    align="center">{parseFloat(row.b.toFixed(2))}</TableCell>
+                                                                <TableCell
+                                                                    align="center">{row.node}</TableCell>
+                                                                <TableCell
+                                                                    align="center">{row.level}</TableCell>
+                                                                <TableCell
+                                                                    align="center">{row.date.split(" ")[0]}</TableCell>
+                                                            </TableRow>
+                                                        );
+                                                    })}
+                                                    {emptyRowsB > 0 && (
+                                                        <TableRow
+                                                            style={{
+                                                                height: (dense ? 33 : 53) * emptyRowsB,
+                                                            }}
+                                                        >
+                                                            <TableCell
+                                                                colSpan={6}/>
+                                                        </TableRow>
+                                                    )}
+                                                </TableBody>
+                                            </Table>
+                                        </TableContainer>
+                                        <TablePagination
+                                            rowsPerPageOptions={[5, 10, 25]}
+                                            component="div"
+                                            count={rows.length}
+                                            rowsPerPage={rowsPerPage}
+                                            page={page}
+                                            onPageChange={handleChangePage}
+                                            onRowsPerPageChange={handleChangeRowsPerPage}
+                                            //sx={{ backgroundColor: '#22c55e' }}
+                                        />
+                                    </Paper>
+                                </Box>)}
                         </div>
-                        {selectedProfile.name === "All - Plan" && (
-                            <Box
-                                sx={{width: '100%'}}>
-                                <Paper
-                                    sx={{
-                                        width: '100%',
-                                        mb: 2
-                                    }}>
-                                    <TableContainer>
-                                        <Table
-                                            sx={{minWidth: 750}}
-                                            aria-labelledby="tableTitle"
-                                            size={dense ? 'small' : 'medium'}
-                                        >
-                                            <EnhancedTableHead
-                                                order={order}
-                                                orderBy={orderBy}
-                                                onRequestSort={handleRequestSort}
-                                                rowCount={rows.length}
-                                            />
-                                            <TableBody>
-                                                {visibleRows.map((row, index) => {
-                                                    const labelId = `enhanced-table-checkbox-${index}`;
-
-                                                    return (
-                                                        <TableRow
-                                                            hover
-                                                            tabIndex={-1}
-                                                            key={row.id}
-                                                            sx={{cursor: 'pointer'}}
-                                                        >
-                                                            <TableCell
-                                                                component="th"
-                                                                id={labelId}
-                                                                scope="row"
-                                                                padding="none"
-                                                                align="center"
-                                                            >
-                                                                {row.inc}
-                                                            </TableCell>
-                                                            <TableCell
-                                                                align="center">{parseFloat(row.a.toFixed(2))}</TableCell>
-                                                            <TableCell
-                                                                align="center">{parseFloat(row.b.toFixed(2))}</TableCell>
-                                                            <TableCell
-                                                                align="center">{parseFloat(row.total.toFixed(2))}</TableCell>
-                                                            <TableCell
-                                                                align="center">{row.direction}</TableCell>
-                                                            <TableCell
-                                                                align="center">{row.node}</TableCell>
-                                                            <TableCell
-                                                                align="center">{row.level}</TableCell>
-                                                            <TableCell
-                                                                align="center">{row.date.split(" ")[0]}</TableCell>
-                                                        </TableRow>
-                                                    );
-                                                })}
-                                                {emptyRows > 0 && (
-                                                    <TableRow
-                                                        style={{
-                                                            height: (dense ? 33 : 53) * emptyRows,
-                                                        }}
-                                                    >
-                                                        <TableCell
-                                                            colSpan={6}/>
-                                                    </TableRow>
-                                                )}
-                                            </TableBody>
-                                        </Table>
-                                    </TableContainer>
-                                    <TablePagination
-                                        rowsPerPageOptions={[5, 10, 25]}
-                                        component="div"
-                                        count={rows.length}
-                                        rowsPerPage={rowsPerPage}
-                                        page={page}
-                                        onPageChange={handleChangePage}
-                                        onRowsPerPageChange={handleChangeRowsPerPage}
-                                        //sx={{ backgroundColor: '#22c55e' }}
-                                    />
-                                </Paper>
-                            </Box>)}
-                        {(selectedProfile.name !== "All - Plan" && selectedOrthoDirection.name === "A") && (
-                            <Box
-                                sx={{width: '100%'}}>
-                                <Paper
-                                    sx={{
-                                        width: '100%',
-                                        mb: 2
-                                    }}>
-                                    <TableContainer>
-                                        <Table
-                                            sx={{minWidth: 750}}
-                                            aria-labelledby="tableTitle"
-                                            size={dense ? 'small' : 'medium'}
-                                        >
-                                            <EnhancedTableHeadA
-                                                order={order}
-                                                orderBy={orderBy}
-                                                onRequestSort={handleRequestSortA}
-                                                rowCount={rowsA.length}
-                                            />
-                                            <TableBody>
-                                                {visibleRowsA.map((row, index) => {
-                                                    const labelId = `enhanced-table-checkbox-${index}`;
-
-                                                    return (
-                                                        <TableRow
-                                                            hover
-                                                            tabIndex={-1}
-                                                            key={row.id}
-                                                            sx={{cursor: 'pointer'}}
-                                                        >
-                                                            <TableCell
-                                                                component="th"
-                                                                id={labelId}
-                                                                scope="row"
-                                                                padding="none"
-                                                                align="center"
-                                                            >
-                                                                {row.inc}
-                                                            </TableCell>
-                                                            <TableCell
-                                                                align="center">{parseFloat(row.a.toFixed(2))}</TableCell>
-                                                            <TableCell
-                                                                align="center">{row.node}</TableCell>
-                                                            <TableCell
-                                                                align="center">{row.level}</TableCell>
-                                                            <TableCell
-                                                                align="center">{row.date.split(" ")[0]}</TableCell>
-                                                        </TableRow>
-                                                    );
-                                                })}
-                                                {emptyRowsA > 0 && (
-                                                    <TableRow
-                                                        style={{
-                                                            height: (dense ? 33 : 53) * emptyRowsA,
-                                                        }}
-                                                    >
-                                                        <TableCell
-                                                            colSpan={6}/>
-                                                    </TableRow>
-                                                )}
-                                            </TableBody>
-                                        </Table>
-                                    </TableContainer>
-                                    <TablePagination
-                                        rowsPerPageOptions={[5, 10, 25]}
-                                        component="div"
-                                        count={rowsA.length}
-                                        rowsPerPage={rowsPerPage}
-                                        page={page}
-                                        onPageChange={handleChangePage}
-                                        onRowsPerPageChange={handleChangeRowsPerPage}
-                                        //sx={{ backgroundColor: '#22c55e' }}
-                                    />
-                                </Paper>
-                            </Box>)}
-                        {(selectedProfile.name !== "All - Plan" && selectedOrthoDirection.name === "B") && (
-                            <Box
-                                sx={{width: '100%'}}>
-                                <Paper
-                                    sx={{
-                                        width: '100%',
-                                        mb: 2
-                                    }}>
-                                    <TableContainer>
-                                        <Table
-                                            sx={{minWidth: 750}}
-                                            aria-labelledby="tableTitle"
-                                            size={dense ? 'small' : 'medium'}
-                                        >
-                                            <EnhancedTableHeadB
-                                                order={order}
-                                                orderBy={orderBy}
-                                                onRequestSort={handleRequestSortB}
-                                                rowCount={rows.length}
-                                            />
-                                            <TableBody>
-                                                {visibleRowsB.map((row, index) => {
-                                                    const labelId = `enhanced-table-checkbox-${index}`;
-
-                                                    return (
-                                                        <TableRow
-                                                            hover
-                                                            tabIndex={-1}
-                                                            key={row.id}
-                                                            sx={{cursor: 'pointer'}}
-                                                        >
-                                                            <TableCell
-                                                                component="th"
-                                                                id={labelId}
-                                                                scope="row"
-                                                                padding="none"
-                                                                align="center"
-                                                            >
-                                                                {row.inc}
-                                                            </TableCell>
-                                                            <TableCell
-                                                                align="center">{parseFloat(row.b.toFixed(2))}</TableCell>
-                                                            <TableCell
-                                                                align="center">{row.node}</TableCell>
-                                                            <TableCell
-                                                                align="center">{row.level}</TableCell>
-                                                            <TableCell
-                                                                align="center">{row.date.split(" ")[0]}</TableCell>
-                                                        </TableRow>
-                                                    );
-                                                })}
-                                                {emptyRowsB > 0 && (
-                                                    <TableRow
-                                                        style={{
-                                                            height: (dense ? 33 : 53) * emptyRowsB,
-                                                        }}
-                                                    >
-                                                        <TableCell
-                                                            colSpan={6}/>
-                                                    </TableRow>
-                                                )}
-                                            </TableBody>
-                                        </Table>
-                                    </TableContainer>
-                                    <TablePagination
-                                        rowsPerPageOptions={[5, 10, 25]}
-                                        component="div"
-                                        count={rows.length}
-                                        rowsPerPage={rowsPerPage}
-                                        page={page}
-                                        onPageChange={handleChangePage}
-                                        onRowsPerPageChange={handleChangeRowsPerPage}
-                                        //sx={{ backgroundColor: '#22c55e' }}
-                                    />
-                                </Paper>
-                            </Box>)}
-                    </div>
                     </div>
                 </div>
             )}

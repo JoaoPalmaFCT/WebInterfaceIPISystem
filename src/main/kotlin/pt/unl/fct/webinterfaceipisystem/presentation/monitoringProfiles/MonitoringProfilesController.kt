@@ -99,6 +99,7 @@ class MonitoringProfilesController(val app: MonitoringProfilesApplication) : Mon
             var counterInc = 0
             for ((counterCode, p) in incArray.withIndex()) {
                 val pDAO = ProfilePositionAdjustmentDAO(
+                        uniqueId = counterCode,
                         code = counterCode.toString(), measurement = incArray[counterInc+1], inc = incArray[counterInc],
                         type = typeOfProfile, positionAdjusted = false, monitoringProfileId = newProfileReturn.id
                 )
@@ -171,6 +172,7 @@ class MonitoringProfilesController(val app: MonitoringProfilesApplication) : Mon
             val posListDTO = ArrayList<ProfilePositionAdjustmentDTO>()
             for(p in posAdjust){
                 val pDTO = ProfilePositionAdjustmentDTO(
+                        uniqueId = p.uniqueId,
                         code = p.code, measurement = p.measurement, inc = p.inc,
                         type = p.type, positionAdjusted = p.positionAdjusted,
                         monitoringProfileId = p.monitoringProfileId
@@ -181,6 +183,26 @@ class MonitoringProfilesController(val app: MonitoringProfilesApplication) : Mon
 
         } catch(e: EmptyResultDataAccessException) {
             throw ResponseStatusException(HttpStatus.NOT_FOUND, "Groups not found")
+        }
+    }
+
+    override fun getProfileAdjustmentDataForAProfile(@PathVariable  mpId: Int): List<ProfilePositionAdjustmentDTO> {
+        try {
+            val posAdjust = app.getPositionAdjustmentMPId(mpId)
+            val posListDTO = ArrayList<ProfilePositionAdjustmentDTO>()
+            for(p in posAdjust){
+                val pDTO = ProfilePositionAdjustmentDTO(
+                        uniqueId = p.uniqueId,
+                        code = p.code, measurement = p.measurement, inc = p.inc,
+                        type = p.type, positionAdjusted = p.positionAdjusted,
+                        monitoringProfileId = p.monitoringProfileId
+                )
+                posListDTO.add(pDTO)
+            }
+            return posListDTO
+
+        } catch(e: EmptyResultDataAccessException) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Adjustment data not found")
         }
     }
 

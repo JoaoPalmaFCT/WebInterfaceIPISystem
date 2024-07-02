@@ -31,6 +31,7 @@ export interface MonitoringProfile {
 }
 
 export interface ProfilePositionAdjustment {
+    uniqueId: number | undefined;
     code: string | undefined;
     measurement: string | undefined;
     inc: string | undefined;

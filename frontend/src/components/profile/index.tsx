@@ -23,7 +23,7 @@ function Profile() {
 
     const [editingData, setEditingData] = useState(false)
 
-                        return (<div>
+                        return (<div className="main-wrapper full-screen">
                         <h2>User Profile</h2>
                         {!editingData ? (
                             <>

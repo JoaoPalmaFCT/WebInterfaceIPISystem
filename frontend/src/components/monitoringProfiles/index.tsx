@@ -90,16 +90,35 @@ import {
     getMarkers,
     getMonitoringProfileGroups,
     getMonitoringProfiles,
-    getProfilePositionAdjustments
+    getProfilePositionAdjustments,
+    getSpecificProfilePositionAdjustments,
+    addPoint,
+    getPoints,
+    setPoints,
+    getLinesCrossSection,
+    addLine
 } from "../../store/monitoringProfile";
 import {
     getMeasurements
 } from "../../store/settings";
 
-const testData = [createData(1, 'Profiles1', 2, 40),
-    createData(2, 'Profiles2', 1, 30)];
+const testData = [createData(1, 'Barragem do Azibo', 2, 40),
+    createData(2, 'Lab Test', 1, 30)];
 
-const testIncValues = ['PK150_200', 10, "PK250_300", 30];
+const testIncValues = ['Barragem do Azibo', 10, "Lab Test", 30];
+
+const createCustomIcon = (markerId: number) => {
+    return L.divIcon({
+        html: `<div class="custom-marker">
+                   <img src="/marker-icon-green.png" alt="Marker Icon" />
+                   <div class="marker-id">I${markerId}</div>
+               </div>`,
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        className: ''
+    });
+};
+
 
 interface Measurement {
     id: number;
@@ -123,16 +142,16 @@ function createMeasurement(
 }
 
 
-const testMeasurements = ['PK150_200', "PK250_300"];
+const testMeasurements = ['Barragem do Azibo', "Lab Test"];
 
 const typeOfProfile = [
     {
         id: 1,
-        name: 'Plan',
+        name: 'PLAN',
     },
     {
         id: 2,
-        name: 'Cross section',
+        name: 'CROSSSECTION',
     }
 ]
 
@@ -166,14 +185,32 @@ function createCrossSectionCheckbox(
     };
 }
 
+interface Point {
+    id: number;
+    posX: number;
+    posY: number;
+}
+
+function createPoint(
+    id: number,
+    posX: number,
+    posY: number
+): Point {
+    return {
+        id,
+        posX,
+        posY
+    };
+}
+
 interface PointsPerProfile {
     id: number;
-    points: number[];
+    points: Point[];
 }
 
 function createPointPerProfile(
     id: number,
-    points: number[]
+    points: Point[]
 ): PointsPerProfile {
     return {
         id,
@@ -253,6 +290,61 @@ function createPointMarker(
     return {
         id,
         latLng
+    };
+}
+
+interface LinePoint {
+    id: number;
+    topX: number;
+    topY: number;
+    bottomX: number;
+    bottomY: number;
+}
+
+
+function createLinePoint(
+    id: number,
+    topX: number,
+    topY: number,
+    bottomX: number,
+    bottomY: number
+): LinePoint {
+    return {
+        id,
+        topX,
+        topY,
+        bottomX,
+        bottomY
+    };
+}
+
+interface LinePointPerProfile {
+    id: number;
+    lp: LinePoint[];
+}
+
+function createLinePointPerProfile(
+    id: number,
+    lp: LinePoint[]
+): LinePointPerProfile {
+    return {
+        id,
+        lp
+    };
+}
+
+interface AuxCrossSectionLinesPerProfile {
+    id: number;
+    array: number[];
+}
+
+function createAuxCrossSectionLinesPerProfile(
+    id: number,
+    array: number[]
+): AuxCrossSectionLinesPerProfile {
+    return {
+        id,
+        array
     };
 }
 
@@ -357,6 +449,37 @@ function createDataMPPC(
     };
 }
 
+interface MPPCUniqueIds {
+    id: number;
+    inc: number;
+}
+
+function createDataMPPCUniqueIds(
+    id: number,
+    inc: number
+): MPPCUniqueIds {
+    return {
+        id,
+        inc
+    };
+}
+
+interface MPPCCodeWithUniqueId {
+    code: number;
+    id: number;
+}
+
+function createDataMPPCCodeWithUniqueId(
+    code: number,
+    id: number
+): MPPCCodeWithUniqueId {
+    return {
+        code,
+        id
+    };
+}
+
+
 interface IncPerProfile {
     id: number;
     profileCode: number;
@@ -424,7 +547,7 @@ const headCells: readonly HeadCell[] = [
         id: 'measurements',
         numeric: true,
         disablePadding: false,
-        label: 'Measurements',
+        label: 'Structures',
     },
     {
         id: 'inclinometers',
@@ -454,7 +577,7 @@ function EnhancedTableHead(props: EnhancedTableProps) {
     return (
         <TableHead>
             <TableRow>
-                <TableCell padding="checkbox" sx={{ backgroundColor: '#22c55e' }}>
+                <TableCell padding="checkbox" sx={{ backgroundColor: '#10b981' }}>
                     <Checkbox
                         color="primary"
                         indeterminate={numSelected > 0 && numSelected < rowCount}
@@ -471,7 +594,7 @@ function EnhancedTableHead(props: EnhancedTableProps) {
                         align={headCell.numeric ? 'center' : 'left'}
                         padding={headCell.disablePadding ? 'none' : 'normal'}
                         sortDirection={orderBy === headCell.id ? order : false}
-                        sx={{ backgroundColor: '#22c55e' }}
+                        sx={{ backgroundColor: '#10b981' }}
                     >
                         <TableSortLabel
                             active={orderBy === headCell.id}
@@ -508,7 +631,7 @@ function EnhancedTableToolbar(props: EnhancedTableToolbarProps) {
                 ...(numSelected > 0 && {
                     bgcolor: (theme) =>
                         alpha(theme.palette.primary.main, theme.palette.action.activatedOpacity),
-                }),backgroundColor: '#16a34a'
+                }),backgroundColor: '#047857'
             }}
         >
             {numSelected > 0 ? (
@@ -638,7 +761,7 @@ function EnhancedTableHeadMP(props: EnhancedTablePropsMP) {
                         align='left'//{headCell.numeric ? 'center' : 'left'}
                         padding='normal'//{headCell.disablePadding ? 'none' : 'normal'}
                         sortDirection={orderBy === headCell.id ? order : false}
-                        sx={{ backgroundColor: '#22c55e' }}
+                        sx={{ backgroundColor: '#10b981' }}
                     >
                         <TableSortLabel
                             active={orderBy === headCell.id}
@@ -674,7 +797,7 @@ function EnhancedTableToolbarMP(props: EnhancedTableToolbarPropsMP) {
                 ...(numSelected > 0 && {
                     bgcolor: (theme) =>
                         alpha(theme.palette.primary.main, theme.palette.action.activatedOpacity),
-                }),backgroundColor: '#16a34a'
+                }),backgroundColor: '#047857'
             }}
         >
             {numSelected > 0 ? (
@@ -777,7 +900,7 @@ function EnhancedTableHeadMPPC(props: EnhancedTablePropsMPPC) {
                         align='left'//{headCell.numeric ? 'center' : 'left'}
                         padding='normal'//{headCell.disablePadding ? 'none' : 'normal'}
                         sortDirection={orderBy === headCell.id ? order : false}
-                        sx={{ backgroundColor: '#22c55e' }}
+                        sx={{ backgroundColor: '#10b981' }}
                     >
                         <TableSortLabel
                             active={orderBy === headCell.id}
@@ -813,7 +936,7 @@ function EnhancedTableToolbarMPPC(props: EnhancedTableToolbarPropsMPPC) {
                 ...(numSelected > 0 && {
                     bgcolor: (theme) =>
                         alpha(theme.palette.primary.main, theme.palette.action.activatedOpacity),
-                }),backgroundColor: '#16a34a'
+                }),backgroundColor: '#047857'
             }}
         >
             {numSelected > 0 ? (
@@ -871,11 +994,12 @@ function MonitoringProfiles() {
     const dbMPs = useMPSelector(state => state.mp)
     const dbPosAdjust = useMPSelector(state => state.posAdjust)
     const dbMarkers = useMPSelector(state => state.marker)
+    const dbPoints = useMPSelector(state => state.point)
     useEffect(() => {
         dispatch(getMeasurements(sessionToken))
         dispatch(getMonitoringProfileGroups(sessionToken))
         dispatch(getMonitoringProfiles(sessionToken))
-        dispatch(getProfilePositionAdjustments(sessionToken))
+        //dispatch(getProfilePositionAdjustments(sessionToken))
         /*if(selectedDetailedProfileID === 0){
             dispatch(getMarkers(1,sessionToken))
         }*/
@@ -938,6 +1062,7 @@ function MonitoringProfiles() {
 
             if(dbMPGroups !== undefined){
                 let groups = [];
+                let groups2 = [];
                 for(let i = 0; i<(dbMPGroups ?? []).length; i++){
                     let measurementsCounter = 0;
                     let groupMeasurements:string[] = [];
@@ -961,41 +1086,71 @@ function MonitoringProfiles() {
                     let mgGroup = dbMPGroups[i].group;
                     if(mgId !== undefined && mgGroup !== undefined){
                         groups.push(createData(mgId, mgGroup, measurementsCounter, incsPerMeasurements))
+                        groups2.push(createDataMPG(mgId, mgGroup, measurementsCounter, groupMeasurements, incsPerMeasurements))
                     }
                 }
                 setRows(groups)
+                setMonitoringProfiles(groups2)
 
-                setMonitoringProfiles([createDataMPG(1, 'Profiles1', 2, ['PK150_200', 'PK250_300'], 10),
-                    createDataMPG(2, 'Profiles2', 1, ['PK250_300'], 30)]);
-                setMonitoringProfilesTableData([createDataMP(1, 'Profiles1', 'All','All inclinometers in the dam (Plan)', typeOfProfile[0].name, true, 'https://firebasestorage.googleapis.com/v0/b/webipisystemimagestorage.appspot.com/o/profiles%2FimagePlan3.png?alt=media&token=06e79ca3-a159-47b7-9522-66de489f4c3f'),//'/profiles/imagePlan3.png'),
-                    createDataMP(2, 'Profiles1', 'Crest', 'Profile along the crest in the downstream site', typeOfProfile[1].name, false, '/profiles/NoImageFound.png'),
-                    createDataMP(3, 'Profiles1', 'P5', 'Profile P5', typeOfProfile[1].name, true, 'https://firebasestorage.googleapis.com/v0/b/webipisystemimagestorage.appspot.com/o/profiles%2FInclinometers_perfil5_v3.svg?alt=media&token=940d3b7e-e8bf-4458-a2bc-05f6cc4a4bd3'),
-                    createDataMP(4, 'Profiles2', 'P7', 'Profile P6', typeOfProfile[1].name, false, '/profiles/NoImageFound.png')
-                ]);
+                if(dbMPs !== undefined){
+                    let monitProfiles = [];
+                    for(let i = 0; i<(dbMPs ?? []).length; i++){
+                        let mIncString = dbMPs[i].inclinometers;
+                        let incs:string[] = [];
+                        if (mIncString !== undefined) {
+                            incs = mIncString.split("?");
+                        } else {
+                            incs = [];
+                        }
+
+                        let mpId = dbMPs[i].code;
+                        let mpGroup = dbMPs[i].group;
+                        let mpName = dbMPs[i].name;
+                        let mpDescription = dbMPs[i].description;
+                        let mpType = dbMPs[i].type;
+                        let mpImage = dbMPs[i].attachedImage;
+                        let mpHasImage = (mpImage !== '')
+                        if(mpId !== undefined && mpGroup !== undefined && mpName !== undefined && mpDescription !== undefined &&
+                        mpType !== undefined && mpImage !== undefined){
+                            monitProfiles.push(createDataMP(Number(mpId), mpGroup, mpName, mpDescription, mpType, mpHasImage, mpImage))
+                        }
+                    }
+                    setMonitoringProfilesTableData(monitProfiles)
+                    setRowsMP(monitProfiles)
+
+                    let tempPoints = [];
+                    let tempCoord = [];
+                    let tempCorrected = [];
+                    let tempManualCheck = [];
+                    let tempPlanCheckboxs = [];
+                    let tempCrossSectionCheckboxs = [];
+                    for(let i = 0; i < monitProfiles.length; i++){
+                        //tempMarks.push(createPointMarkerPerProfile(i+1, []))
+                        //tempPoints.push(createPointPerProfile(i+1, []))
+                        tempCoord.push(createLineCoordinatesPerProfile(i+1, []))
+                        tempCorrected.push(createCorrectedValuesPerProfile(i+1, []))
+                        tempManualCheck.push(createCheckCorrectedValues(i+1, false))
+                        tempPlanCheckboxs.push(createPlanCheckbox(i+1, false))
+                        tempCrossSectionCheckboxs.push(createCrossSectionCheckbox(i+1, false))
+                    }
+                    //selectedDetailedProfileID+1(tempMarks);
+                    //setPointsPerProfile(tempPoints);
+                    setLineCoordinatesPerProfile(tempCoord);
+                    setCorrectedValuesPerProfile(tempCorrected);
+                    setManuallyCorrectedLines(tempManualCheck)
+                    setPlanCheckboxs(tempPlanCheckboxs)
+                    setCrossSectionCheckboxs(tempCrossSectionCheckboxs)
+                }
+                /*setMonitoringProfiles([createDataMPG(1, 'Barragem do Azibo', 2, ['Barragem do Azibo', 'Lab Test'], 10),
+                    createDataMPG(2, 'Lab Test', 1, ['Lab Test'], 30)]);*/
+                /*setMonitoringProfilesTableData([createDataMP(1, 'Barragem do Azibo', 'All','All inclinometers in the dam (Plan)', typeOfProfile[0].name, true, 'https://firebasestorage.googleapis.com/v0/b/webipisystemimagestorage.appspot.com/o/profiles%2FimagePlan3.png?alt=media&token=06e79ca3-a159-47b7-9522-66de489f4c3f'),//'/profiles/imagePlan3.png'),
+                    createDataMP(2, 'Barragem do Azibo', 'Crest', 'Profile along the crest in the downstream site', typeOfProfile[1].name, false, '/profiles/NoImageFound.png'),
+                    createDataMP(3, 'Barragem do Azibo', 'P5', 'Profile P5', typeOfProfile[1].name, true, 'https://firebasestorage.googleapis.com/v0/b/webipisystemimagestorage.appspot.com/o/profiles%2FInclinometers_perfil5_v3.svg?alt=media&token=940d3b7e-e8bf-4458-a2bc-05f6cc4a4bd3'),
+                    createDataMP(4, 'Lab Test', 'P7', 'Profile P6', typeOfProfile[1].name, false, '/profiles/NoImageFound.png')
+                ]);*/
 
                 //let tempMarks = [];
-                let tempPoints = [];
-                let tempCoord = [];
-                let tempCorrected = [];
-                let tempManualCheck = [];
-                let tempPlanCheckboxs = [];
-                let tempCrossSectionCheckboxs = [];
-                for(let i = 0; i < 4; i++){
-                    //tempMarks.push(createPointMarkerPerProfile(i+1, []))
-                    tempPoints.push(createPointPerProfile(i+1, []))
-                    tempCoord.push(createLineCoordinatesPerProfile(i+1, []))
-                    tempCorrected.push(createCorrectedValuesPerProfile(i+1, []))
-                    tempManualCheck.push(createCheckCorrectedValues(i+1, false))
-                    tempPlanCheckboxs.push(createPlanCheckbox(i+1, false))
-                    tempCrossSectionCheckboxs.push(createCrossSectionCheckbox(i+1, false))
-                }
-                //setMarkersPerProfile(tempMarks);
-                setPointsPerProfile(tempPoints);
-                setLineCoordinatesPerProfile(tempCoord);
-                setCorrectedValuesPerProfile(tempCorrected);
-                setManuallyCorrectedLines(tempManualCheck)
-                setPlanCheckboxs(tempPlanCheckboxs)
-                setCrossSectionCheckboxs(tempCrossSectionCheckboxs)
+
             }
         }
     },[dbMPGroups]);
@@ -1005,10 +1160,19 @@ function MonitoringProfiles() {
     useEffect(() => {
         if(!markersInitialized){
             let tempMarks = [];
-            for(let i = 0; i < 4; i++){
+            let tempLines = [];
+            let tempAuxLines = [];
+            let tempPoints = [];
+            for(let i = 0; i < 6; i++){
                 tempMarks.push(createPointMarkerPerProfile(i+1, []))
+                tempLines.push(createLinePointPerProfile(i+1, []))
+                tempAuxLines.push(createAuxCrossSectionLinesPerProfile(i+1, []))
+                tempPoints.push(createPointPerProfile(i+1, []))
             }
             setMarkersPerProfile(tempMarks);
+            setLinesPerProfile(tempLines)
+            setAuxCrossSectionLinesPerProfile(tempAuxLines)
+            setPointsPerProfile(tempPoints)
             setMarkersInitialized(true)
         }
     }, [markersInitialized]);
@@ -1458,6 +1622,7 @@ function MonitoringProfiles() {
 
 
     const [incPerProfiles, setIncPerProfiles] = React.useState<IncPerProfile[]>([]);
+    const [pointsPerProfile, setPointsPerProfile] = useState<PointsPerProfile[]>([]);
 
     useEffect(() => {
         let tempMPTD = monitoringProfiles;
@@ -1599,7 +1764,7 @@ function MonitoringProfiles() {
             let nextId = rowsMP.length + 1;
 
             tempRows.push(createDataMP(rowsMP.length + 1, selectedGroupProfileNew, selectedNameProfileNew, selectedDescriptionProfileNew, selectedTypeOfProfileNew, (selectedAttachedImageNew !== ''), selectedAttachedImageNew))
-            tempMP.push(createDataMP(monitoringProfilesTableData.length + 1, selectedGroupProfileNew, selectedNameProfileNew, selectedDescriptionProfileNew, selectedTypeOfProfileNew, (selectedAttachedImageNew !== ''), selectedAttachedImageNew === '' ? '/profiles/NoImageFound.png' : selectedAttachedImageNew))
+            tempMP.push(createDataMP(monitoringProfilesTableData.length + 1, selectedGroupProfileNew, selectedNameProfileNew, selectedDescriptionProfileNew, selectedTypeOfProfileNew, (selectedAttachedImageNew !== ''), selectedAttachedImageNew === '' ? '' : selectedAttachedImageNew))
 
             for(let i = 0; i < selectedInclinometersNew.length; i++){
                 tempIncPerProfiles.push(createIncPerProfile(tempIncPerProfiles.length + 1, rowsMP.length + 1, selectedGroupProfileNew, selectedInclinometersNew[i].split("(")[1].split(")")[0], Number(selectedInclinometersNew[i].split(" ")[0].split("I")[1])));
@@ -1611,6 +1776,7 @@ function MonitoringProfiles() {
 
             let tempMarks = markersPerProfile;
             let tempPoints = pointsPerProfile;
+            let tempLines = linesPerProfile;
             let tempCoords = lineCoordinatesPerProfile;
             let tempCorrected = correctedValuesPerProfile;
             let tempManualCheck = manuallyCorrectedLines;
@@ -1618,6 +1784,7 @@ function MonitoringProfiles() {
             let tempPlanCheckbox = planCheckboxs;
             tempMarks.push(createPointMarkerPerProfile(nextId, []));
             tempPoints.push(createPointPerProfile(nextId, []));
+            tempLines.push(createLinePointPerProfile(nextId, []))
             tempCoords.push(createLineCoordinatesPerProfile(nextId, []))
             tempCorrected.push(createCorrectedValuesPerProfile(nextId, []))
             tempManualCheck.push(createCheckCorrectedValues(nextId, false))
@@ -1625,6 +1792,7 @@ function MonitoringProfiles() {
             tempPlanCheckbox.push(createPlanCheckbox(nextId, false))
             setMarkersPerProfile(tempMarks);
             setPointsPerProfile(tempPoints);
+            setLinesPerProfile(tempLines);
             setLineCoordinatesPerProfile(tempCoords);
             setCorrectedValuesPerProfile(tempCorrected);
             setManuallyCorrectedLines(tempManualCheck)
@@ -1704,6 +1872,8 @@ function MonitoringProfiles() {
     const [rowsPerPageMPPC, setRowsPerPageMPPC] = React.useState(5);
     const [rowsMPPC, setRowsMPPC] = React.useState<MPPC[]>([]);
     const [MPPCTableData, setMPPCTableData] = React.useState<MPPC[]>([]);
+    const [MPPCTableDataUniqueIds, setMPPCTableDataUniqueIds] = React.useState<MPPCUniqueIds[]>([]);
+    const [MPPCTableDataCodeWithUniqueId, setMPPCTableDataCodeWithUniqueId] = React.useState<MPPCCodeWithUniqueId[]>([]);
 
     const stageRef = useRef<Konva.Stage | null>(null);
     const pointsLayerRef = useRef<Konva.Layer | null>(null);
@@ -1727,6 +1897,7 @@ function MonitoringProfiles() {
     const stageRefCrossSection = useRef<Konva.Stage | null>(null);
     const pointsLayerRefCrossSection = useRef<Konva.Layer | null>(null);
     const [positionsArrayCrossSection, setPositionsArrayCrossSection] = React.useState<number[]>([]);
+    const [auxCrossSectionLinesPerProfile, setAuxCrossSectionLinesPerProfile] = React.useState<AuxCrossSectionLinesPerProfile[]>([]);
     const [replaceValuesCrossSection, setReplaceValuesCrossSection] = React.useState(false);
 
     const [clickTop, setClickTop] = useState(false);
@@ -1737,32 +1908,102 @@ function MonitoringProfiles() {
 
     useEffect(() => {
         console.log(selectedDetailedProfile)
-        if(selectedDetailedProfile === 'Profiles1: All'){
-            setMPPCTableData([createDataMPPC(0, 'PK150_200', 1, true, [296.2878194833505, 137.46244130721217]),
-                createDataMPPC(1, 'PK150_200', 2, false, []),
-                createDataMPPC(2, 'PK150_200', 3, false, []),
-                createDataMPPC(3, 'PK150_200', 4, false, []),
-                createDataMPPC(4, 'PK150_200', 5, false, []),
-                createDataMPPC(5, 'PK150_200', 6, false, []),
-                createDataMPPC(6, 'PK150_200', 8, false, []),
-                createDataMPPC(7, 'PK150_200', 9, false, []),
-                createDataMPPC(8, 'PK150_200', 10, false, [])])
+        dispatch(getSpecificProfilePositionAdjustments(selectedDetailedProfileID+1,sessionToken)).then(pos => {
+            if(pos !== undefined){
+                if(selectedDetailedProfile === "Barragem do Azibo: All" && selectedDetailedProfileID === 0 || selectedDetailedProfile === "Barragem do Azibo: P5" && selectedDetailedProfileID === 1
+                    || selectedDetailedProfile === "Barragem do Azibo: P7" && selectedDetailedProfileID === 2 || selectedDetailedProfile === "Barragem do Azibo: P9" && selectedDetailedProfileID === 3
+                    || selectedDetailedProfile === "Barragem do Azibo: P13" && selectedDetailedProfileID === 4 || selectedDetailedProfile === "Lab Test: P1" && selectedDetailedProfileID === 5){
+
+                    let tempPos = [];
+                    let tempIncs = [];
+                    let tempUniqueIds = [];
+                    let tempCodeWithUniqueId = [];
+                    for(let i = 0; i < pos.length; i++){
+                        let newUniqueId = pos[i].uniqueId;
+                        let newCode = pos[i].code;
+                        let newMeasurement = pos[i].measurement;
+                        let newInc = pos[i].inc;
+                        let newType = pos[i].type;
+                        let newPosAdjust = pos[i].positionAdjusted;
+                        let newMonitProfId
+                        if(newUniqueId !== undefined && newCode !== undefined && newMeasurement !== undefined && newInc !== undefined && newPosAdjust !== undefined){
+                            tempCodeWithUniqueId.push(createDataMPPCCodeWithUniqueId(Number(newCode), newUniqueId))
+                            tempPos.push(createDataMPPC(Number(newCode), newMeasurement, Number(newInc.split("I")[1]), newPosAdjust, []))
+                            tempIncs.push(Number(newInc.split("I")[1]))
+                            tempUniqueIds.push(createDataMPPCUniqueIds(newUniqueId, Number(newInc.split("I")[1])))
+                        }
+                    }
+                    setMPPCTableDataCodeWithUniqueId(tempCodeWithUniqueId)
+                    setMPPCTableData(tempPos)
+                    setRowsMPPC(tempPos)
+                    setCoordIncs(tempIncs.sort((a, b) => a - b))
+
+                    let incsForProfile = tempIncs.sort((a, b) => a - b)
+                    let tempAux = auxCrossSectionLinesPerProfile
+                    let newAuxArrayNumbers = [];
+                    for(let i = 0; i < incsForProfile.length*4;i++){
+                        newAuxArrayNumbers.push(0)
+                    }
+
+                    tempAux[selectedDetailedProfileID] = createAuxCrossSectionLinesPerProfile(selectedDetailedProfileID, newAuxArrayNumbers);
+                    setAuxCrossSectionLinesPerProfile(tempAux)
+
+                    setSelectedIncTopBottom(tempIncs[0])
+                    setMPPCTableDataUniqueIds(tempUniqueIds)
+                }
+            }
+        })
+
+
+            /*for(let i = 0; i<(dbPosAdjust ?? []).length; i++) {
+
+
+                let mIncString = dbPosAdjust[i].inclinometers;
+                let incs:string[] = [];
+                if (mIncString !== undefined) {
+                    incs = mIncString.split("?");
+                } else {
+                    incs = [];
+                }
+
+                let measurementName = dbMeasurementsList[i].measurement;
+                let hostName = dbMeasurementsList[i].host;
+                if(measurementName !== undefined && hostName !== undefined){
+                    for (let j = 0; j < incs.length; j++) {
+                        m.push(createMeasurement(counterArray, measurementName,hostName,incs[j]))
+                        counterArray++;
+                    }
+                }
+            }
+            setMeasurements(m)*/
+
+
+        /*if(selectedDetailedProfile === 'Barragem do Azibo: All'){
+            setMPPCTableData([createDataMPPC(0, 'Barragem do Azibo', 1, true, [296.2878194833505, 137.46244130721217]),
+                createDataMPPC(1, 'Barragem do Azibo', 2, false, []),
+                createDataMPPC(2, 'Barragem do Azibo', 3, false, []),
+                createDataMPPC(3, 'Barragem do Azibo', 4, false, []),
+                createDataMPPC(4, 'Barragem do Azibo', 5, false, []),
+                createDataMPPC(5, 'Barragem do Azibo', 6, false, []),
+                createDataMPPC(6, 'Barragem do Azibo', 8, false, []),
+                createDataMPPC(7, 'Barragem do Azibo', 9, false, []),
+                createDataMPPC(8, 'Barragem do Azibo', 10, false, [])])
             setRowsMPPC(MPPCTableData)
-        }else if(selectedDetailedProfile === 'Profiles1: Crest'){
-            setMPPCTableData([createDataMPPC(0, 'PK150_200', 1, false, []),
-                createDataMPPC(1, 'PK150_200', 3, false, []),
-                createDataMPPC(2, 'PK150_200', 6, false, []),
-                createDataMPPC(3, 'PK150_200', 9, false, [])])
+        }else if(selectedDetailedProfile === 'Barragem do Azibo: Crest'){
+            setMPPCTableData([createDataMPPC(0, 'Barragem do Azibo', 1, false, []),
+                createDataMPPC(1, 'Barragem do Azibo', 3, false, []),
+                createDataMPPC(2, 'Barragem do Azibo', 6, false, []),
+                createDataMPPC(3, 'Barragem do Azibo', 9, false, [])])
             setRowsMPPC(MPPCTableData)
         }else{
-            setMPPCTableData([createDataMPPC(0, 'PK150_200', 1, false, []),
-                createDataMPPC(1, 'PK150_200', 2, false, [])])
+            setMPPCTableData([createDataMPPC(0, 'Barragem do Azibo', 1, false, []),
+                createDataMPPC(1, 'Barragem do Azibo', 2, false, [])])
             setRowsMPPC(MPPCTableData)
-        }
-    }, [detailedView]);
+        }*/
+    }, [detailedView, selectedDetailedProfile, selectedDetailedProfileID]);
 
-    useEffect(() => {
-        if(selectedDetailedProfile !== 'Profiles1: All' && selectedDetailedProfile !== 'Profiles1: Crest' && selectedDetailedProfile !== 'Profiles1: P5') {
+    /*useEffect(() => {
+        if(selectedDetailedProfile !== 'Barragem do Azibo: All' && selectedDetailedProfile !== 'Barragem do Azibo: Crest' && selectedDetailedProfile !== 'Barragem do Azibo: P5') {
 
             let tempIncValues = incPerProfiles;
             let tempIncValuesFinal: IncPerProfile[] = [];
@@ -1797,57 +2038,102 @@ function MonitoringProfiles() {
             setRowsMPPC(tempRows)
             setMPPCTableData(tempMPPCTableData)
 
-        }else if(selectedDetailedProfile === 'Profiles1: All'){
-            setMPPCTableData([createDataMPPC(0, 'PK150_200', 1, true, [296.2878194833505, 137.46244130721217]),
-                createDataMPPC(1, 'PK150_200', 2, false, []),
-                createDataMPPC(2, 'PK150_200', 3, false, []),
-                createDataMPPC(3, 'PK150_200', 4, false, []),
-                createDataMPPC(4, 'PK150_200', 5, false, []),
-                createDataMPPC(5, 'PK150_200', 6, false, []),
-                createDataMPPC(6, 'PK150_200', 8, false, []),
-                createDataMPPC(7, 'PK150_200', 9, false, []),
-                createDataMPPC(8, 'PK150_200', 10, false, [])])
+        }else if(selectedDetailedProfile === 'Barragem do Azibo: All'){
+            setMPPCTableData([createDataMPPC(0, 'Barragem do Azibo', 1, true, [296.2878194833505, 137.46244130721217]),
+                createDataMPPC(1, 'Barragem do Azibo', 2, false, []),
+                createDataMPPC(2, 'Barragem do Azibo', 3, false, []),
+                createDataMPPC(3, 'Barragem do Azibo', 4, false, []),
+                createDataMPPC(4, 'Barragem do Azibo', 5, false, []),
+                createDataMPPC(5, 'Barragem do Azibo', 6, false, []),
+                createDataMPPC(6, 'Barragem do Azibo', 8, false, []),
+                createDataMPPC(7, 'Barragem do Azibo', 9, false, []),
+                createDataMPPC(8, 'Barragem do Azibo', 10, false, [])])
             setRowsMPPC(MPPCTableData)
-        }else if(selectedDetailedProfile === 'Profiles1: Crest'){
-            setMPPCTableData([createDataMPPC(0, 'PK150_200', 1, false, []),
-                createDataMPPC(1, 'PK150_200', 3, false, []),
-                createDataMPPC(2, 'PK150_200', 6, false, []),
-                createDataMPPC(3, 'PK150_200', 9, false, [])])
+        }else if(selectedDetailedProfile === 'Barragem do Azibo: Crest'){
+            setMPPCTableData([createDataMPPC(0, 'Barragem do Azibo', 1, false, []),
+                createDataMPPC(1, 'Barragem do Azibo', 3, false, []),
+                createDataMPPC(2, 'Barragem do Azibo', 6, false, []),
+                createDataMPPC(3, 'Barragem do Azibo', 9, false, [])])
             setRowsMPPC(MPPCTableData)
             setCoordIncs([1,3,6,9])
             setSelectedIncTopBottom(1)
         }else{
-            setMPPCTableData([createDataMPPC(0, 'PK150_200', 1, false, []),
-                createDataMPPC(1, 'PK150_200', 2, false, [])])
+            setMPPCTableData([createDataMPPC(0, 'Barragem do Azibo', 1, false, []),
+                createDataMPPC(1, 'Barragem do Azibo', 2, false, [])])
             setRowsMPPC(MPPCTableData)
             setCoordIncs([1,2])
             setSelectedIncTopBottom(1)
         }
-    }, [selectedDetailedProfile, selectedDetailedProfileID]);
+    }, [selectedDetailedProfile, selectedDetailedProfileID]);*/
 
     useEffect(() => {
         setRowsMPPC(MPPCTableData)
     }, [MPPCTableData]);
 
-    useEffect(() => {
-        for(let i = 0; i < MPPCTableData.length; i++){
-            if(!MPPCTableData[i].hasPoint && MPPCTableData[i].pickPoint.length !== 0){
-                MPPCTableData[i].hasPoint = true;
-                setActivePickPointRowId(-1)
-                setRowsMPPC(MPPCTableData)
-            }
-        }
-    }, [rowsMPPC, MPPCTableData, positionsArray, replaceValues, activePickPointRowId]);
 
     useEffect(() => {
-        if(positionsArray.length === 0){
-            setPositionsArray([296.2878194833505, 137.46244130721217, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0])
+        dispatch(getPoints(selectedDetailedProfileID+1,sessionToken)).then(pos => {
+            if(pos !== undefined){
+                if(selectedDetailedProfile === "Barragem do Azibo: All" && selectedDetailedProfileID === 0 || selectedDetailedProfile === "Barragem do Azibo: P5" && selectedDetailedProfileID === 1
+                    || selectedDetailedProfile === "Barragem do Azibo: P7" && selectedDetailedProfileID === 2 || selectedDetailedProfile === "Barragem do Azibo: P9" && selectedDetailedProfileID === 3
+                    || selectedDetailedProfile === "Barragem do Azibo: P13" && selectedDetailedProfileID === 4 || selectedDetailedProfile === "Lab Test: P1" && selectedDetailedProfileID === 5){
+
+                    let tempPos = [];
+
+                    for(let i = 0; i < pos.length; i++){
+                        let newPosX = pos[i].positionX;
+                        let newPosY = pos[i].positionY;
+                        let newPosAdjustId = pos[i].profilePositionAdjustmentId;
+
+                        if(newPosX !== undefined && newPosY !== undefined && newPosAdjustId !== undefined){
+                            tempPos.push(createPoint(newPosAdjustId, newPosX, newPosY));
+                        }
+                    }
+
+                    let tempPoints = pointsPerProfile;
+                    tempPoints[selectedDetailedProfileID] = createPointPerProfile(selectedDetailedProfileID+1, tempPos);
+                    setPointsPerProfile(tempPoints);
+                }
+            }
+        })
+    }, [dispatch, selectedDetailedProfile, selectedDetailedProfileID]);
+
+    useEffect(() => {
+        let tempTableData = MPPCTableData;
+        let tempPoints = pointsPerProfile;
+        let tempTDCUID = MPPCTableDataCodeWithUniqueId;
+        if(tempPoints.length > 0 && tempTableData.length > 0){
+            if(tempPoints[selectedDetailedProfileID].points.length > 0) {
+
+                for (let i = 0; i < tempTableData.length; i++) {
+                    if (tempTableData[i].id === tempTDCUID[i].code) {
+                        let profilePoints = tempPoints[selectedDetailedProfileID].points
+                        let id = tempTDCUID[i].id;
+                        let code = tempTDCUID[i].code;
+                        for (let j = 0; j < profilePoints.length; j++) {
+                            if (profilePoints[j].id === id) {
+                                let oldData = tempTableData[code - 1];
+                                tempTableData[code - 1] = createDataMPPC(oldData.id, oldData.groupMP, oldData.inc, true, [profilePoints[j].posX, profilePoints[j].posY]);
+                            }
+                        }
+                    }
+                }
+
+                setMPPCTableData(tempTableData);
+                setRowsMPPC(tempTableData);
+            }
         }
+    }, [selectedDetailedProfile, pointsPerProfile, MPPCTableData, rowsMPPC]);
+
+    useEffect(() => {
+        /*if(positionsArray.length === 0){
+            setPositionsArray([296.2878194833505, 137.46244130721217, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0, 0,0])
+        }*/
 
         if(stageRef.current && pointsLayerRef.current && replaceValues && !emptyPhoto){
             let stage = stageRef.current;
 
-            if (pointsLayerRef) {
+            if (pointsLayerRef.current) {
                 pointsLayerRef.current.destroy();
             }
 
@@ -1870,8 +2156,24 @@ function MonitoringProfiles() {
             });
             layer.add(group);
 
-            let posCounter = 0;
-            for(let i = 0; i < 9; i++){
+            let pointsArray = pointsPerProfile[selectedDetailedProfileID].points;
+
+            console.log(pointsArray)
+
+            for(let i = 0; i < pointsArray.length; i++){
+                let point = pointsArray[i];
+                if(point){
+                if(pointsArray[i].posX !== 0 || pointsArray[i].posY !== 0){
+                    let shape = new Konva.Circle({
+                        x: pointsArray[i].posX,
+                        y: pointsArray[i].posY,
+                        fill: 'red',
+                        radius: 5,
+                    });
+                    group.add(shape);
+                }}
+            }
+            /*for(let i = 0; i < 9; i++){
                 if(positionsArray[posCounter] !== 0 || positionsArray[posCounter+1] !== 0){
                     let shape = new Konva.Circle({
                         x: positionsArray[posCounter],
@@ -1882,19 +2184,19 @@ function MonitoringProfiles() {
                     group.add(shape);
                 }
                 posCounter += 2;
-            }
+            }*/
             setReplaceValues(false);
         }else if(replaceValues && emptyPhoto){
             setMarkers(markersPerProfile[selectedDetailedProfileID].pm)
 
             setReplaceValues(false);
         }
-    }, [MPPCTableData, positionsArray, replaceValues]);
+    }, [MPPCTableData, positionsArray, replaceValues, pointsPerProfile]);
 
     useEffect(() => {
-        if(positionsArrayCrossSection.length === 0){
+        /*if(positionsArrayCrossSection.length === 0){
             setPositionsArrayCrossSection([0, 0, 0, 0, 0, 0, 0, 0])
-        }
+        }*/
 
         if(stageRefCrossSection.current && pointsLayerRefCrossSection.current && crossSectionCheckboxs[selectedDetailedProfileID].check && replaceValuesCrossSection && emptyPhoto && crossSectionCheckActive) {
             let stage = stageRefCrossSection.current;
@@ -1922,7 +2224,7 @@ function MonitoringProfiles() {
             });
             layer.add(group);
 
-            let tempPosArray = positionsArrayCrossSection;
+            let tempPosArray = auxCrossSectionLinesPerProfile[selectedDetailedProfileID].array//positionsArrayCrossSection;
             console.log(tempPosArray)
 
             for(let i = 0; i < coordIncs.length; i++) {
@@ -1970,7 +2272,7 @@ function MonitoringProfiles() {
             setReplaceValuesCrossSection(false);
         }
 
-    }, [positionsArrayCrossSection, replaceValuesCrossSection]);
+    }, [auxCrossSectionLinesPerProfile, replaceValuesCrossSection]);
 
 
     //const [crossSectionImgLarge, setCrossSectionImgLarge] = useState<boolean>(false);
@@ -2064,7 +2366,25 @@ function MonitoringProfiles() {
 
                     if (selectedData[0].imagedAttached !== '/profiles/NoImageFound.png' && selectedDetailedProfileID === 0) {
 
-                        let posCounter = 0;
+                        /*if (pointsLayerRef.current) {
+                            pointsLayerRef.current.destroy();
+                        }*/
+
+                        let pointsArray = pointsPerProfile[selectedDetailedProfileID].points;
+
+                        for(let i = 0; i < pointsArray.length; i++){
+                            if(pointsArray[i].posX !== 0 || pointsArray[i].posY !== 0){
+                                let shape = new Konva.Circle({
+                                    x: pointsArray[i].posX,
+                                    y: pointsArray[i].posY,
+                                    fill: 'red',
+                                    radius: 5,
+                                });
+                                group.add(shape);
+                            }
+                        }
+
+                        /*let posCounter = 0;
                         for (let i = 0; i < 9; i++) {
                             if (positionsArray[posCounter] !== 0 || positionsArray[posCounter + 1] !== 0) {
                                 let shape = new Konva.Circle({
@@ -2076,11 +2396,11 @@ function MonitoringProfiles() {
                                 group.add(shape);
                             }
                             posCounter += 2;
-                        }
+                        }*/
                     }
                     pointsLayerRef.current = layer;
 
-                    if (selectedData[0].imagedAttached === '/profiles/NoImageFound.png') {
+                    if (selectedData[0].imagedAttached === '') {
                         if (stageRef.current) {
                             const stage = stageRef.current;
                             stage.destroy();
@@ -2107,7 +2427,6 @@ function MonitoringProfiles() {
             let selectedData = tempData.filter(d => d.id === selectedDetailedProfileID + 1)
 
             if(selectedTypeOfProfile === typeOfProfile[1].name && crossSectionCheckboxs[selectedDetailedProfileID].check && crossSectionCheckActive){
-                console.log("TESTE")
                 setTimeout(function () {
                     if (stageRefCrossSection.current) {
                         let stage2 = stageRefCrossSection.current;
@@ -2189,7 +2508,7 @@ function MonitoringProfiles() {
 
 
                     if (selectedData[0].imagedAttached !== '/profiles/NoImageFound.png' && selectedData[0].imagedAttached !== '') {
-                        let tempPosArray = positionsArrayCrossSection;
+                        let tempPosArray = auxCrossSectionLinesPerProfile[selectedDetailedProfileID].array//positionsArrayCrossSection;
 
                         for(let i = 0; i < coordIncs.length; i++){
                             if(tempPosArray[i*4] !== 0 && tempPosArray[i*4+2] !== 0){
@@ -2293,6 +2612,8 @@ function MonitoringProfiles() {
 
     const handlePickPoint = (rowId: number, rowInc: number) => {
         setActivePickPointRowId(rowId);
+        console.log(rowId)
+        console.log(MPPCTableData)
 
         if (stageRef.current && pointsLayerRef.current && !emptyPhoto) {
             let stage = stageRef.current;
@@ -2328,16 +2649,41 @@ function MonitoringProfiles() {
 
                         let tempPosArray = positionsArray;
                         let tempTableData = MPPCTableData;
-                        let rowData = MPPCTableData[rowId]
+                        let rowData = MPPCTableData[rowId-1]
 
                         tempPosArray[rowId*2] = pos.x
                         tempPosArray[rowId*2+1] = pos.y
 
-                        tempTableData[rowId] = createDataMPPC(rowId, rowData.groupMP, rowData.inc, true, [pos.x,pos.y]);
+                        tempTableData[rowId-1] = createDataMPPC(rowId, rowData.groupMP, rowData.inc, true, [pos.x,pos.y]);
 
-                        let tempPointPerProfile = pointsPerProfile;
+                        let foundUniqueId: number = 0;
+                        for(let i = 0; i < MPPCTableDataUniqueIds.length; i++){
+                            if(MPPCTableDataUniqueIds[i].inc === rowId){
+                                foundUniqueId = MPPCTableDataUniqueIds[i].id;
+                                console.log(foundUniqueId)
+                            }
+                        }
 
-                        //pointsPerProfile[selectedDetailedProfileID] = createPointPerProfile()
+
+                        let tempPPP = pointsPerProfile;
+                        let tempPointsPerProfile = tempPPP[selectedDetailedProfileID].points;
+
+                        let exists = false;
+
+                        for(let i = 0; i < tempPointsPerProfile.length; i++){
+                            if(tempPointsPerProfile[i].id === foundUniqueId){
+                                tempPointsPerProfile[i] = createPoint(foundUniqueId, pos.x, pos.y);
+                                exists = true;
+                            }
+                        }
+
+                        if(!exists){
+                            tempPointsPerProfile.push(createPoint(foundUniqueId, pos.x, pos.y))
+                        }
+
+                        setPointsPerProfile(tempPPP)
+
+                        dispatch(addPoint(pos.x, pos.y, foundUniqueId, sessionToken))
 
                         setMPPCTableData(tempTableData);
                         setRowsMPPC(tempTableData)
@@ -2384,15 +2730,16 @@ function MonitoringProfiles() {
                 if (!clicked) {
                     let pos = group.getRelativePointerPosition();
                     if (pos !== null) {
-                        let tempPosArray = positionsArrayCrossSection;
+                        let tempLines = linesPerProfile[selectedDetailedProfileID]
+                        //let tempLinesArray = tempLines.lp;
 
-                        console.log("teste2")
-                        console.log(positionsArrayCrossSection)
+                        let tempPosArray = auxCrossSectionLinesPerProfile[selectedDetailedProfileID].array;//positionsArrayCrossSection;
+                        console.log("------------")
+                        console.log(tempPosArray)
+                        console.log("------------")
 
                         for(let i = 0; i < coordIncs.length; i++){
-                            console.log("1: " + (selectedIncTopBottom === coordIncs[i]))
                             if(selectedIncTopBottom === coordIncs[i]){
-                                console.log("2: " + placedAt)
                                 if(placedAt === "top"){
                                     if(tempPosArray[i*4+2] !== 0 || tempPosArray[i*4+3] !== 0){
                                         //criar linha
@@ -2402,7 +2749,79 @@ function MonitoringProfiles() {
                                             strokeWidth: 5
                                         });
                                         group.add(shape);
+                                        setClickTop(false)
 
+                                        let foundUniqueId: number = 0;
+                                        for(let i = 0; i < MPPCTableDataUniqueIds.length; i++){
+                                            if(MPPCTableDataUniqueIds[i].inc === selectedIncTopBottom){
+                                                foundUniqueId = MPPCTableDataUniqueIds[i].id;
+                                            }
+                                        }
+
+                                        dispatch(addLine(pos.x, pos.y, tempPosArray[i*4+2], tempPosArray[i*4+3], foundUniqueId, sessionToken))
+                                    }else{
+                                        //criar ponto
+                                        let shape = new Konva.Circle({
+                                            x: pos.x,
+                                            y: pos.y,
+                                            fill: 'red',
+                                            radius: 5,
+                                        });
+                                        group.add(shape);
+
+                                        setClickTop(false)
+                                    }
+                                    tempPosArray[i*4] = pos.x;
+                                    tempPosArray[i*4+1] = pos.y;
+                                }else{
+                                    if(tempPosArray[i*4] !== 0 || tempPosArray[i*4+1] !== 0){
+                                        //criar linha
+                                        let shape = new Konva.Line({
+                                            points: [tempPosArray[i*4], tempPosArray[i*4+1], pos.x, pos.y],
+                                            stroke: 'red',
+                                            strokeWidth: 5
+                                        });
+                                        group.add(shape);
+                                        setClickBottom(false)
+                                        let foundUniqueId: number = 0;
+                                        for(let i = 0; i < MPPCTableDataUniqueIds.length; i++){
+                                            if(MPPCTableDataUniqueIds[i].inc === selectedIncTopBottom){
+                                                foundUniqueId = MPPCTableDataUniqueIds[i].id;
+                                            }
+                                        }
+
+                                        dispatch(addLine(tempPosArray[i*4], tempPosArray[i*4+1], pos.x, pos.y, foundUniqueId, sessionToken))
+
+                                    }else{
+                                        //criar ponto
+                                        let shape = new Konva.Circle({
+                                            x: pos.x,
+                                            y: pos.y,
+                                            fill: 'red',
+                                            radius: 5,
+                                        });
+                                        group.add(shape);
+
+                                        setClickBottom(false)
+                                    }
+                                    tempPosArray[i*4+2] = pos.x;
+                                    tempPosArray[i*4+3] = pos.y;
+                                }
+                            }
+                        }
+                        /*let tempPosArray = positionsArrayCrossSection;
+
+                        for(let i = 0; i < coordIncs.length; i++){
+                            if(selectedIncTopBottom === coordIncs[i]){
+                                if(placedAt === "top"){
+                                    if(tempPosArray[i*4+2] !== 0 || tempPosArray[i*4+3] !== 0){
+                                        //criar linha
+                                        let shape = new Konva.Line({
+                                            points: [pos.x, pos.y, tempPosArray[i*4+2], tempPosArray[i*4+3]],
+                                            stroke: 'red',
+                                            strokeWidth: 5
+                                        });
+                                        group.add(shape);
                                         setClickTop(false)
                                     }else{
                                         //criar ponto
@@ -2445,13 +2864,18 @@ function MonitoringProfiles() {
                                     tempPosArray[i*4+3] = pos.y;
                                 }
                             }
-                        }
+                        }*/
 
                         //let tempPointPerProfile = pointsPerProfile;
 
                         //pointsPerProfile[selectedDetailedProfileID] = createPointPerProfile()
-
-                        setPositionsArrayCrossSection(tempPosArray);
+                        //dispatch(addPoint(pos.x, pos.y, foundUniqueId, sessionToken))
+                        let tempPosCS = auxCrossSectionLinesPerProfile
+                        tempPosCS[selectedDetailedProfileID] = createAuxCrossSectionLinesPerProfile(selectedDetailedProfileID, tempPosArray)
+                        //setPositionsArrayCrossSection(tempPosArray);
+                        setAuxCrossSectionLinesPerProfile(tempPosCS)
+                        console.log("******")
+                        console.log(tempPosCS)
                         clicked = true;
                         setReplaceValuesCrossSection(true)
                     }
@@ -2574,8 +2998,8 @@ function MonitoringProfiles() {
     }
 
     //const [markers, setMarkers] = useState<L.LatLng[]>([]);
-    const [pointsPerProfile, setPointsPerProfile] = useState<PointsPerProfile[]>([]);
     const [markersPerProfile, setMarkersPerProfile] = useState<PointMarkerPerProfile[]>([]);
+    const [linesPerProfile, setLinesPerProfile] = useState<LinePointPerProfile[]>([]);
     const [markers, setMarkers] = useState<PointMarker[]>([]);
     const [currentRowId, setCurrentRowId] = useState(0);
     const [currentPoint, setCurrentPoint] = useState(0);
@@ -2594,11 +3018,24 @@ function MonitoringProfiles() {
     }, [selectedDetailedProfileID]);*/
 
     useEffect(() => {
-        if(selectedDetailedProfileID === 0 || selectedDetailedProfileID === 2){
-            dispatch(getMarkers(selectedDetailedProfileID+1,sessionToken)).then(markers => {
+        for(let i = 0; i < MPPCTableData.length; i++){
+            if(!MPPCTableData[i].hasPoint && MPPCTableData[i].pickPoint.length !== 0){
+                MPPCTableData[i].hasPoint = true;
+                setActivePickPointRowId(-1)
+                setRowsMPPC(MPPCTableData)
+            }
+        }
+    }, [rowsMPPC, MPPCTableData, pointsPerProfile, replaceValues, activePickPointRowId]);
+
+
+    useEffect(() => {
+        //if(selectedDetailedProfileID === 0 || selectedDetailedProfileID === 2){
+        dispatch(getMarkers(selectedDetailedProfileID+1,sessionToken)).then(markers => {
 
         if(markers !== undefined){
-            if(selectedDetailedProfile === "Profiles1: All" && selectedDetailedProfileID === 0 || selectedDetailedProfile === "Profiles1: P5" && selectedDetailedProfileID === 2){
+            if(selectedDetailedProfile === "Barragem do Azibo: All" && selectedDetailedProfileID === 0 || selectedDetailedProfile === "Barragem do Azibo: P5" && selectedDetailedProfileID === 1
+            || selectedDetailedProfile === "Barragem do Azibo: P7" && selectedDetailedProfileID === 2 || selectedDetailedProfile === "Barragem do Azibo: P9" && selectedDetailedProfileID === 3
+            || selectedDetailedProfile === "Barragem do Azibo: P13" && selectedDetailedProfileID === 4 || selectedDetailedProfile === "Barragem do Azibo: P1" && selectedDetailedProfileID === 5){
                 console.log(selectedDetailedProfile + " | " + selectedDetailedProfileID)
                 console.log(markers)
                 let tempMarkers = [];
@@ -2616,12 +3053,40 @@ function MonitoringProfiles() {
 
                 setMarkersPerProfile(tempMarkersPerProfile);
                 setMarkers(tempMarkers);
-            /*}else if(selectedDetailedProfile === "Profile1: P5"){
-*/
+
             }
         }
         });
-        }
+
+        dispatch(getLinesCrossSection(selectedDetailedProfileID+1,sessionToken)).then(lines => {
+
+            if(lines !== undefined){
+                if(selectedDetailedProfile === "Barragem do Azibo: All" && selectedDetailedProfileID === 0 || selectedDetailedProfile === "Barragem do Azibo: P5" && selectedDetailedProfileID === 1
+                    || selectedDetailedProfile === "Barragem do Azibo: P7" && selectedDetailedProfileID === 2 || selectedDetailedProfile === "Barragem do Azibo: P9" && selectedDetailedProfileID === 3
+                    || selectedDetailedProfile === "Barragem do Azibo: P13" && selectedDetailedProfileID === 4 || selectedDetailedProfile === "Barragem do Azibo: P1" && selectedDetailedProfileID === 5){
+
+                    let tempLines = [];
+
+                    for(let i = 0; i < lines.length; i++){
+                        let newTopX = lines[i].topX;
+                        let newTopY = lines[i].topY;
+                        let newBottomX = lines[i].bottomX;
+                        let newBottomY = lines[i].bottomY;
+                        let newAdjustId = lines[i].profilePositionAdjustmentId;
+                        if(newTopX !== undefined && newTopY !== undefined && newBottomX !== undefined && newBottomY !== undefined
+                            && newAdjustId !== undefined){
+                            tempLines.push(createLinePoint(newAdjustId, newTopX, newTopY, newBottomX, newBottomY))
+                        }
+                    }
+
+                    let tempLinesPerProfile = linesPerProfile;
+                    tempLinesPerProfile[selectedDetailedProfileID] = createLinePointPerProfile(selectedDetailedProfileID+1, tempLines) ;
+
+                    setLinesPerProfile(tempLinesPerProfile);
+                }
+            }
+        });
+
     }, [dispatch, selectedDetailedProfile]);
 
 
@@ -3165,7 +3630,7 @@ function MonitoringProfiles() {
                         className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
                         <button
                             type="button"
-                            className="py-2 px-4  bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                            className="py-2 px-4  bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
                             onClick={handleOpenNew}>
                             New
                         </button>
@@ -3383,7 +3848,7 @@ function MonitoringProfiles() {
                                 className="submit-button">
                                 <button
                                     type="button"
-                                    className="py-2 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                    className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
                                     onClick={handleSubmit}
                                 >
                                     Submit
@@ -3395,7 +3860,7 @@ function MonitoringProfiles() {
                         className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
                         <button
                             type="button"
-                            className="py-2 px-4  bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                            className="py-2 px-4  bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
                             onClick={handleOpenEdit}>
                             Edit
                             existing
@@ -3660,7 +4125,7 @@ function MonitoringProfiles() {
                                 className="submit-button">
                                 <button
                                     type="button"
-                                    className="py-2 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                    className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
                                     onClick={handleSubmitEdit}
                                 >
                                     Submit
@@ -3778,7 +4243,7 @@ function MonitoringProfiles() {
                                 <div>
                                     <button
                                         type="button"
-                                        className="py-3 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-lg"
+                                        className="py-3 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-lg"
                                         onClick={handleOpenNewProfile}
                                     >
                                         New
@@ -4098,9 +4563,9 @@ function MonitoringProfiles() {
                                                         startIcon={
                                                             <CloudUpload/>}
                                                         sx={{
-                                                            backgroundColor: '#22c55e',
+                                                            backgroundColor: '#10b981',
                                                             '&:hover': {
-                                                                backgroundColor: '#15803d',
+                                                                backgroundColor: '#047857',
                                                             },
                                                             mt: 3,
                                                             mb: 2,
@@ -4111,7 +4576,11 @@ function MonitoringProfiles() {
                                                         Upload
                                                         image
                                                         <VisuallyHiddenInput
-                                                            type="file"/>
+                                                            type="file"
+                                                            id={`fileInput-${fileInputRefs.length}`}
+                                                            onChange={(e) => handleFileChange(e, fileInputRefs.length)}
+                                                            ref={(e) => (fileInputRefs[fileInputRefs.length] = e as HTMLInputElement)}//fileInputRef}
+                                                        />
                                                     </Button>
                                                     {errorMessage && (
                                                         <Box
@@ -4130,7 +4599,7 @@ function MonitoringProfiles() {
                                                 style={{width: '60%'}}>
                                                 <button
                                                     type="button"
-                                                    className="py-2 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                                    className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
                                                     onClick={handleSubmitProfile}
                                                 >
                                                     Submit
@@ -4142,7 +4611,7 @@ function MonitoringProfiles() {
                                 <div>
                                     <button
                                         type="button"
-                                        className="py-3 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-lg"
+                                        className="py-3 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-lg"
                                         onClick={handleEditProfilePopUp}
                                     >
                                         Edit
@@ -4157,7 +4626,7 @@ function MonitoringProfiles() {
                         }}>
                             <button
                                 type="button"
-                                className="py-3 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-lg"
+                                className="py-3 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-lg"
                                 onClick={handleSubmitGroups}
                             >
                                 Define
@@ -4244,9 +4713,9 @@ function MonitoringProfiles() {
                                                                 startIcon={
                                                                     <CloudUpload/>}
                                                                 sx={{
-                                                                    backgroundColor: '#22c55e',
+                                                                    backgroundColor: '#10b981',
                                                                     '&:hover': {
-                                                                        backgroundColor: '#15803d',
+                                                                        backgroundColor: '#047857',
                                                                     },
                                                                 }}
                                                                 key={row.id}
@@ -4307,7 +4776,7 @@ function MonitoringProfiles() {
                                 className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
                                 <button
                                     type="button"
-                                    className="py-2 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                    className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
                                     onClick={handleBackButton}>
                                     <ArrowBack
                                         sx={{color: 'white'}}/>
@@ -4328,7 +4797,7 @@ function MonitoringProfiles() {
                                 className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
                                 <button
                                     type="button"
-                                    className="py-2 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                    className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
                                     onClick={handlePrevious}>
                                     <NavigateBefore
                                         sx={{color: 'white'}}/>
@@ -4339,7 +4808,7 @@ function MonitoringProfiles() {
                                 className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
                                 <button
                                     type="button"
-                                    className="py-2 px-4 bg-green-500 hover:bg-green-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                    className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
                                     onClick={handleNext}>
                                     <NavigateNext
                                         sx={{color: 'white'}}/>
@@ -4511,7 +4980,8 @@ function MonitoringProfiles() {
                                                                 </TableCell>
                                                                 <TableCell
                                                                     align="center">
-                                                                    <Button
+                                                                    {(selectedTypeOfProfile === typeOfProfile[0].name && planCheckboxs[selectedDetailedProfileID].check) ? (
+                                                                        <Button
                                                                         component="label"
                                                                         role={undefined}
                                                                         variant="contained"
@@ -4519,9 +4989,9 @@ function MonitoringProfiles() {
                                                                         startIcon={
                                                                             <Place/>}
                                                                         sx={{
-                                                                            backgroundColor: '#22c55e',
+                                                                            backgroundColor: '#10b981',
                                                                             '&:hover': {
-                                                                                backgroundColor: '#15803d',
+                                                                                backgroundColor: '#047857',
                                                                             },
                                                                             fontSize: '0.75rem',
                                                                             padding: '8px 8px',
@@ -4530,7 +5000,29 @@ function MonitoringProfiles() {
                                                                     >
                                                                         Pick
                                                                         point
-                                                                    </Button>
+                                                                    </Button>): (
+                                                                        <Button
+                                                                            disabled
+                                                                            component="label"
+                                                                            role={undefined}
+                                                                            variant="contained"
+                                                                            tabIndex={-1}
+                                                                            startIcon={
+                                                                                <Place/>}
+                                                                            sx={{
+                                                                                backgroundColor: '#10b981',
+                                                                                '&:hover': {
+                                                                                    backgroundColor: '#047857',
+                                                                                },
+                                                                                fontSize: '0.75rem',
+                                                                                padding: '8px 8px',
+                                                                            }}
+                                                                            onClick={() => handlePickPoint(row.id, row.inc)}
+                                                                        >
+                                                                            Pick
+                                                                            point
+                                                                        </Button>
+                                                                    )}
                                                                 </TableCell>
                                                             </TableRow>
                                                         );
@@ -4590,11 +5082,13 @@ function MonitoringProfiles() {
                                                 <Marker
                                                     key={index}
                                                     position={marker.latLng}
-                                                    icon={new Icon({
-                                                        iconUrl: markerIconPng,
-                                                        iconSize: [25, 41],
-                                                        iconAnchor: [12, 41]
-                                                    })}>
+                                                    icon={/*new Icon({
+                                                        iconUrl: '/marker-icon-green.png',*/
+                                                        createCustomIcon(marker.id)}
+                                                //iconSize: [25, 41],
+                                                //iconAnchor: [12, 41]
+                                                //})}
+                                                >
                                                     <Popup>
                                                         <div style={{ width: '180px'}}>
                                                             <h3 style={{
@@ -4699,7 +5193,7 @@ function MonitoringProfiles() {
                                     <CardHeader
                                         title="Map the image to coordinates"
                                         disableTypography
-                                        sx={{ backgroundColor: '#22c55e', color: '#ffffff', fontSize: '20px'}}
+                                        sx={{ backgroundColor: '#10b981', color: '#ffffff', fontSize: '20px'}}
                                     />
                                     <CardContent>
                                         <div
@@ -4735,9 +5229,9 @@ function MonitoringProfiles() {
                                                     startIcon={
                                                         <Place/>}
                                                     sx={{
-                                                        backgroundColor: '#22c55e',
+                                                        backgroundColor: '#10b981',
                                                         '&:hover': {
-                                                            backgroundColor: '#15803d',
+                                                            backgroundColor: '#047857',
                                                         },
                                                         fontSize: '0.75rem',
                                                         padding: '8px 22px',
@@ -4757,9 +5251,9 @@ function MonitoringProfiles() {
                                                     startIcon={
                                                         <Place/>}
                                                     sx={{
-                                                        backgroundColor: '#22c55e',
+                                                        backgroundColor: '#10b981',
                                                         '&:hover': {
-                                                            backgroundColor: '#15803d',
+                                                            backgroundColor: '#047857',
                                                         },
                                                         fontSize: '0.75rem',
                                                         padding: '8px 8px',

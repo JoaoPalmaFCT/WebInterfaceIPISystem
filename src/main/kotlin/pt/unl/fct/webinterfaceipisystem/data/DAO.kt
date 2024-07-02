@@ -157,6 +157,7 @@ data class ProfilePositionAdjustmentDAO(
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         val id:Int = 0,
+        val uniqueId:Int,
         val code:String,
         val measurement:String,
         val inc:String,

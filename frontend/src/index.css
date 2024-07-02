@@ -80,7 +80,7 @@ code {
 }
 
 .middle-column-p{
-  padding-left: 45%;
+  padding-left: 0%;
   padding-right: 20%;
 }
 
@@ -96,7 +96,7 @@ code {
 
 .right-column-p{
   padding-left: 0%;
-  padding-right: 45%;
+
 }
 
 .chart-wrapper{
@@ -185,6 +185,10 @@ code {
 
 .left-column-profile{
   padding-left: 0%;
+}
+
+.selectedRefDate option:hover{
+  background-color:#10b981;
 }
 
 .filter-container-typeInputsLocation{
@@ -366,4 +370,15 @@ code {
 .selectCoordRow{
   display: flex;
   flex-direction: row;
+}
+
+.goBackButtonParent {
+  display: flex;
+  width: 73%;
+}
+
+.goBackButton {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
 }
