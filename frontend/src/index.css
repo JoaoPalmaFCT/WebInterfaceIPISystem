@@ -356,7 +356,8 @@ code {
   display: flex;
   flex-direction: column;
   width: 50%;
-  padding-top:10%;
+  align-items: center;
+  padding-top:2%;
   padding-right: 10%;
   padding-left: 10%;
 }
@@ -372,6 +373,9 @@ code {
   flex-direction: row;
 }
 
+.incMapCoord{
+}
+
 .goBackButtonParent {
   display: flex;
   width: 73%;
@@ -381,4 +385,22 @@ code {
   display: flex;
   justify-content: flex-start;
   align-items: flex-start;
+}
+
+.divScale{
+
+}
+
+.horizontalScale{
+  padding-left: 570px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+
+.verticalScale{
+  padding-top: 370px;
+  padding-left: 5px;
+  display: flex;
+  justify-content: flex-end;
 }

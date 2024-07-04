@@ -15,6 +15,7 @@ export interface State {
     mpGroup: MonitoringProfileGroup | undefined;
     mpGroups: MonitoringProfileGroup[] | undefined;
     mp: MonitoringProfile[] | undefined;
+    mProfile: MonitoringProfile | undefined;
     posAdjust: ProfilePositionAdjustment[] | undefined;
     points: PointXY[] | undefined;
     point: PointXY | undefined;
@@ -27,12 +28,23 @@ const initialState: State = {
     mpGroup: undefined,
     mpGroups: undefined,
     mp: undefined,
+    mProfile: undefined,
     posAdjust: undefined,
     points: undefined,
     point: undefined,
     marker: undefined,
     lines: undefined,
     line: undefined
+}
+
+function createMonitoringProfile(
+    code: string, group: string, name: string, description: string, type: string,
+    attachedImage: string, inclinometers: string, monitoringGroupId: number
+): MonitoringProfile{
+    return {
+        code, group, name, description, type,
+        attachedImage, inclinometers, monitoringGroupId
+    };
 }
 
 function createPointXY(
@@ -76,6 +88,10 @@ export const slice = createSlice({
             state.mpGroups = action.payload
         },
 
+        setUpdatedMonitoringProfile: (state, action: PayloadAction<MonitoringProfile>) => {
+            state.mProfile = action.payload
+        },
+
         setMonitoringProfile: (state, action: PayloadAction<MonitoringProfile[]>) => {
             state.mp = action.payload
         },
@@ -111,7 +127,7 @@ export const slice = createSlice({
 })
 
 export const { setMonitoringProfileGroup, setMonitoringProfileGroups,
-    setMonitoringProfile, setPosAdjust, setMarkers,
+    setMonitoringProfile, setUpdatedMonitoringProfile, setPosAdjust, setMarkers,
     setPoint, setPoints, setLines, setLine,
     setProfilePositionAdjustments } = slice.actions
 
@@ -141,6 +157,23 @@ export const getMonitoringProfileGroups = (token: string) => (dispatch: any) => 
 };
 
 // Monitoring Profiles
+
+export const updateMonitoringProfile = (code: string, group: string, name: string, description: string, type: string,
+                                        attachedImage: string, inclinometers: string, monitoringGroupId: number, token: string) => (dispatch: any) => {
+    fetch('http://localhost:8080/api/monitprofiles/', {
+        method: "PUT",
+        headers: {'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`},
+        body: JSON.stringify({
+            code: code, group: group, name: name, description: description, type: type,
+            attachedImage: attachedImage, inclinometers: inclinometers, monitoringGroupId: monitoringGroupId
+        })
+    })
+    //.then( response => response.json())
+    //.then( p => dispatch(setPoint(p)))
+    dispatch(setUpdatedMonitoringProfile(createMonitoringProfile(code, group, name, description, type, attachedImage,
+        inclinometers, monitoringGroupId)));
+};
 
 export const getMonitoringProfiles = (token: string) => (dispatch: any) => {
     fetch('http://localhost:8080/api/monitprofiles/', {

@@ -101,7 +101,8 @@ import {
     getMonitoringProfileGroups,
     getMonitoringProfiles,
     getPoints,
-    getProfilePositionAdjustments
+    getProfilePositionAdjustments,
+    getSpecificProfilePositionAdjustments
 } from "../../store/monitoringProfile";
 /*
  * INCLINOMETER DATA
@@ -1308,7 +1309,7 @@ const CustomTooltip: React.FC<TooltipProps<any, any>> = ({
                        style={{
                            margin: 0,
                            gridColumn: '1 / -1'
-                       }}>{`Depth ${payload[0].payload.depth} (m)`}</p>
+                       }}>{`Depth: ${payload[0].payload.depth} m`}</p>
 
                     {payload.map((p, index) => (
                         <div
@@ -1413,7 +1414,7 @@ const CustomTooltipDetails: React.FC<TooltipProps<any, any>> = ({
                                         marginLeft: '5px'
                                     }}/>
                                     <p style={{margin: 0}}
-                                       className="label">{`${p.payload.depth}(m): ${p.value.toFixed(2)}`}</p>
+                                       className="label">{`${p.payload.depth}m: ${p.value.toFixed(2)}`}</p>
                                 </div>) : (
                                 (index === sizeLimit + 1) ? (
                                     <p className="label-container">{`...`}</p>
@@ -4779,6 +4780,44 @@ function ResultsVisualization() {
         setDefaultDatesGraph(false);
     }
 
+    const defaultCheckedDatesProfile = () : string[] => {
+        let defaultDataX: InclinometerData[] = [];
+        let defaultDataY: InclinometerData[] = [];
+        let checkedDatesInitial: string[] = [];
+
+        const refValuesX = dataArrayX.filter(item => item.time === refDate);
+        const refValuesY = dataArrayX.filter(item => item.time === refDate);
+        //defaultDataX = defaultDataX.concat(refValuesX);
+        //defaultDataY = defaultDataY.concat(refValuesY);
+
+        let revDataX = filteredDataArrayX.reverse();
+        let revDataY = filteredDataArrayY.reverse();
+
+        let revDates = numberOfDates.reverse();
+
+        for (let i = 0; i < 5; i++) {
+            let newDateToAddX = revDataX.filter(item => item.time === revDates[i])
+            let newDateToAddY = revDataY.filter(item => item.time === revDates[i])
+            defaultDataX = defaultDataX.concat(newDateToAddX);
+            defaultDataY = defaultDataY.concat(newDateToAddY);
+            checkedDatesInitial = checkedDatesInitial.concat(revDates[i]);
+        }
+
+        //checkedDatesInitial = checkedDatesInitial.concat(refDate);
+        checkedDatesInitial.reverse();
+        defaultDataX.reverse();
+        defaultDataY.reverse();
+        setInitialCheckedDates(checkedDatesInitial);
+        setFilteredDataArrayX(defaultDataX)
+        setFilteredDataArrayY(defaultDataY)
+        handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name)
+        handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name)
+
+        setDefaultDatesGraph(false);
+
+        return checkedDatesInitial;
+    }
+
     const defaultCheckedDatesClock = () => {
         //let defaultData = getFiveMostRecentClock()
     }
@@ -5210,6 +5249,56 @@ function ResultsVisualization() {
      * PROFILES SECTION
      */
 
+    useEffect(() => {
+        if(selectedVisualization === visualization[1]){
+            handleToogleReference(0)
+            handleEarliestDate(false);
+            handleResetRefDate()
+            setLastToggleRef(0)
+            let ddatesprofile = defaultCheckedDatesProfile();
+            setCheckedDates(ddatesprofile);
+            setSelectedInclinometer(1);
+            handleDepthArray(1);
+            handleSelectedAXChartData(1, results[0].name);
+            handleSelectedAYChartData(1, results[0].name);
+            handleStepSlider();
+            let maxDepth = (getNumberOfSensors(filteredDataArrayX, 1) / 2) - 0.5;
+            setMaxDepthInc(maxDepth);
+            setTopValueSlider(maxDepth);
+            setLowerValueSlider(0);
+            setMaxDepthGraph(maxDepth);
+            setMinDepthGraph(0);
+            setSelectedFirstDesiredDepth(0);
+            setSelectedLastDesiredDepth(maxDepth);
+            setOriginalFirstDesiredDepth(0);
+            setOriginalLastDesiredDepth(maxDepth);
+            handleDepthReset(1);
+        }else if(selectedVisualization === visualization[0] && !goBackButton && selectedAXChartData.length > 0){
+            handleToogleReference(0)
+            handleEarliestDate(false);
+            handleResetRefDate()
+            setLastToggleRef(0)
+            defaultCheckedDates();
+            setCheckedDates([refDate, ...initialCheckedDates]);
+            setSelectedInclinometer(1);
+            handleDepthArray(1);
+            handleSelectedAXChartData(1, results[0].name);
+            handleSelectedAYChartData(1, results[0].name);
+            handleStepSlider();
+            let maxDepth = (getNumberOfSensors(filteredDataArrayX, 1) / 2) - 0.5;
+            setMaxDepthInc(maxDepth);
+            setTopValueSlider(maxDepth);
+            setLowerValueSlider(0);
+            setMaxDepthGraph(maxDepth);
+            setMinDepthGraph(0);
+            setSelectedFirstDesiredDepth(0);
+            setSelectedLastDesiredDepth(maxDepth);
+            setOriginalFirstDesiredDepth(0);
+            setOriginalLastDesiredDepth(maxDepth);
+            handleDepthReset(1);
+        }
+    }, [selectedVisualization]);
+
     const [selectedResultsProfiles, setSelectedResultsProfiles] = useState(resultsProfiles[0]);
 
     const handleSelectedResultsProfiles = (type: string) => {
@@ -5444,6 +5533,89 @@ function ResultsVisualization() {
             }
         })
     }, [dispatch, selectedProfile, selectedProfileID]);
+
+    useEffect(() => {
+        dispatch(getMarkers(selectedProfileID+1,sessionToken)).then(markers => {
+
+            if(markers !== undefined){
+                if(selectedProfile.name === "All" && selectedProfileID === 0 || selectedProfile.name === "P5" && selectedProfileID === 1
+                    || selectedProfile.name === "P7" && selectedProfileID === 2 || selectedProfile.name === "P9" && selectedProfileID === 3
+                    || selectedProfile.name === "P13" && selectedProfileID === 4 || selectedProfile.name === "P1" && selectedProfileID === 5){
+
+                    let tempMarkers = [];
+                    for(let i = 0; i < markers.length; i++){
+                        let newLat = markers[i].lat;
+                        let newLng = markers[i].lng;
+                        if(newLat !== undefined && newLng !== undefined){
+                            let point = new L.LatLng(newLat, newLng)
+                            tempMarkers.push(createPointMarker(i+1, point))
+                        }
+                    }
+
+                    let tempMarkersPerProfile = markersPerProfile;
+                    tempMarkersPerProfile[selectedProfileID] = createPointMarkerPerProfile(selectedProfileID+1, tempMarkers) ;
+
+                    setMarkersPerProfile(tempMarkersPerProfile);
+                    //setMarkers(tempMarkers);
+                    /*}else if(selectedDetailedProfile === "Profile1: P5"){
+        */
+                }
+            }
+        });
+
+        dispatch(getLinesCrossSection(selectedProfileID+1,sessionToken)).then(lines => {
+            if(lines !== undefined){
+                if(selectedProfile.name === "All" && selectedProfileID === 0 || selectedProfile.name === "P5" && selectedProfileID === 1
+                    || selectedProfile.name === "P7" && selectedProfileID === 2 || selectedProfile.name === "P9" && selectedProfileID === 3
+                    || selectedProfile.name === "P13" && selectedProfileID === 4 || selectedProfile.name === "P1" && selectedProfileID === 5){
+
+                    let tempLines = [];
+
+                    for(let i = 0; i < lines.length; i++){
+                        let newTopX = lines[i].topX;
+                        let newTopY = lines[i].topY;
+                        let newBottomX = lines[i].bottomX;
+                        let newBottomY = lines[i].bottomY;
+                        let newAdjustId = lines[i].profilePositionAdjustmentId;
+                        if(newTopX !== undefined && newTopY !== undefined && newBottomX !== undefined && newBottomY !== undefined
+                            && newAdjustId !== undefined){
+                            tempLines.push(createLinePoint(newAdjustId, newTopX, newTopY, newBottomX, newBottomY))
+                        }
+                    }
+
+                    let tempLinesPerProfile = linesPerProfile;
+                    tempLinesPerProfile[selectedProfileID] = createLinePointPerProfile(selectedProfileID+1, tempLines) ;
+
+                    setLinesPerProfile(tempLinesPerProfile);
+                }
+            }
+        });
+
+        dispatch(getPoints(selectedProfileID+1,sessionToken)).then(pos => {
+            if(pos !== undefined){
+                if(selectedProfile.name === "All" && selectedProfileID === 0 || selectedProfile.name === "P5" && selectedProfileID === 1
+                    || selectedProfile.name === "P7" && selectedProfileID === 2 || selectedProfile.name === "P9" && selectedProfileID === 3
+                    || selectedProfile.name === "P13" && selectedProfileID === 4 || selectedProfile.name === "P1" && selectedProfileID === 5){
+
+                    let tempPos = [];
+
+                    for(let i = 0; i < pos.length; i++){
+                        let newPosX = pos[i].positionX;
+                        let newPosY = pos[i].positionY;
+                        let newPosAdjustId = pos[i].profilePositionAdjustmentId;
+
+                        if(newPosX !== undefined && newPosY !== undefined && newPosAdjustId !== undefined){
+                            tempPos.push(createPoint(newPosAdjustId, newPosX, newPosY));
+                        }
+                    }
+
+                    let tempPoints = pointsPerProfile;
+                    tempPoints[selectedProfileID] = createPointPerProfile(selectedProfileID, tempPos);
+                    setPointsPerProfile(tempPoints);
+                }
+            }
+        })
+    }, [planCheckboxs]);
 
     const handleSelectFromCodeList = (e: string) =>{
         setSelectFromCodeList(e)
@@ -5730,7 +5902,35 @@ function ResultsVisualization() {
             setRowsB(newTableRowsB);
             setArrowsAPointValues(arrowsAPointValuesAux);
             setArrowsBPointValues(arrowsBPointValuesAux);
-            setArrowsTotalPointValues(arrowsTotalPointValuesAux);
+            //setArrowsTotalPointValues(arrowsTotalPointValuesAux);
+
+
+            if(pointsPerProfile.length > 0 && pointsPerProfile[0].points.length > 0 && pointsPerProfile[0].points.length < 9){
+                let tempP = pointsPerProfile[0].points;
+
+                dispatch(getSpecificProfilePositionAdjustments(selectedProfileID+1,sessionToken)).then(pos => {
+                    if (pos !== undefined) {
+                        let arrowsFiltered = []
+                        for(let i = 0; i < pos.length; i++){
+                            let newUniqueId = pos[i].uniqueId;
+                            let newInc = pos[i].inc;
+                            if(newUniqueId !== undefined && newInc !== undefined){
+                                for(let j = 0; j < pointsPerProfile[0].points.length; j++){
+                                    if(newUniqueId === pointsPerProfile[0].points[j].id){
+                                        let testInc = newInc.split("I")[1]
+                                        console.log(testInc)
+                                        let tempFilt = arrowsTotalPointValuesAux.flat().filter(item => item.inc === testInc)
+                                        arrowsFiltered.push(tempFilt)
+                                    }
+                                }
+                            }
+                        }
+                        setArrowsTotalPointValues(arrowsFiltered);
+                    }
+                })
+            }else{
+                setArrowsTotalPointValues(arrowsTotalPointValuesAux);
+            }
         /*}else {
             for (let i = 0; i < profileIncChart.length; i++){
                 let generatedData = getTableValues(Number(profileIncChart[i]), filteredDataArrayX, filteredDataArrayY, refDateDataX, refDateDataY, selectedResultsProfiles.name, 'Surface');
@@ -6001,14 +6201,21 @@ function ResultsVisualization() {
                     let maxDepth = 0;
                     let maxDisplacement = 0;
                     let arrowData = arrowsTotalPointValues;
-                    for(let i = 0; i < numberOfInc.length; i++){
-                        if(arrowData[i][0].depth - 0.5 > maxDepth){
-                            maxDepth = arrowData[i][0].depth - 0.5
+
+                    if(arrowsTotalPointValues.length === 9){
+                        for(let i = 0; i < numberOfInc.length; i++){
+                            if(arrowData[i][0].depth - 0.5 > maxDepth){
+                                maxDepth = arrowData[i][0].depth - 0.5
+                            }
+                            if(Math.abs(arrowData[i][0].displacement) > maxDisplacement){
+                                maxDisplacement = Math.abs(arrowData[i][0].displacement)
+                            }
                         }
-                        if(Math.abs(arrowData[i][0].displacement) > maxDisplacement){
-                            maxDisplacement = Math.abs(arrowData[i][0].displacement)
-                        }
+                    }else{
+                        maxDepth = 51
+                        maxDisplacement = 131.85097651842756
                     }
+
 
                     const refPointX1 = 293.9759051572062;
                     const refPointY1 = 137.467221651754;
@@ -6017,8 +6224,7 @@ function ResultsVisualization() {
                     let posCounter = 0;
                     let pointsArray = pointsPerProfile[selectedProfileID].points;
 
-                    for(let i = 0; i < 9; i++) {//numberOfInc.length
-                        console.log(pointsArray[i])
+                    for(let i = 0; i < arrowsTotalPointValues.length; i++) {//numberOfInc.length
                         //let testValueX = ((x3-x1)*97.97)/100
                         //let testValueY = ((y3-y1)*31.5)/51
                         //let refPointIncX1 = profilePosArray[posCounter]
@@ -6266,7 +6472,11 @@ function ResultsVisualization() {
 
                 let points = pointsPerProfile[selectedProfileID].points;
                 let pointsArray: number[]  = [];
-                for(let i = 0; i < numberOfInc.length; i++) {
+                let arrayL = points.length / 2
+                console.log(points)
+            console.log(arrayL)
+
+                for(let i = 0; i < arrayL; i++) {
                     for(let j = 0; j < incliLine.length; j++) {
                         if(Number(numberOfInc[i]) === incliLine[j]){
                             //pointsArray.push(profilePosArray[i*2])
@@ -6481,6 +6691,7 @@ function ResultsVisualization() {
     const handleRotateNorth = (angle: number) => {
         setRotationNorth(angle);
     };
+
 
     return (
         <div
@@ -8778,17 +8989,17 @@ function ResultsVisualization() {
                                             </Listbox>
                                             {(selectedProfile.type === 'Plan' && planCheckboxs[selectedProfileID].check) ? (
                                                 <div
-                                                className="relative inline-block w-10 mr-2 align-middle select-none">
-                                                <input
-                                                    id="Green"
-                                                    type="checkbox"
-                                                    checked={toggleArrows}
-                                                    onChange={(e) => handleToogleArrows()}
-                                                    className="checked:bg-emerald-500 outline-none focus:outline-none right-4 checked:right-0 duration-200 ease-in absolute block w-6 h-6 rounded-full bg-white border-4 border-emerald-500 appearance-none cursor-pointer"/>
-                                                <label
-                                                    htmlFor="Green"
-                                                    className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"/>
-                                            </div>) : (
+                                                    className="relative inline-block w-10 mr-2 align-middle select-none">
+                                                    <input
+                                                        id="Green"
+                                                        type="checkbox"
+                                                        checked={toggleArrows}
+                                                        onChange={(e) => handleToogleArrows()}
+                                                        className="checked:bg-emerald-500 outline-none focus:outline-none right-4 checked:right-0 duration-200 ease-in absolute block w-6 h-6 rounded-full bg-white border-4 border-emerald-500 appearance-none cursor-pointer"/>
+                                                    <label
+                                                        htmlFor="Green"
+                                                        className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"/>
+                                                </div>) : (
                                                 <div
                                                     className="relative inline-block w-10 mr-2 align-middle select-none">
                                                     <input
@@ -8939,8 +9150,8 @@ function ResultsVisualization() {
                                                     icon={/*new Icon({
                                                         iconUrl: '/marker-icon-green.png',*/
                                                         createCustomIcon(marker.id)}
-                                                        //iconSize: [25, 41],
-                                                        //iconAnchor: [12, 41]
+                                                    //iconSize: [25, 41],
+                                                    //iconAnchor: [12, 41]
                                                     //})}
                                                 >
                                                     <Popup>
@@ -8956,7 +9167,8 @@ function ResultsVisualization() {
                                                             <button
                                                                 type="button"
                                                                 className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                                                                onClick={() => handleIncMapClick(marker.id)}>View inclinometer
+                                                                onClick={() => handleIncMapClick(marker.id)}>View
+                                                                inclinometer
                                                             </button>
                                                         </div>
                                                     </Popup>
@@ -8966,11 +9178,79 @@ function ResultsVisualization() {
                                     </div>
                                 }
                                 <div
-                                    id="konvaContainer"
-                                    className="container-profile-p"></div>
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center'
+                                    }}
+                                >
+                                    <div
+                                        id="konvaContainer"
+                                        className="container-profile-p"
+                                        style={{flex: '1'}}
+                                    ></div>
+                                    {!emptyPhoto && (<div
+                                        className="divScale"
+                                        style={{flexShrink: '0'}}
+                                    >
+                                        <img
+                                            src="/profiles/verticalScale.png"
+                                            className="verticalScale"
+                                        />
+                                    </div>)}
+                                    {!emptyPhoto && (<div>
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                paddingRight: '60px',
+                                                paddingTop: '375px'
+                                            }}>
+                                            <Typography
+                                                variant="subtitle2"
+                                                gutterBottom>
+                                                0
+                                            </Typography>
+                                            <div
+                                                style={{paddingLeft: '15px'}}>
+                                                <Typography
+                                                    variant="subtitle2"
+                                                    gutterBottom>
+                                                    51m
+                                                </Typography>
+                                            </div>
+                                        </div>
+                                    </div>)}
+                                </div>
+                                {!emptyPhoto && (<div
+                                    className="divScale">
+                                    <img
+                                        src="/profiles/horizontalScale.png"
+                                        className="horizontalScale"
+                                    />
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            justifyContent: 'flex-end',
+                                            paddingRight: '100px'
+                                        }}>
+                                        <Typography
+                                            variant="subtitle2"
+                                            gutterBottom>
+                                            0
+                                        </Typography>
+                                        <div
+                                            style={{paddingLeft: '15px'}}>
+                                            <Typography
+                                                variant="subtitle2"
+                                                gutterBottom>
+                                                131mm
+                                            </Typography>
+                                        </div>
+                                    </div>
+                                </div>)}
                                 {(selectedProfile.type !== "Plan") && (
                                     <div>
-                                    <div
+                                        <div
                                             style={{
                                                 paddingTop: '20px',
                                                 paddingBottom: '20px',
@@ -9039,6 +9319,7 @@ function ResultsVisualization() {
                                 <div
                                     id="konvaContainerCrossSection"
                                     className="container-profile-p"></div>
+
                                 <div
                                     className="flex-charts-container">
                                     {(selectedProfile.type !== "Plan" && selectedOrthoDirection.name === "A") && selectedProfileArrayChartDataX.length > 0 && (
@@ -9077,16 +9358,18 @@ function ResultsVisualization() {
 
                                     )}
                                 </div>
-                                {(selectedProfile.type !== "Plan" && selectedOrthoDirection.name === "A") && selectedProfileArrayChartDataX.length > 0 && (<img
-                                    src="/profiles/ElevationA.png"
-                                    width="150"
-                                    height="150"
-                                />)}
-                                {(selectedProfile.type !== "Plan" && selectedOrthoDirection.name === "B") && selectedProfileArrayChartDataX.length > 0 && (<img
-                                    src="/profiles/ElevationB.png"
-                                    width="150"
-                                    height="150"
-                                />)}
+                                {(selectedProfile.type !== "Plan" && selectedOrthoDirection.name === "A") && selectedProfileArrayChartDataX.length > 0 && (
+                                    <img
+                                        src="/profiles/ElevationA.png"
+                                        width="150"
+                                        height="150"
+                                    />)}
+                                {(selectedProfile.type !== "Plan" && selectedOrthoDirection.name === "B") && selectedProfileArrayChartDataX.length > 0 && (
+                                    <img
+                                        src="/profiles/ElevationB.png"
+                                        width="150"
+                                        height="150"
+                                    />)}
                             </div>
                         </div>
                         <div>

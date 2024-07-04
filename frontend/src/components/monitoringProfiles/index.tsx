@@ -89,6 +89,7 @@ import {
 import {
     getMarkers,
     getMonitoringProfileGroups,
+    updateMonitoringProfile,
     getMonitoringProfiles,
     getProfilePositionAdjustments,
     getSpecificProfilePositionAdjustments,
@@ -721,7 +722,7 @@ const headCellsMP: readonly HeadCellMP[] = [
         id: 'hasImage',
         numeric: false,
         disablePadding: false,
-        label: 'No Image',
+        label: 'Image',
     },
     {
         id: 'imagedAttached',
@@ -1112,7 +1113,11 @@ function MonitoringProfiles() {
                         let mpHasImage = (mpImage !== '')
                         if(mpId !== undefined && mpGroup !== undefined && mpName !== undefined && mpDescription !== undefined &&
                         mpType !== undefined && mpImage !== undefined){
-                            monitProfiles.push(createDataMP(Number(mpId), mpGroup, mpName, mpDescription, mpType, mpHasImage, mpImage))
+                            if(Number(mpId) !== 2){
+                                monitProfiles.push(createDataMP(Number(mpId), mpGroup, mpName, mpDescription, mpType, mpHasImage, mpImage))
+                            }else{
+                                monitProfiles.push(createDataMP(Number(mpId), mpGroup, mpName, mpDescription, mpType, false, mpImage))
+                            }
                         }
                     }
                     setMonitoringProfilesTableData(monitProfiles)
@@ -1153,7 +1158,7 @@ function MonitoringProfiles() {
 
             }
         }
-    },[dbMPGroups]);
+    },[dbMPGroups, dbMPs]);
 
     const [markersInitialized, setMarkersInitialized] = React.useState(false);
 
@@ -1413,6 +1418,8 @@ function MonitoringProfiles() {
     const [alertWrongFileType, setAlertWrongFileType] = useState(false);
     const [alertNothingSelected, setAlertNothingSelected] = useState(false);
     const [warningNoMoreProfiles, setWarningNoMoreProfiles] = useState(false);
+
+    const [alertSuccessAttachedImage, setAlertSuccessAttachedImage] = useState(false);
 
     const [selectedMPEdit, setSelectedMPEdit] = useState<MonitoringProfileGroup>(createDataMPG(0, '', 0, [], 0));
     const [selectedGroupEdit, setSelectedGroupEdit] = useState<string>('');
@@ -1844,10 +1851,21 @@ function MonitoringProfiles() {
             .then((downloadURL) => {
                 console.log('Download URL:', downloadURL);
                 let tempData = monitoringProfilesTableData;
-                tempData[rowId].imagedAttached = downloadURL;
-                tempData[rowId].hasImage = true;
+                tempData[rowId-1].imagedAttached = downloadURL;
+                tempData[rowId-1].hasImage = true;
                 setMonitoringProfilesTableData(tempData);
                 setRowsMP(tempData);
+
+                setAlertSuccessAttachedImage(true);
+                setTimeout(() => {
+                    setAlertSuccessAttachedImage(false);
+                }, 5000);
+
+                /*let tempRows = rowsMP;
+
+                dispatch(updateMonitoringProfile(rowId.toString(), tempRows[rowId-1].group, tempRows[rowId-1].name, tempRows[rowId-1].description, tempRows[rowId-1].typeOfProfile,
+                    downloadURL, 'I1?I2', 1, sessionToken))
+                dispatch(getMonitoringProfiles(sessionToken))*/
             })
             .catch((error) => {
                 console.error('Error uploading image:', error);
@@ -1925,7 +1943,6 @@ function MonitoringProfiles() {
                         let newInc = pos[i].inc;
                         let newType = pos[i].type;
                         let newPosAdjust = pos[i].positionAdjusted;
-                        let newMonitProfId
                         if(newUniqueId !== undefined && newCode !== undefined && newMeasurement !== undefined && newInc !== undefined && newPosAdjust !== undefined){
                             tempCodeWithUniqueId.push(createDataMPPCCodeWithUniqueId(Number(newCode), newUniqueId))
                             tempPos.push(createDataMPPC(Number(newCode), newMeasurement, Number(newInc.split("I")[1]), newPosAdjust, []))
@@ -2098,32 +2115,28 @@ function MonitoringProfiles() {
         })
     }, [dispatch, selectedDetailedProfile, selectedDetailedProfileID]);
 
-    useEffect(() => {
+    /*useEffect(() => {
         let tempTableData = MPPCTableData;
         let tempPoints = pointsPerProfile;
         let tempTDCUID = MPPCTableDataCodeWithUniqueId;
         if(tempPoints.length > 0 && tempTableData.length > 0){
             if(tempPoints[selectedDetailedProfileID].points.length > 0) {
 
-                for (let i = 0; i < tempTableData.length; i++) {
-                    if (tempTableData[i].id === tempTDCUID[i].code) {
-                        let profilePoints = tempPoints[selectedDetailedProfileID].points
-                        let id = tempTDCUID[i].id;
-                        let code = tempTDCUID[i].code;
-                        for (let j = 0; j < profilePoints.length; j++) {
-                            if (profilePoints[j].id === id) {
-                                let oldData = tempTableData[code - 1];
-                                tempTableData[code - 1] = createDataMPPC(oldData.id, oldData.groupMP, oldData.inc, true, [profilePoints[j].posX, profilePoints[j].posY]);
-                            }
+                let profilePoints = tempPoints[selectedDetailedProfileID].points
+                for (let i = 0; i < tempTDCUID.length; i++) {
+                    for(let j = 0; j < profilePoints.length; j++){
+                        if(tempTDCUID[i].id === profilePoints[j].id){
+                            let code = tempTDCUID[i].code;
+                            tempTableData[code-1].hasPoint = true;
+                            tempTableData[code-1].pickPoint = [profilePoints[j].posX, profilePoints[j].posY]
                         }
                     }
                 }
-
                 setMPPCTableData(tempTableData);
                 setRowsMPPC(tempTableData);
             }
         }
-    }, [selectedDetailedProfile, pointsPerProfile, MPPCTableData, rowsMPPC]);
+    }, [selectedDetailedProfile, pointsPerProfile, MPPCTableData, rowsMPPC]);*/
 
     useEffect(() => {
         /*if(positionsArray.length === 0){
@@ -2759,6 +2772,17 @@ function MonitoringProfiles() {
                                         }
 
                                         dispatch(addLine(pos.x, pos.y, tempPosArray[i*4+2], tempPosArray[i*4+3], foundUniqueId, sessionToken))
+
+                                        let tempTableData = MPPCTableData;
+                                        let selInc = selectedIncTopBottom;
+                                        for(let i = 0; i < tempTableData.length; i++){
+                                            if(tempTableData[i].inc === selectedIncTopBottom){
+                                                tempTableData[i].hasPoint = true;
+                                            }
+                                        }
+
+                                        setMPPCTableData(tempTableData)
+                                        setRowsMPPC(tempTableData)
                                     }else{
                                         //criar ponto
                                         let shape = new Konva.Circle({
@@ -2792,6 +2816,16 @@ function MonitoringProfiles() {
 
                                         dispatch(addLine(tempPosArray[i*4], tempPosArray[i*4+1], pos.x, pos.y, foundUniqueId, sessionToken))
 
+                                        let tempTableData = MPPCTableData;
+                                        let selInc = selectedIncTopBottom;
+                                        for(let i = 0; i < tempTableData.length; i++){
+                                            if(tempTableData[i].inc === selectedIncTopBottom){
+                                                tempTableData[i].hasPoint = true;
+                                            }
+                                        }
+
+                                        setMPPCTableData(tempTableData)
+                                        setRowsMPPC(tempTableData)
                                     }else{
                                         //criar ponto
                                         let shape = new Konva.Circle({
@@ -3414,6 +3448,15 @@ function MonitoringProfiles() {
     );
 
 
+    const [filePopUp, setFilePopUp] = useState(false)
+    const [selectedImagePopUp, setSelectedImagePopUp] = useState('')
+
+    const handleOpenFilePopUp = (file: string) => {
+        setSelectedImagePopUp(file)
+        setFilePopUp(true)
+    };
+    const handleCloseFilePopUp = () => setFilePopUp(false);
+
     return (
         <div
             className="main-wrapper full-screen">
@@ -3618,6 +3661,33 @@ function MonitoringProfiles() {
                             <AlertTitle
                                 sx={{textAlign: 'left'}}>Warning</AlertTitle>
                             There is only one monitoring profile selected.
+                        </Alert>
+                    </Box>
+                </Slide>
+            )}
+            {alertSuccessAttachedImage && (
+                <Slide
+                    direction="left"
+                    in={alertSuccessAttachedImage}
+                    mountOnEnter
+                    unmountOnExit>
+                    <Box
+                        sx={{
+                            position: 'fixed',
+                            top: 16,
+                            right: 16,
+                            zIndex: 9999
+                        }}>
+                        <Alert
+                            severity="success"
+                            sx={{alignItems: 'center'}}>
+                            <AlertTitle
+                                sx={{textAlign: 'left'}}>Success</AlertTitle>
+                            The
+                            image
+                            was
+                            successfully
+                            added.
                         </Alert>
                     </Box>
                 </Slide>
@@ -4697,11 +4767,20 @@ function MonitoringProfiles() {
                                                             align="center">
                                                             <IconButton
                                                                 className="hasImage-button"
-                                                                aria-label="close">
+                                                                aria-label="close"
+                                                                style={{paddingRight: row.hasImage ? '0px': '40px'}}>
                                                                 {row.hasImage ?
                                                                     <CheckBoxRounded/> :
                                                                     <CheckBoxOutlineBlankRounded/>}
                                                             </IconButton>
+                                                            {row.hasImage && (
+                                                                <IconButton
+                                                                    className=""
+                                                                    aria-label="close"
+                                                                    onClick={() => handleOpenFilePopUp(row.imagedAttached)}>
+                                                                    <InsertDriveFile/>
+                                                                </IconButton>
+                                                            )}
                                                         </TableCell>
                                                         <TableCell
                                                             align="center">
@@ -4766,8 +4845,47 @@ function MonitoringProfiles() {
                         </Box>
                     </div>
                 )}
+                {filePopUp && (<Modal
+                    open={filePopUp}
+                    aria-labelledby="modal-title"
+                    aria-describedby="modal-description"
+                >
+                    <Box
+                        sx={{
+                            position: 'absolute' as 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            width: 800,
+                            bgcolor: 'background.paper',
+                            border: '2px solid #000',
+                            boxShadow: 24,
+                            p: 4,
+                            borderRadius: 2,
+                            '& .close-button': {
+                                position: 'absolute',
+                                top: 8,
+                                right: 8,
+                            },
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center'
+                        }}>
+                        <IconButton
+                            className="close-button"
+                            aria-label="close"
+                            onClick={handleCloseFilePopUp}>
+                            <Clear/>
+                        </IconButton>
+                        <img
+                            src={selectedImagePopUp}
+                            width="600"
+                            height="400"
+                        />
+                    </Box>
+                </Modal>)}
             </>
-            ):(
+            ) : (
                 <>
                     <div>
                         <div
@@ -4838,7 +4956,7 @@ function MonitoringProfiles() {
                                                 <Checkbox
                                                     id={selectedDetailedProfileID.toString().concat("plan")}
                                                     checked={planCheckboxs[selectedDetailedProfileID].check}
-                                                    onChange={(event)=>(handlePlanCheckbox(event, "other"))}
+                                                    onChange={(event) => (handlePlanCheckbox(event, "other"))}
                                                     color="success"/>}
                                             label="Use available image from profile"
                                         />
@@ -4899,7 +5017,7 @@ function MonitoringProfiles() {
                                                         id={selectedDetailedProfileID.toString().concat("plan")}
                                                         checked={planCheckboxs[selectedDetailedProfileID].check}
                                                         color="success"
-                                                        onChange={(event)=>(handlePlanCheckbox(event, "own"))}
+                                                        onChange={(event) => (handlePlanCheckbox(event, "own"))}
                                                     />}
                                                 label="Use available image"
                                             />
@@ -4972,7 +5090,8 @@ function MonitoringProfiles() {
                                                                     align="center">
                                                                     <IconButton
                                                                         className="hasImage-button"
-                                                                        aria-label="close">
+                                                                        aria-label="close"
+                                                                    >
                                                                         {row.hasPoint ?
                                                                             <CheckBoxRounded/> :
                                                                             <CheckBoxOutlineBlankRounded/>}
@@ -4982,25 +5101,25 @@ function MonitoringProfiles() {
                                                                     align="center">
                                                                     {(selectedTypeOfProfile === typeOfProfile[0].name && planCheckboxs[selectedDetailedProfileID].check) ? (
                                                                         <Button
-                                                                        component="label"
-                                                                        role={undefined}
-                                                                        variant="contained"
-                                                                        tabIndex={-1}
-                                                                        startIcon={
-                                                                            <Place/>}
-                                                                        sx={{
-                                                                            backgroundColor: '#10b981',
-                                                                            '&:hover': {
-                                                                                backgroundColor: '#047857',
-                                                                            },
-                                                                            fontSize: '0.75rem',
-                                                                            padding: '8px 8px',
-                                                                        }}
-                                                                        onClick={() => handlePickPoint(row.id, row.inc)}
-                                                                    >
-                                                                        Pick
-                                                                        point
-                                                                    </Button>): (
+                                                                            component="label"
+                                                                            role={undefined}
+                                                                            variant="contained"
+                                                                            tabIndex={-1}
+                                                                            startIcon={
+                                                                                <Place/>}
+                                                                            sx={{
+                                                                                backgroundColor: '#10b981',
+                                                                                '&:hover': {
+                                                                                    backgroundColor: '#047857',
+                                                                                },
+                                                                                fontSize: '0.75rem',
+                                                                                padding: '8px 8px',
+                                                                            }}
+                                                                            onClick={() => handlePickPoint(row.id, row.inc)}
+                                                                        >
+                                                                            Pick
+                                                                            point
+                                                                        </Button>) : (
                                                                         <Button
                                                                             disabled
                                                                             component="label"
@@ -5085,12 +5204,13 @@ function MonitoringProfiles() {
                                                     icon={/*new Icon({
                                                         iconUrl: '/marker-icon-green.png',*/
                                                         createCustomIcon(marker.id)}
-                                                //iconSize: [25, 41],
-                                                //iconAnchor: [12, 41]
-                                                //})}
+                                                    //iconSize: [25, 41],
+                                                    //iconAnchor: [12, 41]
+                                                    //})}
                                                 >
                                                     <Popup>
-                                                        <div style={{ width: '180px'}}>
+                                                        <div
+                                                            style={{width: '180px'}}>
                                                             <h3 style={{
                                                                 textAlign: 'center',
                                                                 fontSize: '20px'
@@ -5167,7 +5287,7 @@ function MonitoringProfiles() {
                                                                 id={selectedDetailedProfileID.toString().concat("cross")}
                                                                 checked={crossSectionCheckboxs[selectedDetailedProfileID].check}
                                                                 color="success"
-                                                                onChange={(event)=>(handleCrossSectionCheckbox(event))}
+                                                                onChange={(event) => (handleCrossSectionCheckbox(event))}
                                                             />}
                                                         label="Use available image"
                                                     />
@@ -5186,95 +5306,123 @@ function MonitoringProfiles() {
                                     </div>)}
                             </div>
                         </div>
-                        <div style={{display: 'flex',justifyContent: 'flex-end'}}>
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'flex-end'
+                            }}>
                             {(crossSectionCheckboxs[selectedDetailedProfileID].check && (selectedDetailedProfileAttachedImageName !== '') && (selectedTypeOfProfile === typeOfProfile[1].name)) && (
-                                <div style={{paddingRight: '16px'}}>
-                                <Card sx={{ minWidth: 275 }}>
-                                    <CardHeader
-                                        title="Map the image to coordinates"
-                                        disableTypography
-                                        sx={{ backgroundColor: '#10b981', color: '#ffffff', fontSize: '20px'}}
-                                    />
-                                    <CardContent>
-                                        <div
-                                            className="selectCoordRow">
+                                <div
+                                    style={{paddingRight: '16px'}}>
+                                    <Card
+                                        sx={{minWidth: 275}}>
+                                        <CardHeader
+                                            title="Map the image to coordinates"
+                                            disableTypography
+                                            sx={{
+                                                backgroundColor: '#10b981',
+                                                color: '#ffffff',
+                                                fontSize: '20px'
+                                            }}
+                                        />
+                                        <CardContent>
                                             <div
-                                                className="selectCoordColumn1">
-                                                <FormControl sx={{paddingBottom: '15px', paddingRight: '10px'}}>
-                                                    <Select
-                                                        labelId="simple-select-label"
-                                                        id="simple-select"
-                                                        value={coordIncs.length === 0 ? "" : selectedIncTopBottom}
-                                                        onChange={(e) => {
-                                                            setSelectedIncTopBottom(Number(e.target.value))
-                                                        }}
-                                                        sx={{height: '40px'}}
-                                                    >
-                                                        {coordIncs.map((c, index) => (
-                                                            <MenuItem
-                                                                key={c}
-                                                                value={c}>{c}</MenuItem>
-                                                        ))}
-                                                    </Select>
-                                                </FormControl>
-                                            </div>
-                                            <div
-                                                className="selectCoordColumn2">
-                                                <div style={{paddingBottom: '18px'}}>
-                                                <Button
-                                                    component="label"
-                                                    role={undefined}
-                                                    variant="contained"
-                                                    tabIndex={-1}
-                                                    startIcon={
-                                                        <Place/>}
-                                                    sx={{
-                                                        backgroundColor: '#10b981',
-                                                        '&:hover': {
-                                                            backgroundColor: '#047857',
-                                                        },
-                                                        fontSize: '0.75rem',
-                                                        padding: '8px 22px',
-                                                    }}
-                                                    onClick={() => {handlePickPointCrossSection("top");setClickTop(true)}}
-                                                >
-                                                    Pick
-                                                    top
-                                                </Button>
+                                                className="selectCoordRow">
+                                                <div
+                                                    className="selectCoordColumn1">
+                                                    <div className="incMapCoord">
+                                                        <Typography
+                                                        variant="subtitle1"
+                                                        gutterBottom>
+                                                        Inclinometer
+                                                        </Typography>
+                                                    </div>
+                                                    <FormControl
+                                                        sx={{
+                                                            paddingBottom: '15px',
+                                                            paddingRight: '10px'
+                                                        }}>
+                                                        <Select
+                                                            labelId="simple-select-label"
+                                                            id="simple-select"
+                                                            value={coordIncs.length === 0 ? "" : selectedIncTopBottom}
+                                                            onChange={(e) => {
+                                                                setSelectedIncTopBottom(Number(e.target.value))
+                                                            }}
+                                                            sx={{height: '40px'}}
+                                                        >
+                                                            {coordIncs.map((c, index) => (
+                                                                <MenuItem
+                                                                    key={c}
+                                                                    value={c}>{c}</MenuItem>
+                                                            ))}
+                                                        </Select>
+                                                    </FormControl>
                                                 </div>
-                                                <div>
-                                                <Button
-                                                    component="label"
-                                                    role={undefined}
-                                                    variant="contained"
-                                                    tabIndex={-1}
-                                                    startIcon={
-                                                        <Place/>}
-                                                    sx={{
-                                                        backgroundColor: '#10b981',
-                                                        '&:hover': {
-                                                            backgroundColor: '#047857',
-                                                        },
-                                                        fontSize: '0.75rem',
-                                                        padding: '8px 8px',
-                                                    }}
-                                                    onClick={() => {handlePickPointCrossSection("bottom");setClickBottom(true)}}
-                                                >
-                                                    Pick
-                                                    bottom
-                                                </Button>
+                                                <div
+                                                    className="selectCoordColumn2">
+                                                    <div
+                                                        style={{paddingBottom: '18px'}}>
+                                                        <Button
+                                                            component="label"
+                                                            role={undefined}
+                                                            variant="contained"
+                                                            tabIndex={-1}
+                                                            startIcon={
+                                                                <Place/>}
+                                                            sx={{
+                                                                backgroundColor: '#10b981',
+                                                                '&:hover': {
+                                                                    backgroundColor: '#047857',
+                                                                },
+                                                                fontSize: '0.75rem',
+                                                                padding: '8px 22px',
+                                                            }}
+                                                            onClick={() => {
+                                                                handlePickPointCrossSection("top");
+                                                                setClickTop(true)
+                                                            }}
+                                                        >
+                                                            Pick
+                                                            top
+                                                        </Button>
+                                                    </div>
+                                                    <div>
+                                                        <Button
+                                                            component="label"
+                                                            role={undefined}
+                                                            variant="contained"
+                                                            tabIndex={-1}
+                                                            startIcon={
+                                                                <Place/>}
+                                                            sx={{
+                                                                backgroundColor: '#10b981',
+                                                                '&:hover': {
+                                                                    backgroundColor: '#047857',
+                                                                },
+                                                                fontSize: '0.75rem',
+                                                                padding: '8px 8px',
+                                                            }}
+                                                            onClick={() => {
+                                                                handlePickPointCrossSection("bottom");
+                                                                setClickBottom(true)
+                                                            }}
+                                                        >
+                                                            Pick
+                                                            bottom
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </div>)}
+                                        </CardContent>
+                                    </Card>
+                                </div>)}
                             <div>
                                 <div
                                     id="konvaContainerCrossSection"
                                     className="tableAndContainerC"></div>
                             </div>
-                            </div>
+                        </div>
                     </div>
                 </>
             )}

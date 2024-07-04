@@ -42,6 +42,7 @@ class Init1(val userRepository: UserRepository,
                 "I1?I2?I3?I4?I5?I6?I8?I9?I10", 1))
         listOfMonitoringProfiles.add(MonitoringProfileDAO(2, "2", "Barragem do Azibo", "P5",
                 "Profile with inclinometers 1 and 2", MonitoringProfDAO.CROSSSECTION,
+                //"",
                 "https://firebasestorage.googleapis.com/v0/b/webipisystemimagestorage.appspot.com/o/profiles%2FInclinometers_perfil5_v3.svg?alt=media&token=940d3b7e-e8bf-4458-a2bc-05f6cc4a4bd3",
                 "I1?I2", 1))
         listOfMonitoringProfiles.add(MonitoringProfileDAO(3, "3", "Barragem do Azibo", "P7",
@@ -65,15 +66,15 @@ class Init1(val userRepository: UserRepository,
         val listOfProfilePosAjusted = mutableListOf<ProfilePositionAdjustmentDAO>()
         listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(1, 1,"1", "Barragem do Azibo", "I1", MonitoringProfDAO.CROSSSECTION, false, 2))
         listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(2, 2,"2", "Barragem do Azibo", "I2", MonitoringProfDAO.CROSSSECTION, false, 2))
-        listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(3, 3,"1", "Barragem do Azibo", "I1", MonitoringProfDAO.PLAN, false, 1))
+        listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(3, 3,"1", "Barragem do Azibo", "I1", MonitoringProfDAO.PLAN, true, 1))
         listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(4, 4,"2", "Barragem do Azibo", "I2", MonitoringProfDAO.PLAN, false, 1))
         listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(5, 5,"3", "Barragem do Azibo", "I3", MonitoringProfDAO.PLAN, false, 1))
-        listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(6, 6,"4", "Barragem do Azibo", "I4", MonitoringProfDAO.PLAN, false, 1))
+        listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(6, 6,"4", "Barragem do Azibo", "I4", MonitoringProfDAO.PLAN, true, 1))
         listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(7, 7,"5", "Barragem do Azibo", "I5", MonitoringProfDAO.PLAN, false, 1))
         listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(8, 8,"6", "Barragem do Azibo", "I6", MonitoringProfDAO.PLAN, false, 1))
-        listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(9, 9,"7", "Barragem do Azibo", "I8", MonitoringProfDAO.PLAN, false, 1))
-        listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(10, 10,"8", "Barragem do Azibo", "I9", MonitoringProfDAO.PLAN, false, 1))
-        listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(11, 11,"9", "Barragem do Azibo", "I10", MonitoringProfDAO.PLAN, false, 1))
+        listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(9, 9,"7", "Barragem do Azibo", "I8", MonitoringProfDAO.PLAN, true, 1))
+        listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(10, 10,"8", "Barragem do Azibo", "I9", MonitoringProfDAO.PLAN, true, 1))
+        listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(11, 11,"9", "Barragem do Azibo", "I10", MonitoringProfDAO.PLAN, true, 1))
         listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(12, 12,"1", "Barragem do Azibo", "I3", MonitoringProfDAO.CROSSSECTION, false, 3))
         listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(13, 13,"2", "Barragem do Azibo", "I4", MonitoringProfDAO.CROSSSECTION, false, 3))
         listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(14, 14,"3", "Barragem do Azibo", "I5", MonitoringProfDAO.CROSSSECTION, false, 3))
@@ -90,6 +91,15 @@ class Init1(val userRepository: UserRepository,
         listOfPoints.add(PointDAO(3, 458.45008626873556,180.97439203371496,9))
         listOfPoints.add(PointDAO(4,498.5978897167452,87.39472608913066,10))
         listOfPoints.add(PointDAO(5,511.84842899971324,125.25530200538584,11))
+        listOfPoints.add(PointDAO(6,295.5633751136337,137.65655559103905,1))
+        listOfPoints.add(PointDAO(7,397.35154340739814,153.8640976749052,2))
+        listOfPoints.add(PointDAO(8,458.45008626873556,180.97439203371496,12))
+        listOfPoints.add(PointDAO(9,498.5978897167452,87.39472608913066,13))
+        listOfPoints.add(PointDAO(10,511.84842899971324,125.25530200538584,14))
+        listOfPoints.add(PointDAO(11,306.17495596283703,177.2595144688909,15))
+        listOfPoints.add(PointDAO(12,387.58514765619776,114.03467213258864,16))
+        listOfPoints.add(PointDAO(13,438.33092871343433,102.5079334398357,17))
+        listOfPoints.add(PointDAO(14,402.49511630666495,192.8616525063293,18))
         pointRepository.saveAll(listOfPoints)
 
         val listOfMarkers = mutableListOf<MarkerDAO>()

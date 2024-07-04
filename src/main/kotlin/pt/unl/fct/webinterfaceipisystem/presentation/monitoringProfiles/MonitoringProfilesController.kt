@@ -119,10 +119,10 @@ class MonitoringProfilesController(val app: MonitoringProfilesApplication) : Mon
                     || profile.inclinometers.isBlank())
                 throw ResponseStatusException(HttpStatus.BAD_REQUEST, "\"Invalid profile data")
 
-            var typeOfProfile = MonitoringProfDAO.PLAN
-            if(profile.type.uppercase() === MonitoringProfDAO.CROSSSECTION.toString()) {
-                typeOfProfile = MonitoringProfDAO.CROSSSECTION
-            }
+            var typeOfProfile = MonitoringProfDAO.CROSSSECTION//MonitoringProfDAO.PLAN
+            //if(profile.type.uppercase() === "CROSSSECTION") {
+                //typeOfProfile = MonitoringProfDAO.CROSSSECTION
+            //}
 
             val existingMP = app.getMonitoringProfileByCode(profile.code)
             val auxMP = MonitoringProfileDAO(
