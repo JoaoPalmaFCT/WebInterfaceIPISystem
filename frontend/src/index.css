@@ -388,19 +388,32 @@ code {
 }
 
 .divScale{
-
+  padding-top: 10px;
+  display: flex;
+  align-items: center;
 }
 
+
 .horizontalScale{
-  padding-left: 570px;
   display: flex;
   justify-content: flex-end;
 }
 
+.ScaleAndText{
+  padding-left: 10px;
+}
+
+.ScaleAndText img{
+  padding-left: 5px;
+}
 
 .verticalScale{
   padding-top: 370px;
   padding-left: 5px;
   display: flex;
   justify-content: flex-end;
+}
+
+.input-label-pair:hover label {
+  color: black;
 }

@@ -3073,12 +3073,28 @@ function MonitoringProfiles() {
                 console.log(selectedDetailedProfile + " | " + selectedDetailedProfileID)
                 console.log(markers)
                 let tempMarkers = [];
+                let tempMarkersIDs: number[] = [];
+                switch(selectedDetailedProfileID){
+                    case 0: tempMarkersIDs = [1,2,3,4,5,6,8,9,10];
+                        break;
+                    case 1: tempMarkersIDs = [1,2];
+                        break;
+                    case 2: tempMarkersIDs = [3,4,5];
+                        break;
+                    case 3: tempMarkersIDs = [6,8];
+                        break;
+                    case 4: tempMarkersIDs = [9,10];
+                        break;
+                    default:
+                        tempMarkersIDs = [];
+                }
+
                 for(let i = 0; i < markers.length; i++){
                     let newLat = markers[i].lat;
                     let newLng = markers[i].lng;
                     if(newLat !== undefined && newLng !== undefined){
                         let point = new L.LatLng(newLat, newLng)
-                        tempMarkers.push(createPointMarker(i+1, point))
+                        tempMarkers.push(createPointMarker(tempMarkersIDs[i], point))
                     }
                 }
 
@@ -3450,9 +3466,13 @@ function MonitoringProfiles() {
 
     const [filePopUp, setFilePopUp] = useState(false)
     const [selectedImagePopUp, setSelectedImagePopUp] = useState('')
+    const [selectedImageNamePopUp, setSelectedImageNamePopUp] = useState('')
+    const [selectedImageGroupPopUp, setSelectedImageGroupPopUp] = useState('')
 
-    const handleOpenFilePopUp = (file: string) => {
+    const handleOpenFilePopUp = (file: string, name:string, group: string) => {
         setSelectedImagePopUp(file)
+        setSelectedImageNamePopUp(name)
+        setSelectedImageGroupPopUp(group)
         setFilePopUp(true)
     };
     const handleCloseFilePopUp = () => setFilePopUp(false);
@@ -4777,7 +4797,7 @@ function MonitoringProfiles() {
                                                                 <IconButton
                                                                     className=""
                                                                     aria-label="close"
-                                                                    onClick={() => handleOpenFilePopUp(row.imagedAttached)}>
+                                                                    onClick={() => handleOpenFilePopUp(row.imagedAttached, row.name, row.group)}>
                                                                     <InsertDriveFile/>
                                                                 </IconButton>
                                                             )}
@@ -4798,13 +4818,13 @@ function MonitoringProfiles() {
                                                                     },
                                                                 }}
                                                                 key={row.id}
-                                                                onClick={(e) => {
+                                                                /*onClick={(e) => {
                                                                     //fileInputRef.current?.click();
                                                                     //const fileInputRefAux = document.getElementById(`fileInput-${row.id}`);
                                                                     //fileInputRef.value = null;
                                                                     //fileInputRefAux?.click();
                                                                     fileInputRefs[row.id].click();
-                                                                }}
+                                                                }}*/
                                                             >
                                                                 Upload
                                                                 image
@@ -4877,6 +4897,14 @@ function MonitoringProfiles() {
                             onClick={handleCloseFilePopUp}>
                             <Clear/>
                         </IconButton>
+                        <div
+                            className="pt-1.5 pl-4 pr-4 pb-3">
+                            <Typography
+                                variant="h5"
+                                gutterBottom>
+                                {selectedImageGroupPopUp}: {selectedImageNamePopUp}
+                            </Typography>
+                        </div>
                         <img
                             src={selectedImagePopUp}
                             width="600"
@@ -4892,7 +4920,7 @@ function MonitoringProfiles() {
                             className="flex pb-5">
                             <div
                                 className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
-                                <button
+                            <button
                                     type="button"
                                     className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
                                     onClick={handleBackButton}>

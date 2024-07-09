@@ -1270,22 +1270,28 @@ const CustomTooltip: React.FC<TooltipProps<any, any>> = ({
                                                              label
                                                          }) => {
     if (active && payload && payload.length) {
-        const sizeLimit = 22;
+        const sizeLimit = 25;
         const isWideLayout = payload.length > 16;
-        const columnCount = isWideLayout ? Math.ceil(payload.length / 21) : 1;
+        const columnCount = isWideLayout ? Math.ceil(payload.length / 20) : 1;
         //const nullPoints: boolean = payload.length>0 ? payload[0].value === payload[1].value : false;
 
         let checkPayload = false;
         let oldValue = 0;
+        let oldValue2 = 0;
         payload.map((p, index) => {
             if(p.value.toFixed(2) !== 0.00){
-                if(p.value.toFixed(2) === oldValue){
+                if(p.value.toFixed(4) === oldValue && p.value.toFixed(4) === oldValue2){
                     checkPayload = true;
                 }else{
-                    oldValue = p.value.toFixed(2);
+                    if(oldValue2 !== oldValue){
+                        oldValue2 = p.value.toFixed(4);
+                    }
+                    oldValue = p.value.toFixed(4);
+
                 }
             }
         })
+
 
         return (
             <div
@@ -1787,6 +1793,7 @@ const Chart: React.FC<ChartPropsInc> = ({
                                         }) => {
     let data: InclinometerData[][] = ChartDataPrep(graphData);
     let graphType: string = "A";
+    let graphTypeUnit: string = "mm"
     let typeOfResult: string = "Cumulative displacements"
     //let refDate: string = "Ref Date";
     let discardHMS: boolean = false;
@@ -1805,6 +1812,14 @@ const Chart: React.FC<ChartPropsInc> = ({
             graphType = "B"
         }
         typeOfResult = data[0][0].typeOfResult;
+        if(typeOfResult === results[3].name){
+            graphTypeUnit = "º";
+        }else if(typeOfResult === results[4].name){
+            graphTypeUnit = "%";
+        }else{
+            graphTypeUnit = "mm";
+        }
+
         //refDate = data[0][0].time;
         discardHMS = data[0][0].time.split(" ")[1] === "00:00:00"
         numberOfDates = data.length
@@ -1886,7 +1901,7 @@ const Chart: React.FC<ChartPropsInc> = ({
                                 dataKey="displacement"
                                 orientation="top">
                                 <Label
-                                    value={`${graphType} (mm)`}
+                                    value={`${graphType} (${graphTypeUnit})`}
                                     position="top"/>
                             </XAxis>
                             <YAxis
@@ -1990,7 +2005,21 @@ const ChartTotal: React.FC<ChartPropsTotal> = ({
     let positionX = -240;
     let positionY = 25;
 
-    return (
+    let graphTypeUnit: string = "mm"
+    let typeOfResult: string = "Cumulative displacements"
+
+    if (data.length > 0 && data[0].length > 0) {
+        typeOfResult = data[0][0].typeOfResult;
+        if (typeOfResult === results[3].name) {
+            graphTypeUnit = "º";
+        } else if (typeOfResult === results[4].name) {
+            graphTypeUnit = "%";
+        } else {
+            graphTypeUnit = "mm";
+        }
+    }
+
+        return (
         <div
             className="wrapper">
             <ResponsiveContainer
@@ -2024,7 +2053,7 @@ const ChartTotal: React.FC<ChartPropsTotal> = ({
                                 dataKey="displacement"
                                 orientation="top">
                                 <Label
-                                    value={`Total (mm)`}
+                                    value={`Total (${graphTypeUnit})`}
                                     position="top"/>
                             </XAxis>
                             <YAxis
@@ -2146,8 +2175,22 @@ const ChartClock: React.FC<ChartPropsClock> = ({
     let data: ABData[][] = ChartClockDataPrep(graphDataA, graphDataB);
 
     /*<Tooltip content={<CustomTooltip/>}/>*/
+    let graphTypeUnit: string = "mm"
+    let typeOfResult: string = "Cumulative displacements"
 
-    return (
+    if (graphDataA.length > 0) {
+
+        typeOfResult = graphDataA[0].typeOfResult;
+        if (typeOfResult === results[3].name) {
+            graphTypeUnit = "º";
+        } else if (typeOfResult === results[4].name) {
+            graphTypeUnit = "%";
+        } else {
+            graphTypeUnit = "mm";
+        }
+    }
+
+        return (
         <div
             className="wrapper">
             <ResponsiveContainer
@@ -2181,7 +2224,7 @@ const ChartClock: React.FC<ChartPropsClock> = ({
                                 axisLine={false}
                                 orientation="top">
                                 <Label
-                                    value="A (mm)"
+                                    value={`A (${graphTypeUnit})`}
                                     position="top"/>
                             </XAxis>
                             <ReferenceLine
@@ -2191,7 +2234,7 @@ const ChartClock: React.FC<ChartPropsClock> = ({
                                 dataKey="b"
                                 axisLine={false}>
                                 <Label
-                                    value="B (mm)"
+                                    value={`B (${graphTypeUnit})`}
                                     position="left"
                                     angle={-90}/>
                             </YAxis>
@@ -2234,12 +2277,23 @@ const ChartDetails: React.FC<ChartPropsDetails> = ({
     //console.log(data)
     let graphType: string = "A";
     let discardHMS: boolean = false;
+    let graphTypeUnit: string = "mm"
+    let typeOfResult: string = "Cumulative displacements"
 
     if (data.length > 0 && data[0].length > 0) {
         if (data[0][0].field.split("")[1].toUpperCase() === "X") {
             graphType = "A"
         } else {
             graphType = "B"
+        }
+
+        typeOfResult = data[0][0].typeOfResult;
+        if (typeOfResult === results[3].name) {
+            graphTypeUnit = "º";
+        } else if (typeOfResult === results[4].name) {
+            graphTypeUnit = "%";
+        } else {
+            graphTypeUnit = "mm";
         }
 
         discardHMS = data[0][0].time.split(" ")[1] === "00:00:00"
@@ -2287,7 +2341,7 @@ const ChartDetails: React.FC<ChartPropsDetails> = ({
                             <YAxis
                                 dataKey="displacement">
                                 <Label
-                                    value={`${graphType} (mm)`}
+                                    value={`${graphType} (${graphTypeUnit})`}
                                     position="left"
                                     angle={-90}/>
                             </YAxis>
@@ -2342,9 +2396,21 @@ const ChartDetailsTotal: React.FC<ChartPropsDetailsTotal> = ({
     //console.log(data)
     let graphType: string = "A";
     let discardHMS: boolean = false;
+    let graphTypeUnit: string = "mm"
+    let typeOfResult: string = "Cumulative displacements"
 
     if (data.length > 0 && data[0].length > 0) {
         graphType = "Total"
+
+        typeOfResult = data[0][0].typeOfResult;
+        if (typeOfResult === results[3].name) {
+            graphTypeUnit = "º";
+        } else if (typeOfResult === results[4].name) {
+            graphTypeUnit = "%";
+        } else {
+            graphTypeUnit = "mm";
+        }
+
 
         discardHMS = data[0][0].time.split(" ")[1] === "00:00:00"
     }
@@ -2391,7 +2457,7 @@ const ChartDetailsTotal: React.FC<ChartPropsDetailsTotal> = ({
                             <YAxis
                                 dataKey="displacement">
                                 <Label
-                                    value={`${graphType} (mm)`}
+                                    value={`${graphType} (${graphTypeUnit})`}
                                     position="left"
                                     angle={-90}/>
                             </YAxis>
@@ -2564,10 +2630,15 @@ const ChartProfileA: React.FC<ChartPropsProfileInc> = ({
     let numberOfDates: number = 0;
     let overloadDates: boolean = false;
     let datesData: InclinometerData[][] = data;
-    let positionXA: number = -240;
-    let positionYA: number = 25;
-    let positionXB: number = -700;
-    let positionYB: number = 25;
+    let positionX: number = -240;
+    let positionY: number = 25;
+
+    let topElevation: number = 606;
+    let lowerElevation: number = 0;
+    let relativePos: number = 0;
+    let lowerRelativePos: number = 0;
+
+    let chartPos: number = 1;
 
     if (data.length > 0 && data[0].length > 0) {
         if (data[0][0].field.split("")[1].toUpperCase() === "X") {
@@ -2575,6 +2646,36 @@ const ChartProfileA: React.FC<ChartPropsProfileInc> = ({
         } else {
             graphType = "B"
         }
+
+        if(inc === 2 || inc === 4 || inc === 10) {
+            topElevation-=15;
+            lowerElevation = topElevation - maxDepthInc;
+            relativePos = 15;
+        }else if(inc === 5 || inc === 8){
+            topElevation-=30;
+            lowerElevation = topElevation - maxDepthInc;
+            relativePos = 30;
+        }else {
+            lowerElevation = topElevation - maxDepthInc;
+            relativePos = 0;
+        }
+
+        if(maxDepthOverall === maxDepthInc){
+            lowerRelativePos = 0;
+        }else{
+            lowerRelativePos = maxDepthOverall - maxDepthInc;
+        }
+
+        if(inc === 2 || inc === 8 || inc === 10){
+            chartPos = 2;
+        }else if(inc === 4){
+            chartPos = 3;
+        }else if(inc === 5){
+            chartPos = 4;
+        }else{
+            chartPos = 1;
+        }
+
 
         typeOfResult = data[0][0].typeOfResult;
         refDate = data[0][0].time;
@@ -2597,30 +2698,26 @@ const ChartProfileA: React.FC<ChartPropsProfileInc> = ({
         let isWideLayout = numberOfDates > 16;
         let columnCount = isWideLayout ? Math.ceil(numberOfDates / 21) : 1;
 
-        switch (columnCount) {
+        switch (chartPos) {
             case 1:
-                positionXA = -240;
-                positionYA = 25;
-                positionXB = -700;
-                positionYB = 25;
+                positionX = -240;
+                positionY = 25;
                 break;
             case 2:
-                positionXA = -310;
-                positionYA = 25;
-                positionXB = -770;
-                positionYB = 25;
+                positionX = -710;
+                positionY = 25;
                 break;
             case 3:
-                positionXA = -380;
-                positionYA = 25;
-                positionXB = -840;
-                positionYB = 25;
+                positionX = -580;
+                positionY = 25;
+                break;
+            case 4:
+                positionX = -800;
+                positionY = 25;
                 break;
             default:
-                positionXA = -240;
-                positionYA = 25;
-                positionXB = -700;
-                positionYB = 25;
+                positionX = -240;
+                positionY = 25;
         }
     }
 
@@ -2629,7 +2726,8 @@ const ChartProfileA: React.FC<ChartPropsProfileInc> = ({
             className="wrapper">
             <ResponsiveContainer
                 width={leftChart ? "100%": "60%"}
-                height={(maxDepthOverall === 51) ? 640 : ((maxDepthOverall === 26) ? 340: 280)}>
+                height={400}//{(maxDepthOverall === 51) ? 640 : ((maxDepthOverall === 26) ? 340: 280)}
+            >
                 {(graphData.length === 0 || loadingData) ? (
                         <div
                             style={{
@@ -2648,7 +2746,7 @@ const ChartProfileA: React.FC<ChartPropsProfileInc> = ({
                             margin={{
                                 top: 45,
                                 right: 0,
-                                left: leftChart ? 60: 0,
+                                left: leftChart ? 50: 0,
                                 bottom: 45
                             }}>
 
@@ -2666,32 +2764,18 @@ const ChartProfileA: React.FC<ChartPropsProfileInc> = ({
                             </XAxis>
                             <YAxis
                                 dataKey="depth"
-                                domain={[0, maxDepthOverall]}
+                                domain={[0-relativePos, maxDepthOverall-lowerRelativePos]}
                                 allowDataOverflow={true}
                                 hide
                             >
-                                {graphType === "A" &&
-                                    <Label
-                                        value="Depth (m)"
-                                        position="left"
-                                        angle={-90}/>}
                             </YAxis>
-                            {graphType === "A" &&
                                 <Tooltip
                                     content={
                                         <CustomTooltip/>}
                                     position={{
-                                        x: positionXA,
-                                        y: positionYA
-                                    }}/>}
-                            {graphType === "B" &&
-                                <Tooltip
-                                    content={
-                                        <CustomTooltip/>}
-                                    position={{
-                                        x: positionXB,
-                                        y: positionYB
-                                    }}/>}
+                                        x: positionX,
+                                        y: positionY
+                                    }}/>
                             {leftChart &&
                                 <Legend
                                     align="right"
@@ -2752,12 +2836,12 @@ const ChartProfileA: React.FC<ChartPropsProfileInc> = ({
                                     dy={-25}
                                     />
                                     <Label
-                                        value={'0 (m)'}
+                                        value={`${topElevation} (m)`}
                                         position="top"
                                         dy={-5}
                                     />
                                     <Label
-                                        value={`${maxDepthInc} (m)`}
+                                        value={`${lowerElevation} (m)`}
                                         position="bottom"
                                         dy={5}
                                     />
@@ -4483,12 +4567,12 @@ function ResultsVisualization() {
     const [toggleTotalChart, setToggleTotalChart] = useState(false);
     const [toggleTempChart, setToggleTempChart] = useState(false);
     const [toggleSelectDates, setToggleSelectDates] = useState(false);
-    const [toggleDepthInterval, setToggleDepthInterval] = useState(false);
+    const [toggleDepthInterval, setToggleDepthInterval] = useState(true);
     const [selectedGraphExport, setSelectedGraphExport] = useState<string>("A");
     const [selectedResults, setSelectedResults] = useState(results[0])
     const [selectedVisualization, setSelectedVisualization] = useState(visualization[0])
     const [selectedDatesTypes, setSelectedDatesTypes] = useState(datesTypes[0])
-    const [selectedDesiredDepth, setSelectedDesiredDepth] = useState(desiredDepthTypes[0])
+    const [selectedDesiredDepth, setSelectedDesiredDepth] = useState(desiredDepthTypes[1])
     const [selectedElevation, setSelectedElevation] = useState(elevation[0])
 
     const [topValueSlider, setTopValueSlider] = useState<number>(32)
@@ -4983,16 +5067,39 @@ function ResultsVisualization() {
     const handleFirstDateInterval = (year: number | undefined, month: number | undefined, day: number | undefined) => {
         if (year !== undefined && month !== undefined && day !== undefined) {
             let date = year + "-" + month + "-" + day;
-            setFilteredDataArrayX(getIntervalDates(dataArrayX, date, getMostRecentDate(filteredDataArrayX)));
-            setFilteredDataArrayY(getIntervalDates(dataArrayY, date, getMostRecentDate(filteredDataArrayY)));
-            handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
-            handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
+
+            if(lastToggleRef === 2){
+                let tempData: InclinometerData[] = dataArrayX;
+                let maxNextDate = getMostRecentDate(dataArrayX)
+                let refDate = getRefDate(dataArrayX)
+                tempData.map(g => {
+                    if (date <= g.time && maxNextDate >= g.time){
+                        refDate = g.time
+                        maxNextDate = g.time
+                    }
+                })
+                console.log(refDate)
+                setRefDate(refDate);
+                setRefDateDataX(getRefDateData(refDate, dataArrayX, "aX"));
+                setRefDateDataY(getRefDateData(refDate, dataArrayY, "aY"));
+
+                setFilteredDataArrayX(getIntervalDates(dataArrayX, refDate, getMostRecentDate(filteredDataArrayX)));
+                setFilteredDataArrayY(getIntervalDates(dataArrayY, refDate, getMostRecentDate(filteredDataArrayY)));
+                handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
+                handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
+            }else{
+                setFilteredDataArrayX(getIntervalDates(dataArrayX, date, getMostRecentDate(filteredDataArrayX)));
+                setFilteredDataArrayY(getIntervalDates(dataArrayY, date, getMostRecentDate(filteredDataArrayY)));
+                handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
+                handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
+            }
         }
     };
 
     const handleLastDateInterval = (year: number | undefined, month: number | undefined, day: number | undefined) => {
         if (year !== undefined && month !== undefined && day !== undefined) {
             let date = year + "-" + month + "-" + day;
+
             setFilteredDataArrayX(getIntervalDates(dataArrayX, getRefDate(filteredDataArrayX), date));
             setFilteredDataArrayY(getIntervalDates(dataArrayY, getRefDate(filteredDataArrayY), date));
             handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
@@ -5001,6 +5108,14 @@ function ResultsVisualization() {
     };
 
     const handleFirstDateIntervalReset = () => {
+
+        if(lastToggleRef === 2){
+            let refDate = getRefDate(dataArrayX)
+            setRefDate(refDate);
+            setRefDateDataX(getRefDateData(refDate, dataArrayX, "aX"));
+            setRefDateDataY(getRefDateData(refDate, dataArrayY, "aY"));
+        }
+
         setFilteredDataArrayX(getIntervalDates(dataArrayX, earliestRefDate, getMostRecentDate(filteredDataArrayX)));
         setFilteredDataArrayY(getIntervalDates(dataArrayY, earliestRefDate, getMostRecentDate(filteredDataArrayY)));
         handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
@@ -5015,6 +5130,14 @@ function ResultsVisualization() {
     };
 
     const handleResetDates = () => {
+
+        if(lastToggleRef === 2){
+            let refDate = getRefDate(dataArrayX)
+            setRefDate(refDate);
+            setRefDateDataX(getRefDateData(refDate, dataArrayX, "aX"));
+            setRefDateDataY(getRefDateData(refDate, dataArrayY, "aY"));
+        }
+
         setFilteredDataArrayX(getIntervalDates(dataArrayX, earliestRefDate, getMostRecentDate(dataArrayX)));
         setFilteredDataArrayY(getIntervalDates(dataArrayY, earliestRefDate, getMostRecentDate(dataArrayY)));
         handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
@@ -5460,12 +5583,17 @@ function ResultsVisualization() {
                     || selectedProfile.name === "P13" && selectedProfileID === 4 || selectedProfile.name === "P1" && selectedProfileID === 5){
 
                     let tempMarkers = [];
+                    let tempMarkersIDs = [];//[1,2,3,4,5,6,8,9,10]
+                    let selectedIncsI = selectedProfile.inclinometers
+                    for(let i = 0; i < selectedIncsI.length; i++){
+                        tempMarkersIDs[i] = selectedIncsI[i].split("I")[1]
+                    }
                     for(let i = 0; i < markers.length; i++){
                         let newLat = markers[i].lat;
                         let newLng = markers[i].lng;
                         if(newLat !== undefined && newLng !== undefined){
                             let point = new L.LatLng(newLat, newLng)
-                            tempMarkers.push(createPointMarker(i+1, point))
+                            tempMarkers.push(createPointMarker(Number(tempMarkersIDs[i]), point))
                         }
                     }
 
@@ -5543,12 +5671,18 @@ function ResultsVisualization() {
                     || selectedProfile.name === "P13" && selectedProfileID === 4 || selectedProfile.name === "P1" && selectedProfileID === 5){
 
                     let tempMarkers = [];
+                    let tempMarkersIDs = [];
+                    let selectedIncsI = selectedProfile.inclinometers
+                    for(let i = 0; i < selectedIncsI.length; i++){
+                        tempMarkersIDs[i] = selectedIncsI[i].split("I")[1]
+                    }
+
                     for(let i = 0; i < markers.length; i++){
                         let newLat = markers[i].lat;
                         let newLng = markers[i].lng;
                         if(newLat !== undefined && newLng !== undefined){
                             let point = new L.LatLng(newLat, newLng)
-                            tempMarkers.push(createPointMarker(i+1, point))
+                            tempMarkers.push(createPointMarker(Number(tempMarkersIDs[i]), point))
                         }
                     }
 
@@ -5918,7 +6052,6 @@ function ResultsVisualization() {
                                 for(let j = 0; j < pointsPerProfile[0].points.length; j++){
                                     if(newUniqueId === pointsPerProfile[0].points[j].id){
                                         let testInc = newInc.split("I")[1]
-                                        console.log(testInc)
                                         let tempFilt = arrowsTotalPointValuesAux.flat().filter(item => item.inc === testInc)
                                         arrowsFiltered.push(tempFilt)
                                     }
@@ -6472,21 +6605,24 @@ function ResultsVisualization() {
 
                 let points = pointsPerProfile[selectedProfileID].points;
                 let pointsArray: number[]  = [];
-                let arrayL = points.length / 2
-                console.log(points)
-            console.log(arrayL)
-
-                for(let i = 0; i < arrayL; i++) {
+                //let arrayL = points.length / 2
+                let forCounter = 0;
+                for(let i = 0; i < points.length; i++) {
                     for(let j = 0; j < incliLine.length; j++) {
                         if(Number(numberOfInc[i]) === incliLine[j]){
+                            console.log("--------")
+                            console.log(incliLine[j])
+                            console.log(points[forCounter].posX)
                             //pointsArray.push(profilePosArray[i*2])
                             //pointsArray.push(profilePosArray[i*2+1])
-                            pointsArray.push(points[i].posX)
-                            pointsArray.push(points[i].posY)
+                            pointsArray.push(points[forCounter].posX)
+                            pointsArray.push(points[forCounter].posY)
+                            forCounter++
                         }
                     }
                 }
-
+                console.log("*****")
+                console.log(pointsArray)
                 let arrayLength = pointsArray.length;
                 //horizontal line
                 /*pointsArray.push(pointsArray[arrayLength-2]+100)
@@ -7075,7 +7211,7 @@ function ResultsVisualization() {
                                         {searchTerm ? filteredDates.map((date, index) => (
                                             <li key={index}>
                                                 <div
-                                                    className="flex items-center p-2 rounded hover:bg-gray-100 ">
+                                                    className="flex items-center p-2 rounded hover:bg-gray-100 input-label-pair">
                                                     <input
                                                         id={`checkbox-item-${index}`}
                                                         type="checkbox"
@@ -7093,7 +7229,7 @@ function ResultsVisualization() {
                                             <>
                                                 <li>
                                                     <div
-                                                        className="flex items-center p-2 rounded hover:bg-gray-100">
+                                                        className="flex items-center p-2 rounded hover:bg-gray-100 input-label-pair">
                                                         <input
                                                             id="checkbox-all-dates"
                                                             type="checkbox"
@@ -7112,7 +7248,7 @@ function ResultsVisualization() {
                                                     numberOfDates.map((date, index) => (
                                                         <li key={index}>
                                                             <div
-                                                                className="flex items-center p-2 rounded hover:bg-gray-100 ">
+                                                                className="flex items-center p-2 rounded hover:bg-gray-100 input-label-pair">
                                                                 <input
                                                                     id={`checkbox-item-${index}`}
                                                                     type="checkbox"
@@ -7692,7 +7828,22 @@ function ResultsVisualization() {
                                                         key={date}
                                                         value={date}>{date.split(" ")[0]}</option>
                                                 ))}
-                                            </select>) : (
+                                            </select>) : ((lastToggleRef === 2) ? (
+                                            <select
+                                                onChange={(e) => handleRefDate(e.target.value)}
+                                                style={{
+                                                    padding: '8px',
+                                                    fontSize: '16px',
+                                                    borderRadius: '5px',
+                                                    border: '1px solid #ccc'
+                                                }}
+                                                disabled>
+                                                <option
+                                                    key={refDate}
+                                                    value={refDate}>{refDate.split(" ")[0]}</option>
+
+                                            </select>
+                                        ):(
                                             <select
                                                 onChange={(e) => handleRefDate(e.target.value)}
                                                 style={{
@@ -7707,7 +7858,7 @@ function ResultsVisualization() {
                                                     value={earliestRefDate}>{earliestRefDate.split(" ")[0]}</option>
 
                                             </select>
-                                        )}
+                                        ))}
                                     </div>
                                 </div>
                                 <div
@@ -9188,41 +9339,17 @@ function ResultsVisualization() {
                                         className="container-profile-p"
                                         style={{flex: '1'}}
                                     ></div>
-                                    {!emptyPhoto && (<div
-                                        className="divScale"
-                                        style={{flexShrink: '0'}}
-                                    >
-                                        <img
-                                            src="/profiles/verticalScale.png"
-                                            className="verticalScale"
-                                        />
-                                    </div>)}
-                                    {!emptyPhoto && (<div>
-                                        <div
-                                            style={{
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                paddingRight: '60px',
-                                                paddingTop: '375px'
-                                            }}>
-                                            <Typography
-                                                variant="subtitle2"
-                                                gutterBottom>
-                                                0
-                                            </Typography>
-                                            <div
-                                                style={{paddingLeft: '15px'}}>
-                                                <Typography
-                                                    variant="subtitle2"
-                                                    gutterBottom>
-                                                    51m
-                                                </Typography>
-                                            </div>
-                                        </div>
-                                    </div>)}
                                 </div>
                                 {!emptyPhoto && (<div
                                     className="divScale">
+                                    <div style={{paddingBottom: '12px'}}>
+                                    <Typography
+                                        variant="subtitle2"
+                                        gutterBottom>
+                                        Displacements Scale:
+                                    </Typography>
+                                    </div>
+                                    <div className="ScaleAndText">
                                     <img
                                         src="/profiles/horizontalScale.png"
                                         className="horizontalScale"
@@ -9247,7 +9374,7 @@ function ResultsVisualization() {
                                             </Typography>
                                         </div>
                                     </div>
-                                </div>)}
+                                </div></div>)}
                                 {(selectedProfile.type !== "Plan") && (
                                     <div>
                                         <div

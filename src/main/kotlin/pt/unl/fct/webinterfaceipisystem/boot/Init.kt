@@ -61,6 +61,21 @@ class Init1(val userRepository: UserRepository,
         listOfMonitoringProfiles.add(MonitoringProfileDAO(6, "6", "Lab Test", "P1",
                 "Test Profile", MonitoringProfDAO.PLAN, "",
                 "I1", 2))
+
+
+        /*listOfMonitoringProfiles.add(MonitoringProfileDAO(7, "7", "Barragem do Azibo", "Crest",
+                "Profile with inclinometers 1,3,6 and 9", MonitoringProfDAO.CROSSSECTION,
+                "",
+                "I1?I3?I6?I9", 1))
+        listOfMonitoringProfiles.add(MonitoringProfileDAO(8, "8", "Barragem do Azibo", "Mid-slope",
+                "Profile with inclinometers 2,4 and 10", MonitoringProfDAO.CROSSSECTION,
+                "",
+                "I2?I4?I10", 1))
+        listOfMonitoringProfiles.add(MonitoringProfileDAO(9, "9", "Barragem do Azibo", "Toe",
+                "Profile with inclinometers 5 and 8", MonitoringProfDAO.CROSSSECTION,
+                "",
+                "I5?I8", 1))*/
+
         monitoringProfileRepository.saveAll(listOfMonitoringProfiles)
 
         val listOfProfilePosAjusted = mutableListOf<ProfilePositionAdjustmentDAO>()
@@ -83,6 +98,17 @@ class Init1(val userRepository: UserRepository,
         listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(17, 17,"1", "Barragem do Azibo", "I9", MonitoringProfDAO.CROSSSECTION, false, 5))
         listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(18, 18,"2", "Barragem do Azibo", "I10", MonitoringProfDAO.CROSSSECTION, false, 5))
         listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(19, 19,"1", "Lab Test", "I1", MonitoringProfDAO.PLAN, false, 6))
+
+        /*listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(20, 20,"1", "Barragem do Azibo", "I1", MonitoringProfDAO.CROSSSECTION, false, 7))
+        listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(22, 22,"2", "Barragem do Azibo", "I3", MonitoringProfDAO.CROSSSECTION, false, 7))
+        listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(25, 25,"3", "Barragem do Azibo", "I6", MonitoringProfDAO.CROSSSECTION, false, 7))
+        listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(27, 27,"4", "Barragem do Azibo", "I9", MonitoringProfDAO.CROSSSECTION, false, 7))
+        listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(21, 21,"1", "Barragem do Azibo", "I2", MonitoringProfDAO.CROSSSECTION, false, 8))
+        listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(23, 23,"2", "Barragem do Azibo", "I4", MonitoringProfDAO.CROSSSECTION, false, 8))
+        listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(28, 28,"3", "Barragem do Azibo", "I10", MonitoringProfDAO.CROSSSECTION, false, 8))
+        listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(24, 24,"1", "Barragem do Azibo", "I5", MonitoringProfDAO.CROSSSECTION, false, 9))
+        listOfProfilePosAjusted.add(ProfilePositionAdjustmentDAO(26, 26,"2", "Barragem do Azibo", "I8", MonitoringProfDAO.CROSSSECTION, false, 9))*/
+
         profilePositionAdjustmentRepository.saveAll(listOfProfilePosAjusted)
 
         val listOfPoints = mutableListOf<PointDAO>()
@@ -100,6 +126,18 @@ class Init1(val userRepository: UserRepository,
         listOfPoints.add(PointDAO(12,387.58514765619776,114.03467213258864,16))
         listOfPoints.add(PointDAO(13,438.33092871343433,102.5079334398357,17))
         listOfPoints.add(PointDAO(14,402.49511630666495,192.8616525063293,18))
+
+        /*listOfPoints.add(PointDAO(15,294.01108323444424,139.10776712689537,20))
+        listOfPoints.add(PointDAO(16,397.35154340739814,153.8640976749052,21))
+        listOfPoints.add(PointDAO(17,385.3944769585171,113.58638439650461,22))
+        listOfPoints.add(PointDAO(18,397.35154340739814,153.8640976749052,23))
+        listOfPoints.add(PointDAO(19,406.6176386569238,192.79230215220824,24))
+        listOfPoints.add(PointDAO(20,436.58854575183767,99.86897500607101,25))
+        listOfPoints.add(PointDAO(21,458.45008626873556,180.97439203371496,26))
+        listOfPoints.add(PointDAO(22,498.5978897167452,87.39472608913066,27))
+        listOfPoints.add(PointDAO(23,511.84842899971324,125.25530200538584,28))*/
+
+
         pointRepository.saveAll(listOfPoints)
 
         val listOfMarkers = mutableListOf<MarkerDAO>()
@@ -121,6 +159,19 @@ class Init1(val userRepository: UserRepository,
         listOfMarkers.add(MarkerDAO(16, 41.55614, -6.88856,16))
         listOfMarkers.add(MarkerDAO(17, 41.55675, -6.88767,17))
         listOfMarkers.add(MarkerDAO(18, 41.55644, -6.88767,18))
+
+
+        /*listOfMarkers.add(MarkerDAO(19, 41.55680, -6.89017,20))
+        listOfMarkers.add(MarkerDAO(20, 41.55648, -6.89018,21))
+        listOfMarkers.add(MarkerDAO(21, 41.55679, -6.88922,22))
+        listOfMarkers.add(MarkerDAO(22, 41.55648, -6.88924,23))
+        listOfMarkers.add(MarkerDAO(23, 41.55614, -6.88925,24))
+        listOfMarkers.add(MarkerDAO(24, 41.55676, -6.88857,25))
+        listOfMarkers.add(MarkerDAO(25, 41.55614, -6.88856,26))
+        listOfMarkers.add(MarkerDAO(26, 41.55675, -6.88767,27))
+        listOfMarkers.add(MarkerDAO(27, 41.55644, -6.88767,28))*/
+
+
         markerRepository.saveAll(listOfMarkers)
     }
 }
