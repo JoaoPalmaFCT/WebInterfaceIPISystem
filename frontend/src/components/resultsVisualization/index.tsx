@@ -68,12 +68,18 @@ import {
     IconButton,
     FormControl,
     Select,
-    MenuItem
+    MenuItem,
+    TextField,
+    ToggleButtonGroup,
+    ToggleButton,
+    Fab
 } from '@mui/material';
 import {
     ArrowBack,
     Clear,
-    InsertDriveFile
+    InsertDriveFile,
+    KeyboardArrowUp,
+    KeyboardArrowDown
 } from "@mui/icons-material";
 import { visuallyHidden } from '@mui/utils';
 import {
@@ -6334,6 +6340,7 @@ function ResultsVisualization() {
                     let maxDepth = 0;
                     let maxDisplacement = 0;
                     let arrowData = arrowsTotalPointValues;
+                    let colorPerArrow = []
 
                     if(arrowsTotalPointValues.length === 9){
                         for(let i = 0; i < numberOfInc.length; i++){
@@ -6343,10 +6350,36 @@ function ResultsVisualization() {
                             if(Math.abs(arrowData[i][0].displacement) > maxDisplacement){
                                 maxDisplacement = Math.abs(arrowData[i][0].displacement)
                             }
+
+                            if(arrowData[i][0].displacement > 115){
+                                colorPerArrow.push("#991b1b");
+                            }else if(arrowData[i][0].displacement > 90){
+                                colorPerArrow.push("#ea580c");
+                            }else if(arrowData[i][0].displacement > 60){
+                                colorPerArrow.push("#eab308");
+                            }else if(arrowData[i][0].displacement > 30){
+                                colorPerArrow.push("#65a30d");
+                            }else{
+                                colorPerArrow.push("#4ade80");
+                            }
                         }
                     }else{
                         maxDepth = 51
                         maxDisplacement = 131.85097651842756
+
+                        for(let i = 0; i < arrowsTotalPointValues.length; i++) {
+                            if(arrowData[i][0].displacement > 115){
+                                colorPerArrow.push("#991b1b");
+                            }else if(arrowData[i][0].displacement > 90){
+                                colorPerArrow.push("#ea580c");
+                            }else if(arrowData[i][0].displacement > 60){
+                                colorPerArrow.push("#eab308");
+                            }else if(arrowData[i][0].displacement > 30){
+                                colorPerArrow.push("#65a30d");
+                            }else{
+                                colorPerArrow.push("#4ade80");
+                            }
+                        }
                     }
 
 
@@ -6372,12 +6405,12 @@ function ResultsVisualization() {
                             points: [refPointIncX1, refPointIncY1, newX, newY],
                             pointerLength: 5,
                             pointerWidth: 10,
-                            fill: 'black',
-                            stroke: 'black',
+                            fill: colorPerArrow[i],//'black',
+                            stroke: colorPerArrow[i],//'black',
                             strokeWidth: 3
                         })
                         group.add(arrow)
-                        posCounter += 2;
+                        //posCounter += 2;
                     }
                 }
             /*}else if(selectedProfile.name !== "All" && selectedOrthoDirection.name === "A"){
@@ -6828,24 +6861,76 @@ function ResultsVisualization() {
         setRotationNorth(angle);
     };
 
+    const [showUpButton, setShowUpButton] = useState(false);
+    const [showDownButton, setShowDownButton] = useState(true);
+
+    const handleScroll = () => {
+        const scrollTop = window.scrollY || document.documentElement.scrollTop;
+        const scrollHeight = document.documentElement.scrollHeight;
+        const clientHeight = document.documentElement.clientHeight;
+
+        setShowUpButton(scrollTop > 0);
+        setShowDownButton(scrollTop + clientHeight < scrollHeight);
+    };
+
+    const scrollToTop = () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const scrollToBottom = () => {
+        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+    };
+
+    useEffect(() => {
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     return (
         <div
             className="main-wrapper">
+            <div
+                className="fab-container">
+                {showUpButton && (
+                    <Fab
+                        color="primary"
+                        aria-label="scroll up"
+                        onClick={scrollToTop}
+                        className="fab"
+                        sx={{ backgroundColor: '#10b981', '&:hover': { backgroundColor: '#047857' } }}
+                    >
+                        <KeyboardArrowUp/>
+                    </Fab>
+                )}
+                {showDownButton && (
+                    <Fab
+                        color="primary"
+                        aria-label="scroll down"
+                        onClick={scrollToBottom}
+                        className="fab"
+                        sx={{ backgroundColor: '#10b981', '&:hover': { backgroundColor: '#047857' } }}
+                    >
+                        <KeyboardArrowDown/>
+                    </Fab>
+                )}
+            </div>
             {goBackButton && (
-                <div className="goBackButtonParent">
-                <div className="goBackButton">
-                <button
-                    type="button"
-                    className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                    onClick={() => setSelectedVisualization(visualization[1])}>
-                    <ArrowBack
-                        sx={{color: 'white'}}/>
-                    Return
-                    to
-                    profile
-                </button>
-            </div></div>)}
+                <div
+                    className="goBackButtonParent">
+                    <div
+                        className="goBackButton">
+                        <button
+                            type="button"
+                            className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                            onClick={() => setSelectedVisualization(visualization[1])}>
+                            <ArrowBack
+                                sx={{color: 'white'}}/>
+                            Return
+                            to
+                            profile
+                        </button>
+                    </div>
+                </div>)}
             {selectedVisualization.name === visualization[0].name ? (
                 /*
                  * INCLINOMETER SECTION
@@ -7025,17 +7110,14 @@ function ResultsVisualization() {
                             </Listbox>
                         </div>
                         <div
-                            className="filter-container-typeViz">
+                            className="filter-container-elevation">
                             <Listbox
-                                value={selectedDatesTypes}
-                                onChange={(selectedOption) => {
-                                    setSelectedDatesTypes(selectedOption);
-                                    handleToogleSelectDates();
-                                }}>
+                                value={selectedElevation}
+                                onChange={setSelectedElevation}>
                                 {({open}) => (
                                     <>
                                         <Listbox.Label
-                                            className="block text-lg font-medium leading-6 text-gray-900 text-left">Dates</Listbox.Label>
+                                            className="block text-lg font-medium leading-6 text-gray-900 text-left">Elevation</Listbox.Label>
                                         <div
                                             className="relative mt-2">
                                             <Listbox.Button
@@ -7043,7 +7125,7 @@ function ResultsVisualization() {
                                       <span
                                           className="flex items-center">
                                           <span
-                                              className="ml-3 block truncate">{selectedDatesTypes.name}</span>
+                                              className="ml-3 block truncate">{selectedElevation.name}</span>
                                       </span>
                                                 <span
                                                     className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
@@ -7061,16 +7143,16 @@ function ResultsVisualization() {
                                             >
                                                 <Listbox.Options
                                                     className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                    {datesTypes.map((dat) => (
+                                                    {elevation.map((res) => (
                                                         <Listbox.Option
-                                                            key={dat.id}
+                                                            key={res.id}
                                                             className={({active}) =>
                                                                 classNames(
                                                                     active ? 'bg-emerald-500 text-white' : 'text-gray-900',
                                                                     'relative cursor-default select-none py-2 pl-3 pr-9'
                                                                 )
                                                             }
-                                                            value={dat}
+                                                            value={res}
                                                         >
                                                             {({
                                                                   selected,
@@ -7081,7 +7163,9 @@ function ResultsVisualization() {
                                                                         className="flex items-center">
                                                                 <span
                                                                     className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
-                                                                >{dat.name}</span>
+                                                                >
+                            {res.name}
+                          </span>
                                                                     </div>
 
                                                                     {selected ? (
@@ -7107,446 +7191,424 @@ function ResultsVisualization() {
                                 )}
                             </Listbox>
                         </div>
-                        {!toggleSelectDates && (
+                        <div
+                            className="filter-container-typeInputs1">
+                            <Listbox>
+                                <Listbox.Label
+                                    className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Show
+                                    total
+                                    displacement</Listbox.Label>
+                            </Listbox>
                             <div
-                                className="filter-container-typeViz">
-                                <div
-                                    className="column-container">
-                                    <div
-                                        className="pb-8 flex items-center">
-                                        <div
-                                            className="pr-2">
-                                            <Listbox>
-                                                <Listbox.Label
-                                                    className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">First</Listbox.Label>
-                                            </Listbox>
-                                        </div>
-                                        <DatePicker
-                                            oneTap
-                                            placeholder="YYYY-MM-DD"
-                                            style={{width: 190}}
-                                            onChange={(e) => {
-                                                handleFirstDateInterval(e?.getFullYear(), e?.getMonth(), e?.getDay())
-                                                if (lastToggleRef == 1) {
-                                                    if (e?.getFullYear() !== undefined && e?.getMonth() !== undefined && e?.getDay() !== undefined) {
-                                                        let date = e?.getFullYear() + "-" + e?.getMonth() + "-" + e?.getDay();
-                                                        let expectedDate = handleGetClosestDate(date);
-                                                        //handleRefDate(expectedDate);
-
-                                                    }
-                                                }
-                                            }}
-                                            onClean={handleFirstDateIntervalReset}
-                                        />
-                                    </div>
-                                    <div
-                                        className="flex items-center">
-                                        <div
-                                            className="pr-2">
-                                            <Listbox>
-                                                <Listbox.Label
-                                                    className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Last</Listbox.Label>
-                                            </Listbox>
-                                        </div>
-                                        <DatePicker
-                                            oneTap
-                                            placeholder="YYYY-MM-DD"
-                                            style={{width: 190}}
-                                            onChange={(e) => handleLastDateInterval(e?.getFullYear(), e?.getMonth(), e?.getDay())}
-                                            onClean={handleLastDateIntervalReset}
-                                        />
-                                    </div>
-                                    <div
-                                        className="relative inline-block pl-12 pt-5 w-30 mr-2 ml-2 align-middle select-none">
-                                        <button
-                                            type="button"
-                                            className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-emerald-400 focus:ring-offset-emerald-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                                            onClick={handleResetDates}>Reset
-                                            dates
-                                        </button>
-                                    </div>
-                                </div>
-
-                            </div>)}
-                        {toggleSelectDates && (
+                                className="relative inline-block w-10 mr-2 align-middle select-none">
+                                <input
+                                    id="GreenTotal"
+                                    type="checkbox"
+                                    onChange={(e) => handleToogleTotalChart()}
+                                    className="checked:bg-emerald-500 outline-none focus:outline-none right-4 checked:right-0 duration-200 ease-in absolute block w-6 h-6 rounded-full bg-white border-4 border-emerald-500 appearance-none cursor-pointer"/>
+                                <label
+                                    htmlFor="GreenTotal"
+                                    className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"/>
+                            </div>
+                        </div>
+                        <div
+                            className="filter-container-typeInputs2">
+                            <Listbox>
+                                <Listbox.Label
+                                    className="pr-7 text-base font-medium leading-6 text-gray-900 text-left">Show
+                                    temperature</Listbox.Label>
+                            </Listbox>
                             <div
-                                className="pl-6 pt-5">
+                                className="relative inline-block w-10 mr-2 align-middle select-none">
+                                <input
+                                    id="GreenTemp"
+                                    type="checkbox"
+                                    checked={toggleTempChart}
+                                    onChange={(e) => handleToogleTempChart()}
+                                    className={`checked:bg-emerald-500 outline-none focus:outline-none right-4 checked:right-0 duration-200 ease-in absolute block w-6 h-6 rounded-full bg-white border-4 ${!toggleTotalChart ? 'border-gray-500' : 'border-emerald-500'} appearance-none cursor-pointer ${!toggleTotalChart ? 'opacity-50' : ''}`}
+                                    disabled={!toggleTotalChart}
+                                    //style={{transform: (!toggleTotalChart && toggleTempChart) ? 'translateX(-50%)' : 'none'}}
+                                />
+                                <label
+                                    htmlFor="GreenTemp"
+                                    className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"/>
+                            </div>
+                        </div>
+                        <div
+                            className="export-data">
+                            <div
+                                className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
+                                <button
+                                    type="button"
+                                    className="py-2 px-4  bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                    onClick={handleOpen}>
+                                    Export
+                                    data
+                                </button>
+                            </div>
+                        </div>
+                        <Modal
+                            open={open}
+                            onClose={handleClose}
+                            aria-labelledby="modal-title"
+                            aria-describedby="modal-description"
+                        >
+                            <Box
+                                sx={{
+                                    position: 'absolute' as 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: 400,
+                                    bgcolor: 'background.paper',
+                                    border: '2px solid #000',
+                                    boxShadow: 24,
+                                    p: 4,
+                                    '& .close-button': {
+                                        position: 'absolute',
+                                        top: 8,
+                                        right: 8,
+                                    },
+                                }}>
+                                <IconButton
+                                    className="close-button"
+                                    aria-label="close"
+                                    onClick={handleClose}>
+                                    <Clear/>
+                                </IconButton>
                                 <div
-                                    id="dropdownSearch"
-                                    className="z-10 bg-white rounded-lg shadow w-60 dark:bg-emerald-500">
-                                    <div
-                                        className="p-3">
-                                        <label
-                                            htmlFor="input-group-search"
-                                            className="sr-only">Search</label>
-                                        <div
-                                            className="relative">
-                                            <div
-                                                className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                                                <svg
-                                                    className="w-4 h-4 text-gray-900"
-                                                    aria-hidden="true"
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    fill="none"
-                                                    viewBox="0 0 20 20">
-                                                    <path
-                                                        stroke="currentColor"
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth="2"
-                                                        d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
-                                                </svg>
-                                            </div>
-                                            <input
-                                                type="text"
-                                                id="input-group-search"
-                                                className="bg-green-50 border border-gray-300 text-gray-950 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5"
-                                                placeholder="Search date"
-                                                value={searchTerm}
-                                                onChange={(e) => handleSearchChange(e.target.value)}/>
-                                        </div>
-                                    </div>
-                                    <ul className="h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700"
-                                        aria-labelledby="dropdownSearchButton">
-                                        {searchTerm ? filteredDates.map((date, index) => (
-                                            <li key={index}>
-                                                <div
-                                                    className="flex items-center p-2 rounded hover:bg-gray-100 input-label-pair">
-                                                    <input
-                                                        id={`checkbox-item-${index}`}
-                                                        type="checkbox"
-                                                        value={`${date}`}
-                                                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 "
-                                                        checked={isDateChecked(date, checkedDates)}
-                                                        onChange={(e) => handleDateCheck(e.target.value)}
-                                                    />
-                                                    <label
-                                                        htmlFor={`checkbox-item-${index}`}
-                                                        className="w-full ms-2 text-sm font-medium text-gray-900 rounded">{date.split(" ")[1] === "00:00:00" ? date.split(" ")[0] : date}</label>
-                                                </div>
-                                            </li>
-                                        )) : (
+                                    className="filter-container-elevation">
+                                    <Listbox
+                                        value={selectedExport}
+                                        onChange={setSelectedExport}>
+                                        {({open}) => (
                                             <>
-                                                <li>
+                                                <Listbox.Label
+                                                    className="block text-lg font-medium leading-6 text-gray-900 text-left">Export
+                                                    results</Listbox.Label>
+                                                <div
+                                                    className="relative mt-2">
+                                                    <Listbox.Button
+                                                        className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                      <span
+                                          className="flex items-center">
+                                          <span
+                                              className="ml-3 block truncate">{selectedExport.name}</span>
+                                      </span>
+                                                        <span
+                                                            className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                      <ChevronUpDownIcon
+                                          className="h-5 w-5 text-gray-400"
+                                          aria-hidden="true"/>
+                                      </span>
+                                                    </Listbox.Button>
+                                                    <Transition
+                                                        show={open}
+                                                        as={Fragment}
+                                                        leave="transition ease-in duration-100"
+                                                        leaveFrom="opacity-100"
+                                                        leaveTo="opacity-0"
+                                                    >
+                                                        <Listbox.Options
+                                                            className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                            {exportSelect.map((res) => (
+                                                                <Listbox.Option
+                                                                    key={res.id}
+                                                                    className={({active}) =>
+                                                                        classNames(
+                                                                            active ? 'bg-emerald-500 text-white' : 'text-gray-900',
+                                                                            'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                                        )
+                                                                    }
+                                                                    value={res}
+                                                                >
+                                                                    {({
+                                                                          selected,
+                                                                          active
+                                                                      }) => (
+                                                                        <>
+                                                                            <div
+                                                                                className="flex items-center">
+                                                                <span
+                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
+                                                                >
+                            {res.name}
+                          </span>
+                                                                            </div>
+
+                                                                            {selected ? (
+                                                                                <span
+                                                                                    className={classNames(
+                                                                                        active ? 'text-white' : 'text-green-600',
+                                                                                        'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                                    )}
+                                                                                >
+                            <CheckIcon
+                                className="h-5 w-5"
+                                aria-hidden="true"/>
+                          </span>
+                                                                            ) : null}
+                                                                        </>
+                                                                    )}
+                                                                </Listbox.Option>
+                                                            ))}
+                                                        </Listbox.Options>
+                                                    </Transition>
+                                                </div>
+                                                <div
+                                                    className="filter-container-typeViz">
+                                                    <Listbox>
+                                                        <Listbox.Label
+                                                            className="pb-4 block text-lg font-medium leading-6 text-gray-900 text-left">Graph
+                                                            to
+                                                            export</Listbox.Label>
+                                                    </Listbox>
+                                                    <select
+                                                        onChange={(e) => handleSelectedGraphExport(e.target.value)}
+                                                        style={{
+                                                            padding: '8px',
+                                                            fontSize: '16px',
+                                                            borderRadius: '5px',
+                                                            border: '1px solid #ccc'
+                                                        }}>
+                                                        {!toggleTotalChart && (
+                                                            <option
+                                                                key={"A"}
+                                                                value={"A"}>A
+                                                            </option>)};
+                                                        {!toggleTempChart && (
+                                                            <option
+                                                                key={"B"}
+                                                                value={"B"}>B
+                                                            </option>)}
+                                                        {toggleTotalChart && (
+                                                            <option
+                                                                key={"TOTAL"}
+                                                                value={"TOTAL"}>Total
+                                                            </option>)}
+                                                        {toggleTempChart && (
+                                                            <option
+                                                                key={"TEMP"}
+                                                                value={"TEMP"}>Temp
+                                                            </option>)}
+
+                                                    </select>
                                                     <div
-                                                        className="flex items-center p-2 rounded hover:bg-gray-100 input-label-pair">
-                                                        <input
-                                                            id="checkbox-all-dates"
-                                                            type="checkbox"
-                                                            value={'All dates'}
-                                                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                                                            checked={areAllDatesChecked(numberOfDates.length, checkedDates)}
-                                                            onChange={handleAllDatesCheck}
-                                                        />
-                                                        <label
-                                                            htmlFor="checkbox-all-dates"
-                                                            className="w-full ms-2 text-sm font-medium text-white rounded hover:text-black">All
-                                                            Dates</label>
+                                                        className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
+                                                        <button
+                                                            type="button"
+                                                            className="py-2 px-4  bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                                            onClick={handleExportSVG}>Export
+                                                            SVG
+                                                        </button>
                                                     </div>
-                                                </li>
-                                                {
-                                                    numberOfDates.map((date, index) => (
-                                                        <li key={index}>
-                                                            <div
-                                                                className="flex items-center p-2 rounded hover:bg-gray-100 input-label-pair">
-                                                                <input
-                                                                    id={`checkbox-item-${index}`}
-                                                                    type="checkbox"
-                                                                    value={`${date}`}
-                                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 "
-                                                                    checked={isDateChecked(date, checkedDates)}
-                                                                    onChange={(e) => handleDateCheck(e.target.value)}
-                                                                />
-                                                                <label
-                                                                    htmlFor={`checkbox-item-${index}`}
-                                                                    className="w-full ms-2 text-sm font-medium text-white rounded hover:text-black">{date.split(" ")[1] === "00:00:00" ? date.split(" ")[0] : date}</label>
-                                                            </div>
-                                                        </li>
-                                                    ))}
+                                                </div>
                                             </>
                                         )}
-                                    </ul>
-
+                                    </Listbox>
                                 </div>
-                            </div>
-                        )}
+                            </Box>
+                        </Modal>
                         <div
                             className="filter-container-typeDepth">
-                            <Listbox
-                                value={selectedDesiredDepth}
-                                onChange={(selectedOption) => {
-                                    setSelectedDesiredDepth(selectedOption);
-                                    handleToogleDepthInterval();
-                                }}>
-                                {({open}) => (
-                                    <>
-                                        <Listbox.Label
-                                            className="block text-lg font-medium leading-6 text-gray-900 text-left">Desired
-                                            depth</Listbox.Label>
-                                        <div
-                                            className="relative mt-2">
-                                            <Listbox.Button
-                                                className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
-                                      <span
-                                          className="flex items-center">
-                                          <span
-                                              className="ml-3 block truncate">{selectedDesiredDepth.name}</span>
-                                      </span>
-                                                <span
-                                                    className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
-                                      <ChevronUpDownIcon
-                                          className="h-5 w-5 text-gray-400"
-                                          aria-hidden="true"/>
-                                      </span>
-                                            </Listbox.Button>
-                                            <Transition
-                                                show={open}
-                                                as={Fragment}
-                                                leave="transition ease-in duration-100"
-                                                leaveFrom="opacity-100"
-                                                leaveTo="opacity-0"
-                                            >
-                                                <Listbox.Options
-                                                    className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                    {desiredDepthTypes.map((dat) => (
-                                                        <Listbox.Option
-                                                            key={dat.id}
-                                                            className={({active}) =>
-                                                                classNames(
-                                                                    active ? 'bg-emerald-500 text-white' : 'text-gray-900',
-                                                                    'relative cursor-default select-none py-2 pl-3 pr-9'
-                                                                )
-                                                            }
-                                                            value={dat}
-                                                        >
-                                                            {({
-                                                                  selected,
-                                                                  active
-                                                              }) => (
-                                                                <>
-                                                                    <div
-                                                                        className="flex items-center">
-                                                                <span
-                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
-                                                                >{dat.name}</span>
-                                                                    </div>
-
-                                                                    {selected ? (
-                                                                        <span
-                                                                            className={classNames(
-                                                                                active ? 'text-white' : 'text-green-600',
-                                                                                'absolute inset-y-0 right-0 flex items-center pr-4'
-                                                                            )}
-                                                                        >
-                            <CheckIcon
-                                className="h-5 w-5"
-                                aria-hidden="true"/>
-                          </span>
-                                                                    ) : null}
-                                                                </>
-                                                            )}
-                                                        </Listbox.Option>
-                                                    ))}
-                                                </Listbox.Options>
-                                            </Transition>
-                                        </div>
-                                    </>
-                                )}
+                            <Listbox>
+                                <Listbox.Label
+                                    className="block text-lg font-medium leading-6 text-gray-900 text-left pb-2">Desired
+                                    Depth</Listbox.Label>
                             </Listbox>
                         </div>
-                        {toggleDepthInterval && (
+                        <div
+                            className="filter-container-typeViz">
                             <div
-                                className="filter-container-typeViz">
+                                className="column-container">
                                 <div
-                                    className="column-container">
+                                    className="pb-8 flex items-center">
                                     <div
-                                        className="pb-8 flex items-center">
-                                        <div
-                                            className="pr-2">
-                                            <Listbox>
-                                                <Listbox.Label
-                                                    className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">First</Listbox.Label>
-                                            </Listbox>
-                                        </div>
-                                        <Listbox
-                                            value={selectedFirstDesiredDepth}
-                                            onChange={(selectedOption) => {
-                                                setSelectedFirstDesiredDepth(selectedOption);
-                                                handleFirstDesiredDepth(selectedOption.toString());
-                                            }}>
-                                            {({open}) => (
-                                                <>
-                                                    <div
-                                                        className="relative mt-2">
-                                                        <Listbox.Button
-                                                            className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                        className="pr-2">
+                                        <Listbox>
+                                            <Listbox.Label
+                                                className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">First</Listbox.Label>
+                                        </Listbox>
+                                    </div>
+                                    <Listbox
+                                        value={selectedFirstDesiredDepth}
+                                        onChange={(selectedOption) => {
+                                            setSelectedFirstDesiredDepth(selectedOption);
+                                            handleFirstDesiredDepth(selectedOption.toString());
+                                        }}>
+                                        {({open}) => (
+                                            <>
+                                                <div
+                                                    className="relative mt-2">
+                                                    <Listbox.Button
+                                                        className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
                                       <span
                                           className="flex items-center">
                                           <span
                                               className="ml-3 block truncate">{selectedFirstDesiredDepth.toString()}</span>
                                       </span>
-                                                            <span
-                                                                className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                                        <span
+                                                            className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
                                       <ChevronUpDownIcon
                                           className="h-5 w-5 text-gray-400"
                                           aria-hidden="true"/>
                                       </span>
-                                                        </Listbox.Button>
-                                                        <Transition
-                                                            show={open}
-                                                            as={Fragment}
-                                                            leave="transition ease-in duration-100"
-                                                            leaveFrom="opacity-100"
-                                                            leaveTo="opacity-0"
-                                                        >
-                                                            <Listbox.Options
-                                                                className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                                {depthArray.filter(value => value < selectedLastDesiredDepth).map((d) => (
-                                                                    <Listbox.Option
-                                                                        key={d}
-                                                                        className={({active}) =>
-                                                                            classNames(
-                                                                                active ? 'bg-emerald-500 text-white' : 'text-gray-900',
-                                                                                'relative cursor-default select-none py-2 pl-3 pr-9'
-                                                                            )
-                                                                        }
-                                                                        value={d}
-                                                                    >
-                                                                        {({
-                                                                              selected,
-                                                                              active
-                                                                          }) => (
-                                                                            <>
-                                                                                <div
-                                                                                    className="flex items-center">
+                                                    </Listbox.Button>
+                                                    <Transition
+                                                        show={open}
+                                                        as={Fragment}
+                                                        leave="transition ease-in duration-100"
+                                                        leaveFrom="opacity-100"
+                                                        leaveTo="opacity-0"
+                                                    >
+                                                        <Listbox.Options
+                                                            className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                            {depthArray.filter(value => value < selectedLastDesiredDepth).map((d) => (
+                                                                <Listbox.Option
+                                                                    key={d}
+                                                                    className={({active}) =>
+                                                                        classNames(
+                                                                            active ? 'bg-emerald-500 text-white' : 'text-gray-900',
+                                                                            'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                                        )
+                                                                    }
+                                                                    value={d}
+                                                                >
+                                                                    {({
+                                                                          selected,
+                                                                          active
+                                                                      }) => (
+                                                                        <>
+                                                                            <div
+                                                                                className="flex items-center">
                                                                 <span
                                                                     className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
                                                                 >{d}</span>
-                                                                                </div>
+                                                                            </div>
 
-                                                                                {selected ? (
-                                                                                    <span
-                                                                                        className={classNames(
-                                                                                            active ? 'text-white' : 'text-green-600',
-                                                                                            'absolute inset-y-0 right-0 flex items-center pr-4'
-                                                                                        )}
-                                                                                    >
+                                                                            {selected ? (
+                                                                                <span
+                                                                                    className={classNames(
+                                                                                        active ? 'text-white' : 'text-green-600',
+                                                                                        'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                                    )}
+                                                                                >
                             <CheckIcon
                                 className="h-5 w-5"
                                 aria-hidden="true"/>
                           </span>
-                                                                                ) : null}
-                                                                            </>
-                                                                        )}
-                                                                    </Listbox.Option>
-                                                                ))}
-                                                            </Listbox.Options>
-                                                        </Transition>
-                                                    </div>
-                                                </>
-                                            )}
+                                                                            ) : null}
+                                                                        </>
+                                                                    )}
+                                                                </Listbox.Option>
+                                                            ))}
+                                                        </Listbox.Options>
+                                                    </Transition>
+                                                </div>
+                                            </>
+                                        )}
+                                    </Listbox>
+                                </div>
+                                <div
+                                    className="flex items-center">
+                                    <div
+                                        className="pr-2">
+                                        <Listbox>
+                                            <Listbox.Label
+                                                className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Last</Listbox.Label>
                                         </Listbox>
                                     </div>
-                                    <div
-                                        className="flex items-center">
-                                        <div
-                                            className="pr-2">
-                                            <Listbox>
-                                                <Listbox.Label
-                                                    className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Last</Listbox.Label>
-                                            </Listbox>
-                                        </div>
-                                        <Listbox
-                                            value={selectedLastDesiredDepth}
-                                            onChange={(selectedOption) => {
-                                                setSelectedLastDesiredDepth(selectedOption);
-                                                handleLastDesiredDepth(selectedOption.toString());
-                                            }}>
-                                            {({open}) => (
-                                                <>
-                                                    <div
-                                                        className="relative mt-2">
-                                                        <Listbox.Button
-                                                            className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
+                                    <Listbox
+                                        value={selectedLastDesiredDepth}
+                                        onChange={(selectedOption) => {
+                                            setSelectedLastDesiredDepth(selectedOption);
+                                            handleLastDesiredDepth(selectedOption.toString());
+                                        }}>
+                                        {({open}) => (
+                                            <>
+                                                <div
+                                                    className="relative mt-2">
+                                                    <Listbox.Button
+                                                        className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
                                       <span
                                           className="flex items-center">
                                           <span
                                               className="ml-3 block truncate">{selectedLastDesiredDepth.toString()}</span>
                                       </span>
-                                                            <span
-                                                                className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                                                        <span
+                                                            className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
                                       <ChevronUpDownIcon
                                           className="h-5 w-5 text-gray-400"
                                           aria-hidden="true"/>
                                       </span>
-                                                        </Listbox.Button>
-                                                        <Transition
-                                                            show={open}
-                                                            as={Fragment}
-                                                            leave="transition ease-in duration-100"
-                                                            leaveFrom="opacity-100"
-                                                            leaveTo="opacity-0"
-                                                        >
-                                                            <Listbox.Options
-                                                                className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                                {depthArray.filter(value => value > selectedFirstDesiredDepth && value <= topValueSlider).map((d) => (
-                                                                    <Listbox.Option
-                                                                        key={d}
-                                                                        className={({active}) =>
-                                                                            classNames(
-                                                                                active ? 'bg-emerald-500 text-white' : 'text-gray-900',
-                                                                                'relative cursor-default select-none py-2 pl-3 pr-9'
-                                                                            )
-                                                                        }
-                                                                        value={d}
-                                                                    >
-                                                                        {({
-                                                                              selected,
-                                                                              active
-                                                                          }) => (
-                                                                            <>
-                                                                                <div
-                                                                                    className="flex items-center">
+                                                    </Listbox.Button>
+                                                    <Transition
+                                                        show={open}
+                                                        as={Fragment}
+                                                        leave="transition ease-in duration-100"
+                                                        leaveFrom="opacity-100"
+                                                        leaveTo="opacity-0"
+                                                    >
+                                                        <Listbox.Options
+                                                            className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                                            {depthArray.filter(value => value > selectedFirstDesiredDepth && value <= topValueSlider).map((d) => (
+                                                                <Listbox.Option
+                                                                    key={d}
+                                                                    className={({active}) =>
+                                                                        classNames(
+                                                                            active ? 'bg-emerald-500 text-white' : 'text-gray-900',
+                                                                            'relative cursor-default select-none py-2 pl-3 pr-9'
+                                                                        )
+                                                                    }
+                                                                    value={d}
+                                                                >
+                                                                    {({
+                                                                          selected,
+                                                                          active
+                                                                      }) => (
+                                                                        <>
+                                                                            <div
+                                                                                className="flex items-center">
                                                                 <span
                                                                     className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
                                                                 >{d}</span>
-                                                                                </div>
+                                                                            </div>
 
-                                                                                {selected ? (
-                                                                                    <span
-                                                                                        className={classNames(
-                                                                                            active ? 'text-white' : 'text-green-600',
-                                                                                            'absolute inset-y-0 right-0 flex items-center pr-4'
-                                                                                        )}
-                                                                                    >
+                                                                            {selected ? (
+                                                                                <span
+                                                                                    className={classNames(
+                                                                                        active ? 'text-white' : 'text-green-600',
+                                                                                        'absolute inset-y-0 right-0 flex items-center pr-4'
+                                                                                    )}
+                                                                                >
                             <CheckIcon
                                 className="h-5 w-5"
                                 aria-hidden="true"/>
                           </span>
-                                                                                ) : null}
-                                                                            </>
-                                                                        )}
-                                                                    </Listbox.Option>
-                                                                ))}
-                                                            </Listbox.Options>
-                                                        </Transition>
-                                                    </div>
-                                                </>
-                                            )}
-                                        </Listbox>
-                                    </div>
-                                    <div
-                                        className="relative inline-block pl-12 pt-5 w-30 mr-2 ml-2 align-middle select-none">
-                                        <button
-                                            type="button"
-                                            className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                                            onClick={handleDesiredDepthIntervalReset}>Reset
-                                            interval
-                                        </button>
-                                    </div>
+                                                                            ) : null}
+                                                                        </>
+                                                                    )}
+                                                                </Listbox.Option>
+                                                            ))}
+                                                        </Listbox.Options>
+                                                    </Transition>
+                                                </div>
+                                            </>
+                                        )}
+                                    </Listbox>
                                 </div>
+                                <div
+                                    className="relative inline-block pt-8 w-30 mr-2  align-middle select-none">
+                                    <button
+                                        type="button"
+                                        className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                        onClick={handleDesiredDepthIntervalReset}>Reset
+                                        interval
+                                    </button>
+                                </div>
+                            </div>
 
-                            </div>)}
+                        </div>
                     </div>
                     <div>
                         <div
@@ -7740,7 +7802,8 @@ function ResultsVisualization() {
                                     className="filter-container-ref">
                                     <Listbox>
                                         <Listbox.Label
-                                            className="block text-lg font-medium leading-6 text-gray-900 text-left pb-2">Reference</Listbox.Label>
+                                            className="block text-lg font-medium leading-6 text-gray-900 text-left pb-2">Reference
+                                            Date</Listbox.Label>
                                     </Listbox>
 
                                     <ul className="items-center w-300 text-base font-medium text-gray-900 bg-white border border-gray-200 rounded-lg sm:flex dark:bg-emerald-500 dark:border-gray-700 dark:text-white">
@@ -7761,7 +7824,7 @@ function ResultsVisualization() {
                                                     className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 "/>
                                                 <label
                                                     htmlFor="earliestDate"
-                                                    className="w-full py-3 ms-2 text-sm font-medium text-white-50 ">Earliest
+                                                    className="w-full py-3 ms-2 text-sm font-medium text-white-50 ">Oldest
                                                     date</label>
                                             </div>
                                         </li>
@@ -7812,7 +7875,13 @@ function ResultsVisualization() {
                                         </li>
                                     </ul>
                                     <div
-                                        className="pt-3">
+                                        className="pt-3 flex items-center">
+                                        <Listbox>
+                                            <Listbox.Label
+                                                className="pr-3 text-base font-medium leading-6 text-gray-900 text-left">Current
+                                                Reference
+                                                Date: </Listbox.Label>
+                                        </Listbox>
                                         {toggleIntervalRef ? (
                                             <select
                                                 id="selectRefDateId"
@@ -7843,327 +7912,246 @@ function ResultsVisualization() {
                                                     value={refDate}>{refDate.split(" ")[0]}</option>
 
                                             </select>
-                                        ):(
-                                            <select
-                                                onChange={(e) => handleRefDate(e.target.value)}
-                                                style={{
-                                                    padding: '8px',
-                                                    fontSize: '16px',
-                                                    borderRadius: '5px',
-                                                    border: '1px solid #ccc'
+                                        ) : (
+                                            <TextField
+                                                disabled
+                                                id="outlined-disabled"
+                                                defaultValue={earliestRefDate.split(" ")[0]}
+                                                value={earliestRefDate.split(" ")[0]}
+                                                style={{width: '110px'}}
+                                                sx={{
+                                                    width: '110px',
+                                                    '& .MuiInputBase-root': {
+                                                        paddingTop: '5px',
+                                                        paddingBottom: '5px',
+                                                    },
+                                                    '& .MuiInputBase-input': {
+                                                        paddingTop: '5px',
+                                                        paddingBottom: '5px',
+                                                        height: 'auto',
+                                                    },
                                                 }}
-                                                disabled>
-                                                <option
-                                                    key={earliestRefDate}
-                                                    value={earliestRefDate}>{earliestRefDate.split(" ")[0]}</option>
-
-                                            </select>
+                                            />
                                         ))}
                                     </div>
                                 </div>
                                 <div
-                                    className="filter-container-elevation">
-                                    <Listbox
-                                        value={selectedElevation}
-                                        onChange={setSelectedElevation}>
-                                        {({open}) => (
-                                            <>
-                                                <Listbox.Label
-                                                    className="block text-lg font-medium leading-6 text-gray-900 text-left">Elevation</Listbox.Label>
-                                                <div
-                                                    className="relative mt-2">
-                                                    <Listbox.Button
-                                                        className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
-                                      <span
-                                          className="flex items-center">
-                                          <span
-                                              className="ml-3 block truncate">{selectedElevation.name}</span>
-                                      </span>
-                                                        <span
-                                                            className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
-                                      <ChevronUpDownIcon
-                                          className="h-5 w-5 text-gray-400"
-                                          aria-hidden="true"/>
-                                      </span>
-                                                    </Listbox.Button>
-                                                    <Transition
-                                                        show={open}
-                                                        as={Fragment}
-                                                        leave="transition ease-in duration-100"
-                                                        leaveFrom="opacity-100"
-                                                        leaveTo="opacity-0"
-                                                    >
-                                                        <Listbox.Options
-                                                            className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                            {elevation.map((res) => (
-                                                                <Listbox.Option
-                                                                    key={res.id}
-                                                                    className={({active}) =>
-                                                                        classNames(
-                                                                            active ? 'bg-emerald-500 text-white' : 'text-gray-900',
-                                                                            'relative cursor-default select-none py-2 pl-3 pr-9'
-                                                                        )
-                                                                    }
-                                                                    value={res}
-                                                                >
-                                                                    {({
-                                                                          selected,
-                                                                          active
-                                                                      }) => (
-                                                                        <>
-                                                                            <div
-                                                                                className="flex items-center">
-                                                                <span
-                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
-                                                                >
-                            {res.name}
-                          </span>
-                                                                            </div>
-
-                                                                            {selected ? (
-                                                                                <span
-                                                                                    className={classNames(
-                                                                                        active ? 'text-white' : 'text-green-600',
-                                                                                        'absolute inset-y-0 right-0 flex items-center pr-4'
-                                                                                    )}
-                                                                                >
-                            <CheckIcon
-                                className="h-5 w-5"
-                                aria-hidden="true"/>
-                          </span>
-                                                                            ) : null}
-                                                                        </>
-                                                                    )}
-                                                                </Listbox.Option>
-                                                            ))}
-                                                        </Listbox.Options>
-                                                    </Transition>
-                                                </div>
-                                            </>
-                                        )}
-                                    </Listbox>
-                                </div>
-                                <div
-                                    className="filter-container-typeInputs1">
-                                    <Listbox>
-                                        <Listbox.Label
-                                            className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Show
-                                            total
-                                            displacement</Listbox.Label>
-                                    </Listbox>
+                                    className="filter-container-DatesFilter">
                                     <div
-                                        className="relative inline-block w-10 mr-2 align-middle select-none">
-                                        <input
-                                            id="GreenTotal"
-                                            type="checkbox"
-                                            onChange={(e) => handleToogleTotalChart()}
-                                            className="checked:bg-emerald-500 outline-none focus:outline-none right-4 checked:right-0 duration-200 ease-in absolute block w-6 h-6 rounded-full bg-white border-4 border-emerald-500 appearance-none cursor-pointer"/>
-                                        <label
-                                            htmlFor="GreenTotal"
-                                            className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"/>
+                                        style={{paddingBottom: '10px'}}>
+                                        <Listbox>
+                                            <Listbox.Label
+                                                className="block text-lg font-medium leading-6 text-gray-900 text-left">Dates</Listbox.Label>
+                                        </Listbox>
                                     </div>
+                                    <ul className="flex flex-wrap text-sm font-medium text-center text-gray-500 border-gray-200 "
+                                        style={{}}>
+                                        <li className="mr-2">
+                                            <a
+                                                onClick={() => {
+                                                    setSelectedDatesTypes(datesTypes[0]);
+                                                    handleToogleSelectDates()
+                                                }}
+                                                className={`inline-block p-4 rounded-lg cursor-pointer ${
+                                                    selectedDatesTypes === datesTypes[0]
+                                                        ? 'text-white bg-emerald-500'
+                                                        : 'text-black bg-emerald-200 hover:text-white hover:bg-emerald-700'
+                                                }`}>
+                                                Interval
+                                            </a>
+                                        </li>
+                                        <li className="mr-2">
+                                            <a
+                                                onClick={() => {
+                                                    setSelectedDatesTypes(datesTypes[1]);
+                                                    handleToogleSelectDates()
+                                                }}
+                                                className={`inline-block p-4 rounded-lg cursor-pointer ${
+                                                    selectedDatesTypes === datesTypes[1]
+                                                        ? 'text-white bg-emerald-500'
+                                                        : 'text-black bg-emerald-200 hover:text-white hover:bg-emerald-700'
+                                                }`}>
+                                                Select
+                                                Dates
+                                            </a>
+                                        </li>
+                                    </ul>
                                 </div>
-                                <div
-                                    className="filter-container-typeInputs2">
-                                    <Listbox>
-                                        <Listbox.Label
-                                            className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Show
-                                            temperature</Listbox.Label>
-                                    </Listbox>
+                                {!toggleSelectDates && (
                                     <div
-                                        className="relative inline-block w-10 mr-2 align-middle select-none">
-                                        <input
-                                            id="GreenTemp"
-                                            type="checkbox"
-                                            checked={toggleTempChart}
-                                            onChange={(e) => handleToogleTempChart()}
-                                            className={`checked:bg-emerald-500 outline-none focus:outline-none right-4 checked:right-0 duration-200 ease-in absolute block w-6 h-6 rounded-full bg-white border-4 ${!toggleTotalChart ? 'border-gray-500' : 'border-emerald-500'} appearance-none cursor-pointer ${!toggleTotalChart ? 'opacity-50' : ''}`}
-                                            disabled={!toggleTotalChart}
-                                            //style={{transform: (!toggleTotalChart && toggleTempChart) ? 'translateX(-50%)' : 'none'}}
-                                        />
-                                        <label
-                                            htmlFor="GreenTemp"
-                                            className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"/>
-                                    </div>
-                                </div>
-                                <div
-                                    className="export-data">
-                                    <div
-                                        className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
-                                        <button
-                                            type="button"
-                                            className="py-2 px-4  bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                                            onClick={handleOpen}>
-                                            Export
-                                            data
-                                        </button>
-                                    </div>
-                                </div>
-                                <Modal
-                                    open={open}
-                                    onClose={handleClose}
-                                    aria-labelledby="modal-title"
-                                    aria-describedby="modal-description"
-                                >
-                                    <Box
-                                        sx={{
-                                            position: 'absolute' as 'absolute',
-                                            top: '50%',
-                                            left: '50%',
-                                            transform: 'translate(-50%, -50%)',
-                                            width: 400,
-                                            bgcolor: 'background.paper',
-                                            border: '2px solid #000',
-                                            boxShadow: 24,
-                                            p: 4,
-                                            '& .close-button': {
-                                                position: 'absolute',
-                                                top: 8,
-                                                right: 8,
-                                            },
-                                        }}>
-                                        <IconButton
-                                            className="close-button"
-                                            aria-label="close"
-                                            onClick={handleClose}>
-                                            <Clear/>
-                                        </IconButton>
+                                        className="filter-container-intervalDates">
                                         <div
-                                            className="filter-container-elevation">
-                                            <Listbox
-                                                value={selectedExport}
-                                                onChange={setSelectedExport}>
-                                                {({open}) => (
-                                                    <>
+                                            className="column-container">
+                                            <div
+                                                className="pb-8 flex items-center">
+                                                <div
+                                                    className="pr-2">
+                                                    <Listbox>
                                                         <Listbox.Label
-                                                            className="block text-lg font-medium leading-6 text-gray-900 text-left">Export
-                                                            results</Listbox.Label>
-                                                        <div
-                                                            className="relative mt-2">
-                                                            <Listbox.Button
-                                                                className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
-                                      <span
-                                          className="flex items-center">
-                                          <span
-                                              className="ml-3 block truncate">{selectedExport.name}</span>
-                                      </span>
-                                                                <span
-                                                                    className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
-                                      <ChevronUpDownIcon
-                                          className="h-5 w-5 text-gray-400"
-                                          aria-hidden="true"/>
-                                      </span>
-                                                            </Listbox.Button>
-                                                            <Transition
-                                                                show={open}
-                                                                as={Fragment}
-                                                                leave="transition ease-in duration-100"
-                                                                leaveFrom="opacity-100"
-                                                                leaveTo="opacity-0"
-                                                            >
-                                                                <Listbox.Options
-                                                                    className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                                    {exportSelect.map((res) => (
-                                                                        <Listbox.Option
-                                                                            key={res.id}
-                                                                            className={({active}) =>
-                                                                                classNames(
-                                                                                    active ? 'bg-emerald-500 text-white' : 'text-gray-900',
-                                                                                    'relative cursor-default select-none py-2 pl-3 pr-9'
-                                                                                )
-                                                                            }
-                                                                            value={res}
-                                                                        >
-                                                                            {({
-                                                                                  selected,
-                                                                                  active
-                                                                              }) => (
-                                                                                <>
-                                                                                    <div
-                                                                                        className="flex items-center">
-                                                                <span
-                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
-                                                                >
-                            {res.name}
-                          </span>
-                                                                                    </div>
+                                                            className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">First</Listbox.Label>
+                                                    </Listbox>
+                                                </div>
+                                                <DatePicker
+                                                    oneTap
+                                                    placeholder="YYYY-MM-DD"
+                                                    style={{width: 190}}
+                                                    onChange={(e) => {
+                                                        handleFirstDateInterval(e?.getFullYear(), e?.getMonth(), e?.getDay())
+                                                        if (lastToggleRef == 1) {
+                                                            if (e?.getFullYear() !== undefined && e?.getMonth() !== undefined && e?.getDay() !== undefined) {
+                                                                let date = e?.getFullYear() + "-" + e?.getMonth() + "-" + e?.getDay();
+                                                                let expectedDate = handleGetClosestDate(date);
+                                                                //handleRefDate(expectedDate);
 
-                                                                                    {selected ? (
-                                                                                        <span
-                                                                                            className={classNames(
-                                                                                                active ? 'text-white' : 'text-green-600',
-                                                                                                'absolute inset-y-0 right-0 flex items-center pr-4'
-                                                                                            )}
-                                                                                        >
-                            <CheckIcon
-                                className="h-5 w-5"
-                                aria-hidden="true"/>
-                          </span>
-                                                                                    ) : null}
-                                                                                </>
-                                                                            )}
-                                                                        </Listbox.Option>
-                                                                    ))}
-                                                                </Listbox.Options>
-                                                            </Transition>
+                                                            }
+                                                        }
+                                                    }}
+                                                    onClean={handleFirstDateIntervalReset}
+                                                />
+                                            </div>
+                                            <div
+                                                className="flex items-center">
+                                                <div
+                                                    className="pr-2">
+                                                    <Listbox>
+                                                        <Listbox.Label
+                                                            className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Last</Listbox.Label>
+                                                    </Listbox>
+                                                </div>
+                                                <DatePicker
+                                                    oneTap
+                                                    placeholder="YYYY-MM-DD"
+                                                    style={{width: 190}}
+                                                    onChange={(e) => handleLastDateInterval(e?.getFullYear(), e?.getMonth(), e?.getDay())}
+                                                    onClean={handleLastDateIntervalReset}
+                                                />
+                                            </div>
+                                            <div
+                                                className="relative inline-block pl-12 pt-6 pb-12 w-30 mr-2 ml-2 align-middle select-none">
+                                                <button
+                                                    type="button"
+                                                    className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-emerald-400 focus:ring-offset-emerald-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                                    onClick={handleResetDates}>Reset
+                                                    dates
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                    </div>)}
+                                {toggleSelectDates && (
+                                    <div
+                                        className="pl-10">
+                                        <div
+                                            id="dropdownSearch"
+                                            className="z-10 bg-white rounded-lg shadow w-60 dark:bg-emerald-500">
+                                            <div
+                                                className="p-3">
+                                                <label
+                                                    htmlFor="input-group-search"
+                                                    className="sr-only">Search</label>
+                                                <div
+                                                    className="relative">
+                                                    <div
+                                                        className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                                                        <svg
+                                                            className="w-4 h-4 text-gray-900"
+                                                            aria-hidden="true"
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            fill="none"
+                                                            viewBox="0 0 20 20">
+                                                            <path
+                                                                stroke="currentColor"
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth="2"
+                                                                d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                                                        </svg>
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        id="input-group-search"
+                                                        className="bg-green-50 border border-gray-300 text-gray-950 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5"
+                                                        placeholder="Search date"
+                                                        value={searchTerm}
+                                                        onChange={(e) => handleSearchChange(e.target.value)}/>
+                                                </div>
+                                            </div>
+                                            <ul className="h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700"
+                                                aria-labelledby="dropdownSearchButton">
+                                                {searchTerm ? filteredDates.map((date, index) => (
+                                                    <li key={index}>
+                                                        <div
+                                                            className="flex items-center p-2 rounded hover:bg-gray-100 input-label-pair">
+                                                            <input
+                                                                id={`checkbox-item-${index}`}
+                                                                type="checkbox"
+                                                                value={`${date}`}
+                                                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 "
+                                                                checked={isDateChecked(date, checkedDates)}
+                                                                onChange={(e) => handleDateCheck(e.target.value)}
+                                                            />
+                                                            <label
+                                                                htmlFor={`checkbox-item-${index}`}
+                                                                className="w-full ms-2 text-sm font-medium text-gray-900 rounded">{date.split(" ")[1] === "00:00:00" ? date.split(" ")[0] : date}</label>
                                                         </div>
-                                                        <div
-                                                            className="filter-container-typeViz">
-                                                            <Listbox>
-                                                                <Listbox.Label
-                                                                    className="pb-4 block text-lg font-medium leading-6 text-gray-900 text-left">Graph
-                                                                    to
-                                                                    export</Listbox.Label>
-                                                            </Listbox>
-                                                            <select
-                                                                onChange={(e) => handleSelectedGraphExport(e.target.value)}
-                                                                style={{
-                                                                    padding: '8px',
-                                                                    fontSize: '16px',
-                                                                    borderRadius: '5px',
-                                                                    border: '1px solid #ccc'
-                                                                }}>
-                                                                {!toggleTotalChart && (
-                                                                    <option
-                                                                        key={"A"}
-                                                                        value={"A"}>A
-                                                                    </option>)};
-                                                                {!toggleTempChart && (
-                                                                    <option
-                                                                        key={"B"}
-                                                                        value={"B"}>B
-                                                                    </option>)}
-                                                                {toggleTotalChart && (
-                                                                    <option
-                                                                        key={"TOTAL"}
-                                                                        value={"TOTAL"}>Total
-                                                                    </option>)}
-                                                                {toggleTempChart && (
-                                                                    <option
-                                                                        key={"TEMP"}
-                                                                        value={"TEMP"}>Temp
-                                                                    </option>)}
-
-                                                            </select>
+                                                    </li>
+                                                )) : (
+                                                    <>
+                                                        <li>
                                                             <div
-                                                                className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
-                                                                <button
-                                                                    type="button"
-                                                                    className="py-2 px-4  bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                                                                    onClick={handleExportSVG}>Export
-                                                                    SVG
-                                                                </button>
+                                                                className="flex items-center p-2 rounded hover:bg-gray-100 input-label-pair">
+                                                                <input
+                                                                    id="checkbox-all-dates"
+                                                                    type="checkbox"
+                                                                    value={'All dates'}
+                                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                                                    checked={areAllDatesChecked(numberOfDates.length, checkedDates)}
+                                                                    onChange={handleAllDatesCheck}
+                                                                />
+                                                                <label
+                                                                    htmlFor="checkbox-all-dates"
+                                                                    className="w-full ms-2 text-sm font-medium text-white rounded hover:text-black">All
+                                                                    Dates</label>
                                                             </div>
-                                                        </div>
+                                                        </li>
+                                                        {
+                                                            numberOfDates.map((date, index) => (
+                                                                <li key={index}>
+                                                                    <div
+                                                                        className="flex items-center p-2 rounded hover:bg-gray-100 input-label-pair">
+                                                                        <input
+                                                                            id={`checkbox-item-${index}`}
+                                                                            type="checkbox"
+                                                                            value={`${date}`}
+                                                                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 "
+                                                                            checked={isDateChecked(date, checkedDates)}
+                                                                            onChange={(e) => handleDateCheck(e.target.value)}
+                                                                        />
+                                                                        <label
+                                                                            htmlFor={`checkbox-item-${index}`}
+                                                                            className="w-full ms-2 text-sm font-medium text-white rounded hover:text-black">{date.split(" ")[1] === "00:00:00" ? date.split(" ")[0] : date}</label>
+                                                                    </div>
+                                                                </li>
+                                                            ))}
                                                     </>
                                                 )}
-                                            </Listbox>
+                                            </ul>
+
                                         </div>
-                                    </Box>
-                                </Modal>
+                                    </div>
+                                )}
                             </div>
                         </div>
-
+                        <div
+                            className="chartABName">
+                            <Listbox>
+                                <Listbox.Label
+                                    className="block text-lg font-medium leading-6 text-gray-900 text-left pb-2">Displacement
+                                    /
+                                    Depth
+                                    Charts</Listbox.Label>
+                            </Listbox>
+                        </div>
                         <div
                             className="charts-container">
                             <div
@@ -8260,6 +8248,16 @@ function ResultsVisualization() {
                                     totalChart={toggleTotalChart}
                                     tempChart={toggleTempChart}/>
                             </div>
+                        </div>
+                        <div
+                            className="chartDatesName">
+                            <Listbox>
+                                <Listbox.Label
+                                    className="block text-lg font-medium leading-6 text-gray-900 text-left pb-2">Displacement
+                                    /
+                                    Dates
+                                    Charts</Listbox.Label>
+                            </Listbox>
                         </div>
                         {!toggleTotalChart ? (
                             <>
@@ -8479,17 +8477,15 @@ function ResultsVisualization() {
                                     </Listbox>
                                 </div>
                                 <div
-                                    className="filter-container-typeViz">
+                                    className="filter-container-elevation">
                                     <Listbox
-                                        value={selectedDatesTypes}
-                                        onChange={(selectedOption) => {
-                                            setSelectedDatesTypes(selectedOption);
-                                            handleToogleSelectDates();
-                                        }}>
+                                        value={selectedLocation}
+                                        onChange={setSelectedLocation}>
                                         {({open}) => (
                                             <>
                                                 <Listbox.Label
-                                                    className="block text-lg font-medium leading-6 text-gray-900 text-left">Dates</Listbox.Label>
+                                                    className="block text-lg font-medium leading-6 text-gray-900 text-left">Displacements
+                                                    at</Listbox.Label>
                                                 <div
                                                     className="relative mt-2">
                                                     <Listbox.Button
@@ -8497,7 +8493,7 @@ function ResultsVisualization() {
                                       <span
                                           className="flex items-center">
                                           <span
-                                              className="ml-3 block truncate">{selectedDatesTypes.name}</span>
+                                              className="ml-3 block truncate">{selectedLocation.name}</span>
                                       </span>
                                                         <span
                                                             className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
@@ -8515,16 +8511,16 @@ function ResultsVisualization() {
                                                     >
                                                         <Listbox.Options
                                                             className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                            {datesTypes.map((dat) => (
+                                                            {locations.map((res) => (
                                                                 <Listbox.Option
-                                                                    key={dat.id}
+                                                                    key={res.id}
                                                                     className={({active}) =>
                                                                         classNames(
                                                                             active ? 'bg-emerald-500 text-white' : 'text-gray-900',
                                                                             'relative cursor-default select-none py-2 pl-3 pr-9'
                                                                         )
                                                                     }
-                                                                    value={dat}
+                                                                    value={res}
                                                                 >
                                                                     {({
                                                                           selected,
@@ -8535,7 +8531,9 @@ function ResultsVisualization() {
                                                                                 className="flex items-center">
                                                                 <span
                                                                     className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
-                                                                >{dat.name}</span>
+                                                                >
+                            {res.name}
+                          </span>
                                                                             </div>
 
                                                                             {selected ? (
@@ -8561,169 +8559,42 @@ function ResultsVisualization() {
                                         )}
                                     </Listbox>
                                 </div>
-                                {!toggleSelectDates && (
-                                    <div
-                                        className="filter-container-typeViz">
+                                <div
+                                    className="filter-container-typeInputsLocation">
+                                    <Listbox>
+                                        <Listbox.Label
+                                            className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Show
+                                            displacement
+                                            arrows</Listbox.Label>
+                                    </Listbox>
+                                    {(selectedProfile.type === 'Plan' && planCheckboxs[selectedProfileID].check) ? (
                                         <div
-                                            className="column-container">
-                                            <div
-                                                className="pb-8 flex items-center">
-                                                <div
-                                                    className="pr-2">
-                                                    <Listbox>
-                                                        <Listbox.Label
-                                                            className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">First</Listbox.Label>
-                                                    </Listbox>
-                                                </div>
-                                                <DatePicker
-                                                    oneTap
-                                                    placeholder="YYYY-MM-DD"
-                                                    style={{width: 190}}
-                                                    onChange={(e) => {
-                                                        handleFirstDateInterval(e?.getFullYear(), e?.getMonth(), e?.getDay())
-                                                        if (lastToggleRef == 1) {
-                                                            if (e?.getFullYear() !== undefined && e?.getMonth() !== undefined && e?.getDay() !== undefined) {
-                                                                let date = e?.getFullYear() + "-" + e?.getMonth() + "-" + e?.getDay();
-                                                                let expectedDate = handleGetClosestDate(date);
-                                                                //handleRefDate(expectedDate);
-
-                                                            }
-                                                        }
-                                                    }}
-                                                    onClean={handleFirstDateIntervalReset}
-                                                />
-                                            </div>
-                                            <div
-                                                className="flex items-center">
-                                                <div
-                                                    className="pr-2">
-                                                    <Listbox>
-                                                        <Listbox.Label
-                                                            className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Last</Listbox.Label>
-                                                    </Listbox>
-                                                </div>
-                                                <DatePicker
-                                                    oneTap
-                                                    placeholder="YYYY-MM-DD"
-                                                    style={{width: 190}}
-                                                    onChange={(e) => handleLastDateInterval(e?.getFullYear(), e?.getMonth(), e?.getDay())}
-                                                    onClean={handleLastDateIntervalReset}
-                                                />
-                                            </div>
-                                            <div
-                                                className="relative inline-block pl-12 pt-5 w-30 mr-2 ml-2 align-middle select-none">
-                                                <button
-                                                    type="button"
-                                                    className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                                                    onClick={handleResetDates}>Reset
-                                                    dates
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                    </div>)}
-                                {toggleSelectDates && (
-                                    <div
-                                        className="pl-6 pt-5">
+                                            className="relative inline-block w-10 mr-2 align-middle select-none">
+                                            <input
+                                                id="Green"
+                                                type="checkbox"
+                                                checked={toggleArrows}
+                                                onChange={(e) => handleToogleArrows()}
+                                                className="checked:bg-emerald-500 outline-none focus:outline-none right-4 checked:right-0 duration-200 ease-in absolute block w-6 h-6 rounded-full bg-white border-4 border-emerald-500 appearance-none cursor-pointer"/>
+                                            <label
+                                                htmlFor="Green"
+                                                className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"/>
+                                        </div>) : (
                                         <div
-                                            id="dropdownSearch"
-                                            className="z-10 bg-white rounded-lg shadow w-60 dark:bg-emerald-500">
-                                            <div
-                                                className="p-3">
-                                                <label
-                                                    htmlFor="input-group-search"
-                                                    className="sr-only">Search</label>
-                                                <div
-                                                    className="relative">
-                                                    <div
-                                                        className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                                                        <svg
-                                                            className="w-4 h-4 text-gray-900"
-                                                            aria-hidden="true"
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                            fill="none"
-                                                            viewBox="0 0 20 20">
-                                                            <path
-                                                                stroke="currentColor"
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth="2"
-                                                                d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
-                                                        </svg>
-                                                    </div>
-                                                    <input
-                                                        type="text"
-                                                        id="input-group-search"
-                                                        className="bg-green-50 border border-gray-300 text-gray-950 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5"
-                                                        placeholder="Search date"
-                                                        value={searchTerm}
-                                                        onChange={(e) => handleSearchChange(e.target.value)}/>
-                                                </div>
-                                            </div>
-                                            <ul className="h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700"
-                                                aria-labelledby="dropdownSearchButton">
-                                                {searchTerm ? filteredDates.map((date, index) => (
-                                                    <li key={index}>
-                                                        <div
-                                                            className="flex items-center p-2 rounded hover:bg-gray-100 ">
-                                                            <input
-                                                                id={`checkbox-item-${index}`}
-                                                                type="checkbox"
-                                                                value={`${date}`}
-                                                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 "
-                                                                checked={isDateChecked(date, checkedDates)}
-                                                                onChange={(e) => handleDateCheck(e.target.value)}
-                                                            />
-                                                            <label
-                                                                htmlFor={`checkbox-item-${index}`}
-                                                                className="w-full ms-2 text-sm font-medium text-gray-900 rounded">{date.split(" ")[1] === "00:00:00" ? date.split(" ")[0] : date}</label>
-                                                        </div>
-                                                    </li>
-                                                )) : (
-                                                    <>
-                                                        <li>
-                                                            <div
-                                                                className="flex items-center p-2 rounded hover:bg-gray-100">
-                                                                <input
-                                                                    id="checkbox-all-dates"
-                                                                    type="checkbox"
-                                                                    value={'All dates'}
-                                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                                                                    checked={areAllDatesChecked(numberOfDates.length, checkedDates)}
-                                                                    onChange={handleAllDatesCheck}
-                                                                />
-                                                                <label
-                                                                    htmlFor="checkbox-all-dates"
-                                                                    className="w-full ms-2 text-sm font-medium text-white rounded hover:text-black">All
-                                                                    Dates</label>
-                                                            </div>
-                                                        </li>
-                                                        {
-                                                            numberOfDates.map((date, index) => (
-                                                                <li key={index}>
-                                                                    <div
-                                                                        className="flex items-center p-2 rounded hover:bg-gray-100 ">
-                                                                        <input
-                                                                            id={`checkbox-item-${index}`}
-                                                                            type="checkbox"
-                                                                            value={`${date}`}
-                                                                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 "
-                                                                            checked={isDateChecked(date, checkedDates)}
-                                                                            onChange={(e) => handleDateCheck(e.target.value)}
-                                                                        />
-                                                                        <label
-                                                                            htmlFor={`checkbox-item-${index}`}
-                                                                            className="w-full ms-2 text-sm font-medium text-white rounded hover:text-black">{date.split(" ")[1] === "00:00:00" ? date.split(" ")[0] : date}</label>
-                                                                    </div>
-                                                                </li>
-                                                            ))}
-                                                    </>
-                                                )}
-                                            </ul>
-
+                                            className="relative inline-block w-10 mr-2 align-middle select-none">
+                                            <input
+                                                disabled
+                                                id="Green"
+                                                type="checkbox"
+                                                checked={toggleArrows}
+                                                onChange={(e) => handleToogleArrows()}
+                                                className="checked:bg-emerald-500 outline-none focus:outline-none right-4 checked:right-0 duration-200 ease-in absolute block w-6 h-6 rounded-full bg-gray-200 border-4 border-gray-400 appearance-none cursor-pointer"/>
+                                            <label
+                                                htmlFor="Green"
+                                                className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"/>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                             </div>
                             <div>
                                 <div
@@ -8941,7 +8812,8 @@ function ResultsVisualization() {
                                             className="filter-container-ref">
                                             <Listbox>
                                                 <Listbox.Label
-                                                    className="block text-lg font-medium leading-6 text-gray-900 text-left pb-2">Reference</Listbox.Label>
+                                                    className="block text-lg font-medium leading-6 text-gray-900 text-left pb-2">Reference
+                                                    Date</Listbox.Label>
                                             </Listbox>
 
                                             <ul className="items-center w-300 text-base font-medium text-gray-900 bg-white border border-gray-200 rounded-lg sm:flex dark:bg-emerald-500 dark:border-gray-700 dark:text-white">
@@ -8962,7 +8834,7 @@ function ResultsVisualization() {
                                                             className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 "/>
                                                         <label
                                                             htmlFor="earliestDate"
-                                                            className="w-full py-3 ms-2 text-sm font-medium text-white-50 ">Earliest
+                                                            className="w-full py-3 ms-2 text-sm font-medium text-white-50 ">Oldest
                                                             date</label>
                                                     </div>
                                                 </li>
@@ -9031,141 +8903,234 @@ function ResultsVisualization() {
                                                                 value={date}>{date.split(" ")[0]}</option>
                                                         ))}
                                                     </select>) : (
-                                                    <select
-                                                        onChange={(e) => handleRefDate(e.target.value)}
-                                                        style={{
-                                                            padding: '8px',
-                                                            fontSize: '16px',
-                                                            borderRadius: '5px',
-                                                            border: '1px solid #ccc'
+                                                    <TextField
+                                                        disabled
+                                                        id="outlined-disabled"
+                                                        defaultValue={earliestRefDate.split(" ")[0]}
+                                                        value={earliestRefDate.split(" ")[0]}
+                                                        style={{width: '110px'}}
+                                                        sx={{
+                                                            width: '110px',
+                                                            '& .MuiInputBase-root': {
+                                                                paddingTop: '5px',
+                                                                paddingBottom: '5px',
+                                                            },
+                                                            '& .MuiInputBase-input': {
+                                                                paddingTop: '5px',
+                                                                paddingBottom: '5px',
+                                                                height: 'auto',
+                                                            },
                                                         }}
-                                                        disabled>
-                                                        <option
-                                                            key={earliestRefDate}
-                                                            value={earliestRefDate}>{earliestRefDate.split(" ")[0]}</option>
-
-                                                    </select>
+                                                    />
                                                 )}
                                             </div>
                                         </div>
-                                        <div
-                                            className="filter-container-elevation">
-                                            <Listbox
-                                                value={selectedLocation}
-                                                onChange={setSelectedLocation}>
-                                                {({open}) => (
-                                                    <>
-                                                        <Listbox.Label
-                                                            className="block text-lg font-medium leading-6 text-gray-900 text-left">Location</Listbox.Label>
-                                                        <div
-                                                            className="relative mt-2">
-                                                            <Listbox.Button
-                                                                className="relative w-full cursor-pointer rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm sm:leading-6">
-                                      <span
-                                          className="flex items-center">
-                                          <span
-                                              className="ml-3 block truncate">{selectedLocation.name}</span>
-                                      </span>
-                                                                <span
-                                                                    className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
-                                      <ChevronUpDownIcon
-                                          className="h-5 w-5 text-gray-400"
-                                          aria-hidden="true"/>
-                                      </span>
-                                                            </Listbox.Button>
-                                                            <Transition
-                                                                show={open}
-                                                                as={Fragment}
-                                                                leave="transition ease-in duration-100"
-                                                                leaveFrom="opacity-100"
-                                                                leaveTo="opacity-0"
-                                                            >
-                                                                <Listbox.Options
-                                                                    className="absolute z-10 mt-1 max-h-56 w-45 overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                                                    {locations.map((res) => (
-                                                                        <Listbox.Option
-                                                                            key={res.id}
-                                                                            className={({active}) =>
-                                                                                classNames(
-                                                                                    active ? 'bg-emerald-500 text-white' : 'text-gray-900',
-                                                                                    'relative cursor-default select-none py-2 pl-3 pr-9'
-                                                                                )
-                                                                            }
-                                                                            value={res}
-                                                                        >
-                                                                            {({
-                                                                                  selected,
-                                                                                  active
-                                                                              }) => (
-                                                                                <>
-                                                                                    <div
-                                                                                        className="flex items-center">
-                                                                <span
-                                                                    className={classNames(selected ? 'font-semibold' : 'font-normal', 'ml-3 block truncate')}
-                                                                >
-                            {res.name}
-                          </span>
-                                                                                    </div>
 
-                                                                                    {selected ? (
-                                                                                        <span
-                                                                                            className={classNames(
-                                                                                                active ? 'text-white' : 'text-green-600',
-                                                                                                'absolute inset-y-0 right-0 flex items-center pr-4'
-                                                                                            )}
-                                                                                        >
-                            <CheckIcon
-                                className="h-5 w-5"
-                                aria-hidden="true"/>
-                          </span>
-                                                                                    ) : null}
-                                                                                </>
-                                                                            )}
-                                                                        </Listbox.Option>
-                                                                    ))}
-                                                                </Listbox.Options>
-                                                            </Transition>
-                                                        </div>
-                                                    </>
-                                                )}
-                                            </Listbox>
-                                        </div>
                                         <div
-                                            className="filter-container-typeInputsLocation">
-                                            <Listbox>
-                                                <Listbox.Label
-                                                    className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Show
-                                                    displacement
-                                                    arrows</Listbox.Label>
-                                            </Listbox>
-                                            {(selectedProfile.type === 'Plan' && planCheckboxs[selectedProfileID].check) ? (
-                                                <div
-                                                    className="relative inline-block w-10 mr-2 align-middle select-none">
-                                                    <input
-                                                        id="Green"
-                                                        type="checkbox"
-                                                        checked={toggleArrows}
-                                                        onChange={(e) => handleToogleArrows()}
-                                                        className="checked:bg-emerald-500 outline-none focus:outline-none right-4 checked:right-0 duration-200 ease-in absolute block w-6 h-6 rounded-full bg-white border-4 border-emerald-500 appearance-none cursor-pointer"/>
-                                                    <label
-                                                        htmlFor="Green"
-                                                        className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"/>
-                                                </div>) : (
-                                                <div
-                                                    className="relative inline-block w-10 mr-2 align-middle select-none">
-                                                    <input
-                                                        disabled
-                                                        id="Green"
-                                                        type="checkbox"
-                                                        checked={toggleArrows}
-                                                        onChange={(e) => handleToogleArrows()}
-                                                        className="checked:bg-emerald-500 outline-none focus:outline-none right-4 checked:right-0 duration-200 ease-in absolute block w-6 h-6 rounded-full bg-gray-200 border-4 border-gray-400 appearance-none cursor-pointer"/>
-                                                    <label
-                                                        htmlFor="Green"
-                                                        className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"/>
-                                                </div>
-                                            )}
+                                            className="filter-container-DatesFilter">
+                                            <div
+                                                style={{paddingBottom: '10px'}}>
+                                                <Listbox>
+                                                    <Listbox.Label
+                                                        className="block text-lg font-medium leading-6 text-gray-900 text-left">Dates</Listbox.Label>
+                                                </Listbox>
+                                            </div>
+                                            <ul className="flex flex-wrap text-sm font-medium text-center text-gray-500 border-gray-200 "
+                                                style={{}}>
+                                                <li className="mr-2">
+                                                    <a
+                                                        onClick={() => {
+                                                            setSelectedDatesTypes(datesTypes[0]);
+                                                            handleToogleSelectDates()
+                                                        }}
+                                                        className={`inline-block p-4 rounded-lg cursor-pointer ${
+                                                            selectedDatesTypes === datesTypes[0]
+                                                                ? 'text-white bg-emerald-500'
+                                                                : 'text-black bg-emerald-200 hover:text-white hover:bg-emerald-700'
+                                                        }`}>
+                                                        Interval
+                                                    </a>
+                                                </li>
+                                                <li className="mr-2">
+                                                    <a
+                                                        onClick={() => {
+                                                            setSelectedDatesTypes(datesTypes[1]);
+                                                            handleToogleSelectDates()
+                                                        }}
+                                                        className={`inline-block p-4 rounded-lg cursor-pointer ${
+                                                            selectedDatesTypes === datesTypes[1]
+                                                                ? 'text-white bg-emerald-500'
+                                                                : 'text-black bg-emerald-200 hover:text-white hover:bg-emerald-700'
+                                                        }`}>
+                                                        Select
+                                                        Dates
+                                                    </a>
+                                                </li>
+                                            </ul>
                                         </div>
+                                        {!toggleSelectDates && (
+                                            <div
+                                                className="filter-container-intervalDates">
+                                                <div
+                                                    className="column-container">
+                                                    <div
+                                                        className="pb-8 flex items-center">
+                                                        <div
+                                                            className="pr-2">
+                                                            <Listbox>
+                                                                <Listbox.Label
+                                                                    className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">First</Listbox.Label>
+                                                            </Listbox>
+                                                        </div>
+                                                        <DatePicker
+                                                            oneTap
+                                                            placeholder="YYYY-MM-DD"
+                                                            style={{width: 190}}
+                                                            onChange={(e) => {
+                                                                handleFirstDateInterval(e?.getFullYear(), e?.getMonth(), e?.getDay())
+                                                                if (lastToggleRef == 1) {
+                                                                    if (e?.getFullYear() !== undefined && e?.getMonth() !== undefined && e?.getDay() !== undefined) {
+                                                                        let date = e?.getFullYear() + "-" + e?.getMonth() + "-" + e?.getDay();
+                                                                        let expectedDate = handleGetClosestDate(date);
+                                                                        //handleRefDate(expectedDate);
+
+                                                                    }
+                                                                }
+                                                            }}
+                                                            onClean={handleFirstDateIntervalReset}
+                                                        />
+                                                    </div>
+                                                    <div
+                                                        className="flex items-center">
+                                                        <div
+                                                            className="pr-2">
+                                                            <Listbox>
+                                                                <Listbox.Label
+                                                                    className="pr-1 text-base font-medium leading-6 text-gray-900 text-left">Last</Listbox.Label>
+                                                            </Listbox>
+                                                        </div>
+                                                        <DatePicker
+                                                            oneTap
+                                                            placeholder="YYYY-MM-DD"
+                                                            style={{width: 190}}
+                                                            onChange={(e) => handleLastDateInterval(e?.getFullYear(), e?.getMonth(), e?.getDay())}
+                                                            onClean={handleLastDateIntervalReset}
+                                                        />
+                                                    </div>
+                                                    <div
+                                                        className="relative inline-block pl-12 pt-5 w-30 mr-2 ml-2 align-middle select-none">
+                                                        <button
+                                                            type="button"
+                                                            className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                                            onClick={handleResetDates}>Reset
+                                                            dates
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                            </div>)}
+                                        {toggleSelectDates && (
+                                            <div
+                                                className="pl-10">
+                                                <div
+                                                    id="dropdownSearch"
+                                                    className="z-10 bg-white rounded-lg shadow w-60 dark:bg-emerald-500">
+                                                    <div
+                                                        className="p-3">
+                                                        <label
+                                                            htmlFor="input-group-search"
+                                                            className="sr-only">Search</label>
+                                                        <div
+                                                            className="relative">
+                                                            <div
+                                                                className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                                                                <svg
+                                                                    className="w-4 h-4 text-gray-900"
+                                                                    aria-hidden="true"
+                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                    fill="none"
+                                                                    viewBox="0 0 20 20">
+                                                                    <path
+                                                                        stroke="currentColor"
+                                                                        strokeLinecap="round"
+                                                                        strokeLinejoin="round"
+                                                                        strokeWidth="2"
+                                                                        d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                                                                </svg>
+                                                            </div>
+                                                            <input
+                                                                type="text"
+                                                                id="input-group-search"
+                                                                className="bg-green-50 border border-gray-300 text-gray-950 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5"
+                                                                placeholder="Search date"
+                                                                value={searchTerm}
+                                                                onChange={(e) => handleSearchChange(e.target.value)}/>
+                                                        </div>
+                                                    </div>
+                                                    <ul className="h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700"
+                                                        aria-labelledby="dropdownSearchButton">
+                                                        {searchTerm ? filteredDates.map((date, index) => (
+                                                            <li key={index}>
+                                                                <div
+                                                                    className="flex items-center p-2 rounded hover:bg-gray-100 ">
+                                                                    <input
+                                                                        id={`checkbox-item-${index}`}
+                                                                        type="checkbox"
+                                                                        value={`${date}`}
+                                                                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 "
+                                                                        checked={isDateChecked(date, checkedDates)}
+                                                                        onChange={(e) => handleDateCheck(e.target.value)}
+                                                                    />
+                                                                    <label
+                                                                        htmlFor={`checkbox-item-${index}`}
+                                                                        className="w-full ms-2 text-sm font-medium text-gray-900 rounded">{date.split(" ")[1] === "00:00:00" ? date.split(" ")[0] : date}</label>
+                                                                </div>
+                                                            </li>
+                                                        )) : (
+                                                            <>
+                                                                <li>
+                                                                    <div
+                                                                        className="flex items-center p-2 rounded hover:bg-gray-100">
+                                                                        <input
+                                                                            id="checkbox-all-dates"
+                                                                            type="checkbox"
+                                                                            value={'All dates'}
+                                                                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                                                            checked={areAllDatesChecked(numberOfDates.length, checkedDates)}
+                                                                            onChange={handleAllDatesCheck}
+                                                                        />
+                                                                        <label
+                                                                            htmlFor="checkbox-all-dates"
+                                                                            className="w-full ms-2 text-sm font-medium text-white rounded hover:text-black">All
+                                                                            Dates</label>
+                                                                    </div>
+                                                                </li>
+                                                                {
+                                                                    numberOfDates.map((date, index) => (
+                                                                        <li key={index}>
+                                                                            <div
+                                                                                className="flex items-center p-2 rounded hover:bg-gray-100 ">
+                                                                                <input
+                                                                                    id={`checkbox-item-${index}`}
+                                                                                    type="checkbox"
+                                                                                    value={`${date}`}
+                                                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 "
+                                                                                    checked={isDateChecked(date, checkedDates)}
+                                                                                    onChange={(e) => handleDateCheck(e.target.value)}
+                                                                                />
+                                                                                <label
+                                                                                    htmlFor={`checkbox-item-${index}`}
+                                                                                    className="w-full ms-2 text-sm font-medium text-white rounded hover:text-black">{date.split(" ")[1] === "00:00:00" ? date.split(" ")[0] : date}</label>
+                                                                            </div>
+                                                                        </li>
+                                                                    ))}
+                                                            </>
+                                                        )}
+                                                    </ul>
+
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 <div
@@ -9340,41 +9305,46 @@ function ResultsVisualization() {
                                         style={{flex: '1'}}
                                     ></div>
                                 </div>
-                                {!emptyPhoto && (<div
-                                    className="divScale">
-                                    <div style={{paddingBottom: '12px'}}>
-                                    <Typography
-                                        variant="subtitle2"
-                                        gutterBottom>
-                                        Displacements Scale:
-                                    </Typography>
-                                    </div>
-                                    <div className="ScaleAndText">
-                                    <img
-                                        src="/profiles/horizontalScale.png"
-                                        className="horizontalScale"
-                                    />
+                                {!emptyPhoto && (
                                     <div
-                                        style={{
-                                            display: 'flex',
-                                            justifyContent: 'flex-end',
-                                            paddingRight: '100px'
-                                        }}>
-                                        <Typography
-                                            variant="subtitle2"
-                                            gutterBottom>
-                                            0
-                                        </Typography>
+                                        className="divScale">
                                         <div
-                                            style={{paddingLeft: '15px'}}>
+                                            style={{paddingBottom: '12px'}}>
                                             <Typography
                                                 variant="subtitle2"
                                                 gutterBottom>
-                                                131mm
+                                                Displacements
+                                                Scale:
                                             </Typography>
                                         </div>
-                                    </div>
-                                </div></div>)}
+                                        <div
+                                            className="ScaleAndText">
+                                            <img
+                                                src="/profiles/horizontalScale.png"
+                                                className="horizontalScale"
+                                            />
+                                            <div
+                                                style={{
+                                                    display: 'flex',
+                                                    justifyContent: 'flex-end',
+                                                    paddingRight: '100px'
+                                                }}>
+                                                <Typography
+                                                    variant="subtitle2"
+                                                    gutterBottom>
+                                                    0
+                                                </Typography>
+                                                <div
+                                                    style={{paddingLeft: '15px'}}>
+                                                    <Typography
+                                                        variant="subtitle2"
+                                                        gutterBottom>
+                                                        131mm
+                                                    </Typography>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>)}
                                 {(selectedProfile.type !== "Plan") && (
                                     <div>
                                         <div
