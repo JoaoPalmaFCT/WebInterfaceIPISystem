@@ -759,7 +759,7 @@ function EnhancedTableHeadMP(props: EnhancedTablePropsMP) {
                 {headCellsMP.map((headCell) => (
                     <TableCell
                         key={headCell.id}
-                        align='left'//{headCell.numeric ? 'center' : 'left'}
+                        align='center'//{headCell.numeric ? 'center' : 'left'}
                         padding='normal'//{headCell.disablePadding ? 'none' : 'normal'}
                         sortDirection={orderBy === headCell.id ? order : false}
                         sx={{ backgroundColor: '#10b981' }}
@@ -4771,7 +4771,7 @@ function MonitoringProfiles() {
                                                     >
                                                         <TableCell
                                                             onClick={() => handleClickProfile(row.id)}
-                                                            align="left">{row.id}</TableCell>
+                                                            align="center">{row.id}</TableCell>
                                                         <TableCell
                                                             onClick={() => handleClickProfile(row.id)}
                                                             align="center">{row.group}</TableCell>
@@ -4782,17 +4782,10 @@ function MonitoringProfiles() {
                                                             onClick={() => handleClickProfile(row.id)}
                                                             align="center">{row.description}</TableCell>
                                                         <TableCell
+                                                            onClick={() => handleClickProfile(row.id)}
                                                             align="center">{row.typeOfProfile}</TableCell>
                                                         <TableCell
                                                             align="center">
-                                                            <IconButton
-                                                                className="hasImage-button"
-                                                                aria-label="close"
-                                                                style={{paddingRight: row.hasImage ? '0px': '40px'}}>
-                                                                {row.hasImage ?
-                                                                    <CheckBoxRounded/> :
-                                                                    <CheckBoxOutlineBlankRounded/>}
-                                                            </IconButton>
                                                             {row.hasImage && (
                                                                 <IconButton
                                                                     className=""

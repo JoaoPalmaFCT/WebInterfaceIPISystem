@@ -10,6 +10,7 @@ import HomeScreen from "./components/home";
 import Profile from "./components/profile";
 import MonitoringProfiles from "./components/monitoringProfiles";
 import SettingsPage from "./components/settings";
+import MonitGroups from "./components/monitoringGroup";
 import LincsLogo from "./images/logo/Lincs-logo_Page 9_1.png"
 import {
     Box,
@@ -22,6 +23,7 @@ import {
     Drawer,
 } from "@mui/material";
 import {FormatListBulleted,SsidChart, Home, AccountCircle, Logout, Settings} from "@mui/icons-material";
+
 function App() {
   /*useEffect(() => {
     getData()//.catch(error => console.error('Error querying InfluxDB:', error));
@@ -46,6 +48,7 @@ function App() {
                 {['Home', 'Monitoring Groups', 'Monitoring Profiles', 'Visualization of Results', 'Settings'].map((text, index) => (
                     <ListItem key={text} disablePadding onClick={() => {
                         if (index === 0) navigate('/');
+                        if (index === 1) navigate('/monitoringGroups');
                         if (index === 2) navigate('/monitoringProfiles');
                         if (index === 3) navigate('/visualization');
                         if (index === 4) navigate('/settings');
@@ -130,6 +133,10 @@ function App() {
                           path="/"
                           element={
                               <HomeScreen/>}/>
+                      <Route
+                          path="/monitoringGroups"
+                          element={
+                              <MonitGroups/>}/>
                       <Route
                           path="/monitoringProfiles"
                           element={

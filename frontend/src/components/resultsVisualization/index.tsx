@@ -7897,20 +7897,6 @@ function ResultsVisualization() {
                                                         key={date}
                                                         value={date}>{date.split(" ")[0]}</option>
                                                 ))}
-                                            </select>) : ((lastToggleRef === 2) ? (
-                                            <select
-                                                onChange={(e) => handleRefDate(e.target.value)}
-                                                style={{
-                                                    padding: '8px',
-                                                    fontSize: '16px',
-                                                    borderRadius: '5px',
-                                                    border: '1px solid #ccc'
-                                                }}
-                                                disabled>
-                                                <option
-                                                    key={refDate}
-                                                    value={refDate}>{refDate.split(" ")[0]}</option>
-
                                             </select>
                                         ) : (
                                             <TextField
@@ -7932,7 +7918,7 @@ function ResultsVisualization() {
                                                     },
                                                 }}
                                             />
-                                        ))}
+                                        )}
                                     </div>
                                 </div>
                                 <div
@@ -8885,7 +8871,13 @@ function ResultsVisualization() {
                                                 </li>
                                             </ul>
                                             <div
-                                                className="pt-3">
+                                                className="pt-3 flex items-center">
+                                                <Listbox>
+                                                    <Listbox.Label
+                                                        className="pr-3 text-base font-medium leading-6 text-gray-900 text-left">Current
+                                                        Reference
+                                                        Date: </Listbox.Label>
+                                                </Listbox>
                                                 {toggleIntervalRef ? (
                                                     <select
                                                         id="selectRefDateId"
@@ -9344,6 +9336,44 @@ function ResultsVisualization() {
                                                 </div>
                                             </div>
                                         </div>
+                                        {toggleArrows && (
+                                            <div className="divScale">
+                                        <div
+                                            style={{paddingBottom: '12px', paddingRight: '5px'}}>
+                                            <Typography
+                                                variant="subtitle2"
+                                                gutterBottom>
+                                                Displacements Color
+                                                Range:
+                                            </Typography>
+                                        </div>
+                                        <div
+                                            className="ScaleAndText2">
+                                            <img
+                                                src="/profiles/colorScale.png"
+                                                className="colorScale"
+                                            />
+                                            <div
+                                                style={{
+                                                    display: 'flex',
+                                                    justifyContent: 'flex-end',
+                                                    paddingRight: '100px'
+                                                }}>
+                                                <Typography
+                                                    variant="subtitle2"
+                                                    gutterBottom>
+                                                    Low
+                                                </Typography>
+                                                <div
+                                                    style={{paddingLeft: '45px'}}>
+                                                    <Typography
+                                                        variant="subtitle2"
+                                                        gutterBottom>
+                                                        High
+                                                    </Typography>
+                                                </div>
+                                            </div>
+                                        </div></div>)}
                                     </div>)}
                                 {(selectedProfile.type !== "Plan") && (
                                     <div>
