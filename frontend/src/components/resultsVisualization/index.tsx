@@ -1550,7 +1550,7 @@ const ChartDataPrep = (graphData: InclinometerData[]): InclinometerData[][] => {
 
 const ChartDataPrepDetails = (graphData: InclinometerData[], maxD: number, minD: number): InclinometerData[][] => {
     let data: InclinometerData[][] = [];
-
+    const startTime = performance.now();
     if (graphData.length > 0) {
         const uniqueDepths = getUniqueDepth(Number(graphData[0].inc), graphData)
         const filteredDepths = uniqueDepths.filter(depth => depth >= minD && depth <= maxD);
@@ -1580,6 +1580,10 @@ const ChartDataPrepDetails = (graphData: InclinometerData[], maxD: number, minD:
         data[i].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
     }
 */
+
+    const endTime = performance.now();
+    const responseTime = endTime-startTime
+    console.log("Response time Dates: " + responseTime)
     return data;
 }
 
@@ -1606,6 +1610,7 @@ const ChartDataPrepDetailsTotal = (graphDataX: InclinometerData[], graphDataY: I
         data[i].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
     }
     return data;*/
+
     let graphData: InclinometerData[] = []
 
     const uniqueDates = getUniqueDates(graphDataX)
@@ -3051,6 +3056,9 @@ const getRefDateData = (refDate: string, array: InclinometerData[], field: strin
 
 
 const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateData: InclinometerData[], selectedResult: string) => {
+
+    const startTime = performance.now();
+
     let data: InclinometerData[][] = [];
     let returnData: InclinometerData[] = [];
 
@@ -3245,12 +3253,17 @@ const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateDa
         }
     }
 
+    const endTime = performance.now();
+    const responseTime = endTime - startTime
+
+    console.log("Response time A: " + responseTime)
+
 
     return returnData;
 }
 
 const getDataArrayY = (selectedInc: number, array: InclinometerData[], refDateData: InclinometerData[], selectedResult: string) => {
-
+    const startTime = performance.now();
     /*const auxDate: String = "2009-09-22 00:00:00"
     const auxDate2: String = "1984-09-11 00:00:00"
     const auxDate3: String = "1986-10-01 00:00:00"
@@ -3423,6 +3436,11 @@ const getDataArrayY = (selectedInc: number, array: InclinometerData[], refDateDa
             }
         }
     }
+
+    const endTime = performance.now();
+    const responseTime = endTime - startTime
+
+    console.log("Response time B: " + responseTime)
 
     return returnData;
 }
@@ -3865,6 +3883,8 @@ function EnhancedTableHeadB(props: EnhancedTablePropsB) {
 }
 
 const getTableValues = (selectedInc: number, arrayX: InclinometerData[], arrayY: InclinometerData[], refDateDataX: InclinometerData[], refDateDataY: InclinometerData[], selectedResult: string, selectedLocation: string) : InclinometerData[][] => {
+
+    const startTime = performance.now();
 
     let dataX: InclinometerData[][] = [];
     let dataY: InclinometerData[][] = [];
@@ -4403,6 +4423,11 @@ const getTableValues = (selectedInc: number, arrayX: InclinometerData[], arrayY:
         returnDataArray.push(returnDataY);
         returnDataArray.push(returnDataTotal);
     }
+
+    const endTime = performance.now();
+    const responseTime = endTime - startTime
+    console.log("Response Time Table: " + responseTime)
+
     return returnDataArray;
 };
 
@@ -4508,7 +4533,7 @@ const makeCalcAgain = (maxDisplacementItem: InclinometerData, orthoNeeded: strin
 
 function ResultsVisualization() {
 
-    const sessionToken: string = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJqb2FvQGdtYWlsLmNvbSIsImlhdCI6MTcxOTM1NDM3MSwiZXhwIjoxNzIxOTgyNDY3fQ.ABHn1JqMi-TI0tns0G09aC80gm5NfbH6Zb3zlW7EqkiFx7fyPhojx6DdxPQx1JgJK2iCwppVU3m1WVaqCNXvtA";
+    const sessionToken: string = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJqb2FvQGdtYWlsLmNvbSIsImlhdCI6MTcyNDY4ODA1MywiZXhwIjoxNzI3MzE2MTQ5fQ.JhIkuaIYSxCe1km_YkmDEZF0VK6DvobmLeZcHO0KSD-vmPV32mI4g6x63Ch2fVVq3VLCW7XcmuTbpNlY6bZkkQ";
     const dispatch = useAppDispatch()
     const dbMeasurementsList = useMeasurementsSelector(state => state.measurements)
     const dbMPGroups = useMPSelector(state => state.mpGroups)

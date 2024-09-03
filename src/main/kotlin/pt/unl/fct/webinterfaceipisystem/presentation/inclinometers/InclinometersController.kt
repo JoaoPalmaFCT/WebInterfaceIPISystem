@@ -44,4 +44,28 @@ class InclinometersController(val app: InclinometersApplication) : Inclinometers
             throw ResponseStatusException(HttpStatus.NOT_FOUND, "Inclinometer not found")
         }*/
     }
+
+    override fun addSensorSpacing(sensorSpacing: Int, sensorID1: Int, sensorID2: Int, inc: Int) {
+        TODO("Not yet implemented")
+    }
+
+    override fun addSensorSpacing(additionalInfo: InclinometerDTO) {
+        TODO("Not yet implemented")
+    }
+
+    override fun updateSensorSpacing(sensorSpacing: Int, sensorID1: Int, sensorID2: Int, inc: Int) {
+        TODO("Not yet implemented")
+    }
+
+    override fun updateSensorSpacing(additionalInfo: InclinometerDTO) {
+        TODO("Not yet implemented")
+    }
+
+    override fun addSoilLayers(soilLayers: SoilLayersDTO) {
+        TODO("Not yet implemented")
+    }
+
+    override fun updateSoilLayers(soilLayers: SoilLayersDTO) {
+        TODO("Not yet implemented")
+    }
 }

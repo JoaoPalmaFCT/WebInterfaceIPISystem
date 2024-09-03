@@ -988,7 +988,7 @@ function getStyles(measurement: string, selectedMeasurements: readonly string[],
 
 function MonitoringProfiles() {
 
-    const sessionToken: string = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJqb2FvQGdtYWlsLmNvbSIsImlhdCI6MTcxOTM1NDM3MSwiZXhwIjoxNzIxOTgyNDY3fQ.ABHn1JqMi-TI0tns0G09aC80gm5NfbH6Zb3zlW7EqkiFx7fyPhojx6DdxPQx1JgJK2iCwppVU3m1WVaqCNXvtA";
+    const sessionToken: string = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJqb2FvQGdtYWlsLmNvbSIsImlhdCI6MTcyNDY4ODA1MywiZXhwIjoxNzI3MzE2MTQ5fQ.JhIkuaIYSxCe1km_YkmDEZF0VK6DvobmLeZcHO0KSD-vmPV32mI4g6x63Ch2fVVq3VLCW7XcmuTbpNlY6bZkkQ";
     const dispatch = useAppDispatch()
     const dbMeasurementsList = useMeasurementsSelector(state => state.measurements)
     const dbMPGroups = useMPSelector(state => state.mpGroups)

@@ -67,3 +67,11 @@ interface MeasurementsRepository : JpaRepository<MeasurementsDAO, Int> {
 
 
 }
+
+@Repository
+interface ConnectionsRepository : JpaRepository<InfluxDBDAO, Int> {
+
+    fun findByUserAndUrl(user:String, url:String) : InfluxDBDAO
+
+    fun findByUser(user:String) : List<InfluxDBDAO>
+}

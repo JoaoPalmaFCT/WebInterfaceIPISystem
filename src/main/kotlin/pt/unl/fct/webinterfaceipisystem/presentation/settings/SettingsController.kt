@@ -5,44 +5,101 @@ import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 import pt.unl.fct.webinterfaceipisystem.application.SettingsApplication
-import pt.unl.fct.webinterfaceipisystem.data.MeasurementsDAO
-import pt.unl.fct.webinterfaceipisystem.data.MeasurementsDTO
+import pt.unl.fct.webinterfaceipisystem.data.ConnectionDTO
+import pt.unl.fct.webinterfaceipisystem.data.InfluxDBDAO
 
 
 @RestController
 class SettingsController (val app: SettingsApplication) : SettingsAPI{
-    override fun addMeasurement(measurement: MeasurementsDTO) {
-        try {
-            if(measurement.measurement.isBlank() || measurement.inclinometers.isBlank())
-                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "\"Invalid measurement data")
 
-            val newM = MeasurementsDAO(
-                    measurement = measurement.measurement, host = measurement.host,
-                    inclinometers = measurement.inclinometers
+    override fun addConnection(connection: ConnectionDTO) {
+        try {
+            if (connection.url.isBlank() || connection.token.isBlank() || connection.org.isBlank() || connection.user.isBlank()) {
+                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid connection data")
+            }
+
+            val newConnection = InfluxDBDAO(
+                    url = connection.url,
+                    token = connection.token,
+                    organization = connection.org,
+                    user = connection.user
             )
 
-            app.registerMeasurement(newM)
+            app.registerConnection(newConnection)
 
-        }catch(e: IllegalArgumentException){
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "\"Invalid measurement data")
+        } catch (e: IllegalArgumentException) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid connection data")
         }
     }
 
-    override fun getAvailableMeasurements(): List<MeasurementsDTO> {
+    override fun updateConnection(connection: ConnectionDTO) {
         try {
-            val measurements = app.getAllMeasurements()
-            val measurementsListDTO = ArrayList<MeasurementsDTO>()
-            for(m in measurements){
-                val mDTO = MeasurementsDTO(
-                        measurement = m.measurement, host = m.host,
-                        inclinometers = m.inclinometers
-                )
-                measurementsListDTO.add(mDTO)
+            if (connection.url.isBlank() || connection.token.isBlank() || connection.org.isBlank() || connection.user.isBlank()) {
+                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid connection data")
             }
-            return measurementsListDTO
 
-        } catch(e: EmptyResultDataAccessException) {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Measurements not found")
+            val existingConnection = app.getConnectionByUserAndUrl(connection.user, connection.url)
+                    ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Connection not found")
+
+            val updatedConnection = InfluxDBDAO(
+                    id = existingConnection.id,
+                    url = connection.url,
+                    token = connection.token,
+                    organization = connection.org,
+                    user = connection.user
+            )
+
+            app.updateConnection(updatedConnection)
+        } catch (e: EmptyResultDataAccessException) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Connection not found")
+        } catch (e1: IllegalArgumentException) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid connection data")
+        }
+    }
+
+    override fun deleteConnection(connection: ConnectionDTO) {
+        try {
+            val existingConnection = app.getConnectionByUserAndUrl(connection.user, connection.url)
+                    ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Connection not found")
+
+            app.deleteConnection(existingConnection)
+
+        } catch (e: EmptyResultDataAccessException) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Connection not found")
+        }
+    }
+
+    override fun getConnections(user: String): List<ConnectionDTO> {
+        try {
+            val connections = app.getConnectionsByUser(user)
+            return connections.map {
+                ConnectionDTO(
+                        url = it.url,
+                        token = it.token,
+                        org = it.organization,
+                        user = it.user
+                )
+            }
+
+        } catch (e: EmptyResultDataAccessException) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Connections not found")
+        }
+    }
+
+    override fun getConnectionsFromMonitGroup(mg: String): List<ConnectionDTO> {
+        try {
+            val connections = app.getAllConnections()
+            return connections.map {
+                ConnectionDTO(
+                        url = it.url,
+                        token = it.token,
+                        org = it.organization,
+                        user = it.user
+                )
+            }
+
+        } catch (e: EmptyResultDataAccessException) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Connections not found")
         }
     }
 }

@@ -9,11 +9,12 @@ import pt.unl.fct.webinterfaceipisystem.data.*
 
 @CrossOrigin
 @RequestMapping("/api/user")
-@Tag(name = "User", description = "Users API")
+@Tag(name = "Users", description = "Users API")
 interface UsersAPI {
 
     @PostMapping("/")
-    @Operation(summary = "Register user")
+    @Operation(summary = "Register user",
+            description = "Adds a user to the system. The user data must be valid and complete.")
     @ApiResponses(value = [
         ApiResponse(responseCode = "204", description = "User registered successfully"),
         ApiResponse(responseCode = "400", description = "Invalid user data"),
@@ -22,7 +23,8 @@ interface UsersAPI {
     fun register(@RequestBody user: UserDTO)
 
     @PutMapping("/")
-    @Operation(summary = "Update user data")
+    @Operation(summary = "Update user data",
+            description = "Updates an existing user in the system. The user data must be valid and complete.")
     @ApiResponses(value = [
         ApiResponse(responseCode = "204", description = "User updated successfully"),
         ApiResponse(responseCode = "400", description = "Invalid user data"),
@@ -32,7 +34,8 @@ interface UsersAPI {
     fun updateUserData(@RequestBody updatedUser: UpdatedUserDTO)
 
     @PutMapping("/password")
-    @Operation(summary = "Update user password")
+    @Operation(summary = "Update user password",
+            description = "Updated password of an existing user in the system. The user data must be valid and complete.")
     @ApiResponses(value = [
         ApiResponse(responseCode = "204", description = "User updated successfully"),
         ApiResponse(responseCode = "400", description = "Invalid user data"),
@@ -43,7 +46,8 @@ interface UsersAPI {
 
 
     @GetMapping("/{email}")
-    @Operation(summary = "Find a user by its email")
+    @Operation(summary = "Find a user by its email",
+            description = "Retrieves a user from the system. The user data must be valid and complete.")
     @ApiResponses(value = [
         ApiResponse(responseCode = "200", description = "User found"),
         ApiResponse(responseCode = "404", description = "User not found"),
@@ -52,7 +56,8 @@ interface UsersAPI {
     fun getUserByEmail(@PathVariable email: String): UserDTO
 
     @DeleteMapping("/{email}")
-    @Operation(summary = "Delete a user")
+    @Operation(summary = "Delete a user",
+            description = "Deletes a user from the system. The user data must be valid and complete.")
     @ApiResponses(value = [
         ApiResponse(responseCode = "204", description = "User deleted successfully"),
         ApiResponse(responseCode = "404", description = "User not found"),

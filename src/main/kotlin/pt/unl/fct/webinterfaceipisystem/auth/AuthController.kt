@@ -1,5 +1,6 @@
 package pt.unl.fct.webinterfaceipisystem.auth
 
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -10,6 +11,7 @@ import pt.unl.fct.webinterfaceipisystem.service.AuthenticationService
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Authentication", description = "Authentication API")
 class AuthController(private val authenticationService: AuthenticationService) {
 
     @PostMapping

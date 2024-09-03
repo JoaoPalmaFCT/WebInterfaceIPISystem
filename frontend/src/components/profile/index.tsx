@@ -4,7 +4,7 @@ import {getUser} from "../../store/user";
 import jwt from 'jsonwebtoken';
 
 function Profile() {
-    const sessionToken: string = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJqb2FvQGdtYWlsLmNvbSIsImlhdCI6MTcxMjI0OTAwNywiZXhwIjoxNzEyMjUyNjA3fQ.V8pnB1U-3cxC1C9XwXg5E5RH01hgUQp3qbng_rRE81hXovygcYVVA0IH02_lnWqIiubYcGRllHqV7OxU7Tljnw";
+    const sessionToken: string = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJqb2FvQGdtYWlsLmNvbSIsImlhdCI6MTcyNDY4ODA1MywiZXhwIjoxNzI3MzE2MTQ5fQ.JhIkuaIYSxCe1km_YkmDEZF0VK6DvobmLeZcHO0KSD-vmPV32mI4g6x63Ch2fVVq3VLCW7XcmuTbpNlY6bZkkQ";
     const email: string = "joao@gmail.com"
     /*const decodedToken = jwt.decode(sessionToken);
     if (decodedToken) {

@@ -1,5 +1,4 @@
 package pt.unl.fct.webinterfaceipisystem.application
-
 import org.springframework.stereotype.Service
 import pt.unl.fct.webinterfaceipisystem.data.*
 import java.util.*

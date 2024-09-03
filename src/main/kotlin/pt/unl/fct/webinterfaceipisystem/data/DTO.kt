@@ -97,3 +97,19 @@ data class LineCrossSectionDTO(
         val bottomY:Double,
         val profilePositionAdjustmentId:Int
 )
+
+data class ConnectionDTO(
+        val url:String,
+        val token:String,
+        val org:String,
+        val user:String
+)
+
+data class SoilLayersDTO(
+        val position:Int,
+        val symbol:String,
+        val color:String,
+        val description:String,
+        val thickness:Int,
+        val topLevel:Int
+)

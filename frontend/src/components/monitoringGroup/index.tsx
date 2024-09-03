@@ -78,6 +78,24 @@ function createData(
     };
 }
 
+interface Measurement {
+    id: number;
+    measurement: string;
+    host: string;
+}
+
+function createDataMeasurement(
+    id: number,
+    measurement: string,
+    host: string
+): Measurement {
+    return {
+        id,
+        measurement,
+        host
+    };
+}
+
 interface SensorSpacing {
     id: number;
     spacing: number;
@@ -146,6 +164,13 @@ interface HeadCell {
     numeric: boolean;
 }
 
+interface HeadCellMeasurement {
+    disablePadding: boolean;
+    id: keyof Measurement;
+    label: string;
+    numeric: boolean;
+}
+
 interface HeadCellSensor {
     disablePadding: boolean;
     id: keyof SensorSpacing;
@@ -171,6 +196,21 @@ const headCells: readonly HeadCell[] = [
         numeric: false,
         disablePadding: false,
         label: 'Description',
+    }
+];
+
+const headCellsMeasurement: readonly HeadCellMeasurement[] = [
+    {
+        id: 'measurement',
+        numeric: false,
+        disablePadding: true,
+        label: 'Measurement',
+    },
+    {
+        id: 'host',
+        numeric: false,
+        disablePadding: false,
+        label: 'host (MacAddress)',
     }
 ];
 
@@ -216,6 +256,15 @@ interface EnhancedTableProps {
     rowCount: number;
 }
 
+interface EnhancedTablePropsMeasurement {
+    numSelected: number;
+    onRequestSort: (event: React.MouseEvent<unknown>, property: keyof Measurement) => void;
+    onSelectAllClick: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    order: Order;
+    orderBy: string;
+    rowCount: number;
+}
+
 interface EnhancedTablePropsSensor {
     onRequestSort: (event: React.MouseEvent<unknown>, property: keyof SensorSpacing) => void;
     order: Order;
@@ -248,7 +297,56 @@ function EnhancedTableHead(props: EnhancedTableProps) {
                 {headCells.map((headCell) => (
                     <TableCell
                         key={headCell.id}
-                        align={headCell.numeric ? 'center' : 'left'}
+                        align={'center'}//headCell.numeric ? 'center' : 'left'}
+                        padding={headCell.disablePadding ? 'none' : 'normal'}
+                        sortDirection={orderBy === headCell.id ? order : false}
+                        sx={{ backgroundColor: '#10b981' }}
+                    >
+                        <TableSortLabel
+                            active={orderBy === headCell.id}
+                            direction={orderBy === headCell.id ? order : 'asc'}
+                            onClick={createSortHandler(headCell.id)}
+                        >
+                            {headCell.label}
+                            {orderBy === headCell.id ? (
+                                <Box component="span" sx={visuallyHidden}>
+                                    {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                                </Box>
+                            ) : null}
+                        </TableSortLabel>
+                    </TableCell>
+                ))}
+            </TableRow>
+        </TableHead>
+    );
+}
+
+function EnhancedTableHeadMeasurement(props: EnhancedTablePropsMeasurement) {
+    const { onSelectAllClick, order, orderBy, numSelected, rowCount, onRequestSort } =
+        props;
+    const createSortHandler =
+        (property: keyof Measurement) => (event: React.MouseEvent<unknown>) => {
+            onRequestSort(event, property);
+        };
+
+    return (
+        <TableHead>
+            <TableRow>
+                <TableCell padding="checkbox" sx={{ backgroundColor: '#10b981' }}>
+                    <Checkbox
+                        color="primary"
+                        indeterminate={numSelected > 0 && numSelected < rowCount}
+                        checked={rowCount > 0 && numSelected === rowCount}
+                        onChange={onSelectAllClick}
+                        inputProps={{
+                            'aria-label': 'select all groups',
+                        }}
+                    />
+                </TableCell>
+                {headCellsMeasurement.map((headCell) => (
+                    <TableCell
+                        key={headCell.id}
+                        align={'center'}//headCell.numeric ? 'center' : 'left'}
                         padding={headCell.disablePadding ? 'none' : 'normal'}
                         sortDirection={orderBy === headCell.id ? order : false}
                         sx={{ backgroundColor: '#10b981' }}
@@ -360,6 +458,49 @@ function EnhancedTableToolbar(props: EnhancedTableToolbarProps) {
     );
 }
 
+interface EnhancedTableToolbarPropsMeasurement {
+    numSelected: number;
+    onDelete: () => void;
+}
+
+function EnhancedTableToolbarMeasurement(props: EnhancedTableToolbarPropsMeasurement) {
+    const { numSelected, onDelete } = props;
+
+    return (
+        <Toolbar
+            sx={{
+                pl: { sm: 2 },
+                pr: { xs: 1, sm: 1 },
+                ...(numSelected > 0 && {
+                    bgcolor: (theme) =>
+                        alpha(theme.palette.primary.main, theme.palette.action.activatedOpacity),
+                }),backgroundColor: '#047857'
+            }}
+        >
+            {numSelected > 0 ? (
+                <Typography
+                    sx={{ flex: '1 1 100%' }}
+                    color="white"
+                    variant="subtitle1"
+                    component="div"
+                >
+                    {numSelected} selected
+                </Typography>
+            ) : (
+                <Typography
+                    sx={{ flex: '1 1 100%'}}
+                    variant="h6"
+                    id="tableTitle"
+                    component="div"
+                    color="white"
+                >
+                    Select from available measurements
+                </Typography>
+            )}
+        </Toolbar>
+    );
+}
+
 
 function EnhancedTableToolbarSensor() {
 
@@ -405,12 +546,14 @@ const RecenterMap = ({ markers }: RecenterMapProps) => {
 
 function MonitGroups() {
 
+    //Pages
     const [firstPageActive, setFirstPageActive] = React.useState(false); // colocar true
     const [secondPageActive, setSecondPageActive] = React.useState(false);
     const [thirdPageActive, setThirdPageActive] = React.useState(false);
     const [fourthPageActive, setFourthPageActive] = React.useState(false);
     const [fifthPageActive, setFifthPageActive] = React.useState(true); // true para testar
 
+    //First page - monitoring groups
     const [order, setOrder] = React.useState<Order>('asc');
     const [orderBy, setOrderBy] = React.useState<keyof MonitoringGroup>('id');
     const [selected, setSelected] = React.useState<readonly number[]>([]);
@@ -420,6 +563,27 @@ function MonitGroups() {
     const [rows, setRows] = React.useState<MonitoringGroup[]>([]);
     const [checkedGroups, setCheckedGroups] = useState<number[]>([])
     const [groupSelected, setGroupSelected] = useState<boolean>(false);
+
+    //Second page - available measurements
+    const [orderMeasurement, setOrderMeasurement] = React.useState<Order>('asc');
+    const [orderByMeasurement, setOrderByMeasurement] = React.useState<keyof Measurement>('id');
+    const [selectedMeasurement, setSelectedMeasurement] = React.useState<readonly number[]>([]);
+    const [pageMeasurement, setPageMeasurement] = React.useState(0);
+    const [denseMeasurement, setDenseMeasurement] = React.useState(false);
+    const [rowsPerPageMeasurement, setRowsPerPageMeasurement] = React.useState(5);
+    const [rowsMeasurement, setRowsMeasurement] = React.useState<Measurement[]>([]);
+    const [checkedGroupsMeasurement, setCheckedGroupsMeasurement] = useState<number[]>([])
+    const [groupSelectedMeasurement, setGroupSelectedMeasurement
+    ] = useState<boolean>(false);
+
+
+    //Third page - select inclinometers from measurements
+
+
+    //Fourth page - set general settings of selected inclinometers
+
+
+    //Fifth page - General Settings / Sensors spacing / Soil Layers
 
     const [selectedSettingTab, setSelectedSettingTab] = useState<number>(1);
 
@@ -614,6 +778,34 @@ function MonitGroups() {
         setCheckedGroups([]);
     };
 
+    const handleSubmitGroups = () => {
+        if(checkedGroups.length === 0){
+            setGroupSelected(false);
+            /*setAlertNothingSelected(true);
+            setTimeout(() => {
+                setAlertNothingSelected(false);
+            }, 5000);*/
+        }else{
+            setGroupSelected(true);
+            let tempRows = []
+            let checkedGroupsSet = new Set(checkedGroups);
+
+            /*for (let i = 0; i < rows.length; i++) {
+                if (checkedGroupsSet.has(rows[i].id)) {
+                    for(let j = 0; j < monitoringProfilesTableData.length; j++) {
+                        if(monitoringProfilesTableData[j].group === rows[i].group){
+                            tempRows.push(monitoringProfilesTableData[j]);
+                        }
+                    }
+                }
+            }*/
+
+            //setRows(tempRows);
+            setSecondPageActive(true);
+            setFirstPageActive(false);
+        }
+    }
+
     const handleBackButtonToFirst = () => {
         setFirstPageActive(true);
         setSecondPageActive(false);
@@ -727,103 +919,114 @@ function MonitGroups() {
     return (
         <div className="main-wrapper full-screen">
             {firstPageActive && (
-            <div
-                className="filter-container-monitProfile">
-                <Box
-                    sx={{width: '100%'}}>
-                    <Paper
-                        sx={{
-                            width: '100%',
-                            mb: 2
-                        }}>
-                        <EnhancedTableToolbar
-                            numSelected={selected.length}
-                            onDelete={handleDelete}
-                        />
-                        <TableContainer>
-                            <Table
-                                sx={{minWidth: 750}}
-                                aria-labelledby="tableTitle"
-                                size={dense ? 'small' : 'medium'}
-                            >
-                                <EnhancedTableHead
-                                    numSelected={selected.length}
-                                    order={order}
-                                    orderBy={orderBy}
-                                    onSelectAllClick={handleSelectAllClick}
-                                    onRequestSort={handleRequestSort}
-                                    rowCount={rows.length}
-                                />
-                                <TableBody>
-                                    {visibleRows.map((row, index) => {
-                                        const isItemSelected = isSelected(row.id);
-                                        if (isItemSelected && !checkedGroups.includes(row.id)) {
-                                            let tempCheck = checkedGroups;
-                                            tempCheck.push(row.id);
-                                            setCheckedGroups(tempCheck);
-                                        } else if (!isItemSelected && checkedGroups.includes(row.id)) {
-                                            let tempCheck = checkedGroups;
-                                            tempCheck = tempCheck.filter(toRemove => toRemove !== row.id);
-                                            setCheckedGroups(tempCheck);
-                                        }
+                <div
+                    className="filter-container-monitProfile">
+                    <Box
+                        sx={{width: '100%'}}>
+                        <Paper
+                            sx={{
+                                width: '100%',
+                                mb: 2
+                            }}>
+                            <EnhancedTableToolbar
+                                numSelected={selected.length}
+                                onDelete={handleDelete}
+                            />
+                            <TableContainer>
+                                <Table
+                                    sx={{minWidth: 750}}
+                                    aria-labelledby="tableTitle"
+                                    size={dense ? 'small' : 'medium'}
+                                >
+                                    <EnhancedTableHead
+                                        numSelected={selected.length}
+                                        order={order}
+                                        orderBy={orderBy}
+                                        onSelectAllClick={handleSelectAllClick}
+                                        onRequestSort={handleRequestSort}
+                                        rowCount={rows.length}
+                                    />
+                                    <TableBody>
+                                        {visibleRows.map((row, index) => {
+                                            const isItemSelected = isSelected(row.id);
+                                            if (isItemSelected && !checkedGroups.includes(row.id)) {
+                                                let tempCheck = checkedGroups;
+                                                tempCheck.push(row.id);
+                                                setCheckedGroups(tempCheck);
+                                            } else if (!isItemSelected && checkedGroups.includes(row.id)) {
+                                                let tempCheck = checkedGroups;
+                                                tempCheck = tempCheck.filter(toRemove => toRemove !== row.id);
+                                                setCheckedGroups(tempCheck);
+                                            }
 
-                                        const labelId = `enhanced-table-checkbox-${index}`;
+                                            const labelId = `enhanced-table-checkbox-${index}`;
 
-                                        return (
+                                            return (
+                                                <TableRow
+                                                    hover
+                                                    onClick={(event) => handleClick(event, row.id)}
+                                                    role="checkbox"
+                                                    aria-checked={isItemSelected}
+                                                    tabIndex={-1}
+                                                    key={row.id}
+                                                    selected={isItemSelected}
+                                                    sx={{cursor: 'pointer'}}
+                                                >
+                                                    <TableCell
+                                                        padding="checkbox">
+                                                        <Checkbox
+                                                            color="primary"
+                                                            checked={isItemSelected}
+                                                            inputProps={{
+                                                                'aria-labelledby': labelId,
+                                                            }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell
+                                                        align="left">{row.name}</TableCell>
+                                                    <TableCell
+                                                        align="center">{row.region}</TableCell>
+                                                    <TableCell
+                                                        align="center">{row.description}</TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                        {emptyRows > 0 && (
                                             <TableRow
-                                                hover
-                                                onClick={(event) => handleClick(event, row.id)}
-                                                role="checkbox"
-                                                aria-checked={isItemSelected}
-                                                tabIndex={-1}
-                                                key={row.id}
-                                                selected={isItemSelected}
-                                                sx={{cursor: 'pointer'}}
+                                                style={{
+                                                    height: (dense ? 33 : 53) * emptyRows,
+                                                }}
                                             >
                                                 <TableCell
-                                                    padding="checkbox">
-                                                    <Checkbox
-                                                        color="primary"
-                                                        checked={isItemSelected}
-                                                        inputProps={{
-                                                            'aria-labelledby': labelId,
-                                                        }}
-                                                    />
-                                                </TableCell>
-                                                <TableCell
-                                                    align="left">{row.name}</TableCell>
-                                                <TableCell
-                                                    align="center">{row.region}</TableCell>
-                                                <TableCell
-                                                    align="center">{row.description}</TableCell>
+                                                    colSpan={6}/>
                                             </TableRow>
-                                        );
-                                    })}
-                                    {emptyRows > 0 && (
-                                        <TableRow
-                                            style={{
-                                                height: (dense ? 33 : 53) * emptyRows,
-                                            }}
-                                        >
-                                            <TableCell
-                                                colSpan={6}/>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-                        <TablePagination
-                            rowsPerPageOptions={[5, 10, 25]}
-                            component="div"
-                            count={rows.length}
-                            rowsPerPage={rowsPerPage}
-                            page={page}
-                            onPageChange={handleChangePage}
-                            onRowsPerPageChange={handleChangeRowsPerPage}
-                        />
-                    </Paper>
-                </Box>
-            </div>)}
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                            <TablePagination
+                                rowsPerPageOptions={[5, 10, 25]}
+                                component="div"
+                                count={rows.length}
+                                rowsPerPage={rowsPerPage}
+                                page={page}
+                                onPageChange={handleChangePage}
+                                onRowsPerPageChange={handleChangeRowsPerPage}
+                            />
+                        </Paper>
+                    </Box>
+                    <div>
+                        <button
+                            type="button"
+                            className="py-3 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-lg"
+                            onClick={handleSubmitGroups}
+                        >
+                            Define
+                            selected
+                            groups
+                        </button>
+                    </div>
+                </div>)}
             {secondPageActive && (
                 <div
                     className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">

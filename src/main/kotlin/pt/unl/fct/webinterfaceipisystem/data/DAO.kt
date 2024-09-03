@@ -205,12 +205,12 @@ data class LineCrossSectionDAO(
 @Table(name = "InfluxDB")
 data class InfluxDBDAO(
         @Id
-        val id:String,
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        val id:Int = 0,
         val url:String,
         val token:String,
-        val port:Int,
         val organization:String,
-        val bucket:String
+        val user:String
 )
 
 @Entity

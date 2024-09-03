@@ -28,7 +28,7 @@ class SecurityConfig(private val authenticationProvider: AuthenticationProvider)
                     }
                     .authorizeHttpRequests{
                         it
-                                .requestMatchers("/api/auth", "/api/auth/refresh", "/error", "/swagger-ui/index.html")
+                                .requestMatchers("/api/auth", "/api/auth/refresh", "/error","/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui/index.html")
                                 .permitAll()
                                 .requestMatchers(HttpMethod.POST,"/api/user")
                                 .permitAll()
@@ -47,7 +47,7 @@ class SecurityConfig(private val authenticationProvider: AuthenticationProvider)
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration()
-        configuration.allowedOrigins = listOf("http://localhost:3000")
+        configuration.allowedOrigins = listOf("http://localhost:3000", "http://localhost:8080/")
         configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE")
         configuration.allowCredentials = true
         configuration.allowedHeaders = listOf("Authorization", "Cache-Control", "Content-Type")

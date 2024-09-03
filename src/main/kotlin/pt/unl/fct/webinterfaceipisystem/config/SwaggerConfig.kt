@@ -24,9 +24,6 @@ class SwaggerConfig {
         val devServer = Server()
         devServer.setUrl(devUrl)
         devServer.setDescription("Server URL in Development environment")
-        val prodServer = Server()
-        prodServer.setUrl(prodUrl)
-        prodServer.setDescription("Server URL in Production environment")
         val contact = Contact()
         contact.setName("Git Repository\n")
         contact.setUrl("https://github.com/JoaoPalmaFCT/WebInterfaceIPISystem")
@@ -36,8 +33,8 @@ class SwaggerConfig {
                 .version("1")
                 .contact(contact)
                 .description("API of a web interface for an IPI system." +
-                        " This project was made by: João Palma")
+                        " Project made by: João Palma")
                 .license(mitLicense)
-        return OpenAPI().info(info).servers(listOf(devServer, prodServer))
+        return OpenAPI().info(info).servers(listOf(devServer))
     }
 }
