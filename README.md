@@ -6,6 +6,7 @@
   <figcaption>Figure 1: System Architecture.</figcaption>
 </figure>
 
+--------
 Project developed by:  
 João Palma  
 
