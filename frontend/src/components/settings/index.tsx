@@ -38,7 +38,7 @@ function Settings() {
     /*const api = new InfluxDB({
         //url: 'https://positive-presumably-bluegill.ngrok-free.app/',
         url: '//localhost:8086/',
-        token: '5q-pfsRjWHQvyFZqhQ3Y8BT9CQmUJBAbd4e_paPOo5bMuwDtqSi-vG_PVQMQhs06Fm45PEPDySxu7Z0DLDjJRA=='
+        token: '5q-pfsRjWH5q-pfsRjWHQvyFZqhBAbd4e_paPOo5bMuwDtqSi-vG_PVQMQhs06Fm45PEPDySxu7Z0DLDjJRA=='
     }).getQueryApi('c5936632b4808196');*/
 
     const handleTestConnection = async () => {

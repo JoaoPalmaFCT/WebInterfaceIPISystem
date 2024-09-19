@@ -19,12 +19,12 @@ class SettingsApplication (val connections: ConnectionsRepository) {
         return connections.delete(con)
     }
 
-    fun getConnectionByUserAndUrl(user:String, url:String) : InfluxDBDAO{
-        return connections.findByUserAndUrl(user, url)
+    fun getConnectionByBucketAndUrl(bucket:String, url:String) : InfluxDBDAO{
+        return connections.findByBucketAndUrl(bucket, url)
     }
 
-    fun getConnectionsByUser(user:String) : List<InfluxDBDAO>{
-        return connections.findByUser(user)
+    fun getConnectionsByBucket(bucket:String) : List<InfluxDBDAO>{
+        return connections.findByBucket(bucket)
     }
 
     fun getAllConnections() : List<InfluxDBDAO>{

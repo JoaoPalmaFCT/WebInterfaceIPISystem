@@ -15,6 +15,7 @@ function Profile() {
     }*/
     const dispatch = useAppDispatch()
     const user = useUserSelector((state) => state.user);
+
     useEffect(() => { dispatch(getUser(email, sessionToken))}, [dispatch, ""]);
 
     //const [selectedName, setSelectedName] = useState<string | null>('');
@@ -22,22 +23,59 @@ function Profile() {
     //const [selectedPhoneNumber, setSelectedPhoneNumber] = useState<number | null>(0);
 
     const [editingData, setEditingData] = useState(false)
+    const [userCompany, setUserCompany]  = useState<string>("")
 
-                        return (<div className="main-wrapper full-screen">
-                        <h2>User Profile</h2>
-                        {!editingData ? (
-                            <>
-                        <p>Name: {user?.name}</p>
-                        <p>Email: {user?.email}</p>
-                        <p>Phone Number: {user?.phoneNumber}</p>
-                        <p>Company: {user?.company}</p>
-                        <p>Role: {user?.role}</p>
-                    </>
+    useEffect(() => {
+        setUserCompany("FCT NOVA")
+    }, [user]);
+
+    return (
+        <div
+            className="wrapper full-screen" style={{paddingTop: '20px'}}>
+            <div
+                className="profile-container">
+                <h2 className="profile-header">User
+                    Profile</h2>
+                {!editingData ? (
+                    <div
+                        className="profile-info">
+                        <p className="profile-item">
+                            <strong>Name:</strong> {user?.name || "Loading..."}
+                        </p>
+                        <p className="profile-item">
+                            <strong>Email:</strong> {user?.email || "Loading..."}
+                        </p>
+                        <p className="profile-item">
+                            <strong>Phone
+                                Number:</strong> {user?.phoneNumber || "Loading..."}
+                        </p>
+                        <p className="profile-item">
+                            <strong>Company:</strong> {userCompany || "Loading..."}
+                        </p>
+                        <p className="profile-item">
+                            <strong>Role:</strong> {user?.role?.toUpperCase() || "Loading..."}
+                        </p>
+                        <button
+                            className="edit-button-profile"
+                            onClick={() => setEditingData(true)}>
+                            Edit
+                            Profile
+                        </button>
+                    </div>
                 ) : (
-                    <>
-                    </>
+                    <div>
+                        <p>Edit Personal Data
+                            </p>
+                        <button
+                            className="save-button-profile"
+                            onClick={() => setEditingData(false)}>
+                            Save
+                            Changes
+                        </button>
+                    </div>
                 )}
             </div>
+        </div>
     );
 }
 

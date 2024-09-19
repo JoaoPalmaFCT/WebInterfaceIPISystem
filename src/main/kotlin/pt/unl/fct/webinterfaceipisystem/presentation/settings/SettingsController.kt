@@ -14,15 +14,15 @@ class SettingsController (val app: SettingsApplication) : SettingsAPI{
 
     override fun addConnection(connection: ConnectionDTO) {
         try {
-            if (connection.url.isBlank() || connection.token.isBlank() || connection.org.isBlank() || connection.user.isBlank()) {
+            if (connection.url.isBlank() || connection.token.isBlank() || connection.org.isBlank() || connection.bucket.isBlank()) {
                 throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid connection data")
             }
 
             val newConnection = InfluxDBDAO(
+                    bucket = connection.bucket,
                     url = connection.url,
                     token = connection.token,
-                    organization = connection.org,
-                    user = connection.user
+                    organization = connection.org
             )
 
             app.registerConnection(newConnection)
@@ -34,19 +34,18 @@ class SettingsController (val app: SettingsApplication) : SettingsAPI{
 
     override fun updateConnection(connection: ConnectionDTO) {
         try {
-            if (connection.url.isBlank() || connection.token.isBlank() || connection.org.isBlank() || connection.user.isBlank()) {
+            if (connection.url.isBlank() || connection.token.isBlank() || connection.org.isBlank() || connection.bucket.isBlank()) {
                 throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid connection data")
             }
 
-            val existingConnection = app.getConnectionByUserAndUrl(connection.user, connection.url)
+            val existingConnection = app.getConnectionByBucketAndUrl(connection.bucket, connection.url)
                     ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Connection not found")
 
             val updatedConnection = InfluxDBDAO(
-                    id = existingConnection.id,
                     url = connection.url,
                     token = connection.token,
                     organization = connection.org,
-                    user = connection.user
+                    bucket = existingConnection.bucket
             )
 
             app.updateConnection(updatedConnection)
@@ -59,7 +58,7 @@ class SettingsController (val app: SettingsApplication) : SettingsAPI{
 
     override fun deleteConnection(connection: ConnectionDTO) {
         try {
-            val existingConnection = app.getConnectionByUserAndUrl(connection.user, connection.url)
+            val existingConnection = app.getConnectionByBucketAndUrl(connection.bucket, connection.url)
                     ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Connection not found")
 
             app.deleteConnection(existingConnection)
@@ -69,15 +68,15 @@ class SettingsController (val app: SettingsApplication) : SettingsAPI{
         }
     }
 
-    override fun getConnections(user: String): List<ConnectionDTO> {
+    override fun getConnections(bucket: String): List<ConnectionDTO> {
         try {
-            val connections = app.getConnectionsByUser(user)
+            val connections = app.getConnectionsByBucket(bucket)
             return connections.map {
                 ConnectionDTO(
                         url = it.url,
                         token = it.token,
                         org = it.organization,
-                        user = it.user
+                        bucket = it.bucket
                 )
             }
 
@@ -94,7 +93,7 @@ class SettingsController (val app: SettingsApplication) : SettingsAPI{
                         url = it.url,
                         token = it.token,
                         org = it.organization,
-                        user = it.user
+                        bucket = it.bucket
                 )
             }
 

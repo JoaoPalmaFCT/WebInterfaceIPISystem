@@ -11,6 +11,7 @@ import pt.unl.fct.webinterfaceipisystem.data.*
 @Component
 @Order(1)
 class Init1(val userRepository: UserRepository,
+            val companyRepository: CompanyRepository,
             val monitoringProfileGroupRepository: MonitoringProfileGroupRepository,
             val measurementsRepository: MeasurementsRepository,
             val pointRepository: PointRepository,
@@ -22,8 +23,12 @@ class Init1(val userRepository: UserRepository,
     override fun run(vararg args: String?) {
 
         val listOfUsers = mutableListOf<UserDAO>()
-        listOfUsers.add(UserDAO("joao@gmail.com", "João", encoder.encode("1234"), "1234", 1, RolesDAO.ADMIN))
+        listOfUsers.add(UserDAO("joao@gmail.com", "João", encoder.encode("1234"), "123456789", 1, RolesDAO.ADMIN))
         userRepository.saveAll(listOfUsers)
+
+        val listOfCompanies = mutableListOf<CompanyDAO>()
+        listOfCompanies.add(CompanyDAO(1, "FCT NOVA"))
+        companyRepository.saveAll(listOfCompanies)
 
         val listOfMPGroups = mutableListOf<MonitoringProfileGroupDAO>()
         listOfMPGroups.add(MonitoringProfileGroupDAO(1, "Barragem do Azibo", "Barragem do Azibo", 1))

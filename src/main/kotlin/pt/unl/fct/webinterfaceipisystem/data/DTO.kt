@@ -102,7 +102,7 @@ data class ConnectionDTO(
         val url:String,
         val token:String,
         val org:String,
-        val user:String
+        val bucket:String
 )
 
 data class SoilLayersDTO(

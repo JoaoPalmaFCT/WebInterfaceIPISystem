@@ -37,7 +37,19 @@ data class CompanyDAO(
 @Table(name = "Region")
 data class RegionDAO(
         @Id
-        val name:String
+        val name:String,
+        val district: String
+)
+
+@Entity
+@Table(name = "UserMonitoringGroup")
+data class UserMonitoringGroupDAO(
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        val id:Int = 0,
+        val monitoringGroupId: Int,
+        val userId: Int,
+        val permissionLevel: String
 )
 
 @Entity
@@ -50,8 +62,8 @@ data class InclinometerDAO(
         val length:Long,
         val currentFrequency:String,
         val azimuth:Long? = 0,
-        val latitude:Long? = null,
-        val longitude:Long? = null,
+        val latitude:Long? = 0,
+        val longitude:Long? = 0,
         val heightTopSensor:Long,
         val casingAngleToHorizontal:Long? = 0
 )
@@ -64,9 +76,42 @@ data class MonitoringGroupDAO(
         val id:Int = 0,
         val name:String,
         val region:String,
+        val description:String
+)
+
+@Entity
+@Table(name = "MonitoringGroupInclinometer")
+data class MonitoringGroupInclinometerDAO(
+        @Id
+        val monitoringGroupId: Int,
+        @Id
+        val inclinometerId: Int,
+        val name:String,
+        val region:String,
+        val description:String
+)
+
+/*@Entity
+@Table(name = "MonitoringGroupTest")
+data class MonitoringGroupTestDAO(
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        val id:Int = 0,
+        val name:String,
+        val region:String,
         val description:String,
         val measurements:String,
         val inclinometers:String
+)*/
+
+@Entity
+@Table(name = "Structures")
+data class StructuresDAO(
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        val id:Int = 0,
+        val name:String,
+        val measurement:String
 )
 
 @Entity
@@ -86,18 +131,29 @@ data class SensorDAO(
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         val id:Int = 0,
+        val sensorId:String,
         val hasFixedPoint:Boolean,
         val inclinometerId:Int
 )
 
 @Entity
+@Table(name = "SensorDistance")
+data class SensorDistanceDAO(
+        @Id
+        val id1:Int,
+        @Id
+        val id2:Int,
+        val sensorDistance:Float
+)
+
+/*@Entity
 @Table(name = "InclinometerFrequencyHistory")
 data class InclinometerFrequencyHistoryDAO(
         @Id
         val logDate:Date,
         val frequency:Long,
         val inclinometerId:Int
-)
+)*/
 
 @Entity
 @Table(name = "SoilAndWaterLayers")
@@ -108,6 +164,7 @@ data class SoilAndWaterLayersDAO(
         val layer:Int,
         val waterLevel:Long,
         val surfaceLevel:Long,
+        val logDate:String,
         val inclinometerId:Int
 )
 
@@ -120,8 +177,29 @@ data class LayerDAO(
         val symbol:String,
         val description:String,
         val color:String,
-        val layerThickness:Long,
+        val layerThickness:Float,
+        val topLevel:Float,
+        val soilAndWaterLayersId:Int
+)
+
+@Entity
+@Table(name = "StructureInclinometer")
+data class StructureInclinometerDAO(
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        val id:Int = 0,
+        val structureId: String,
         val inclinometerId:Int
+)
+
+@Entity
+@Table(name = "StructureMPGroup")
+data class StructureMPGroupDAO(
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        val id:Int = 0,
+        val structureId: String,
+        val monitoringProfileGroupId:Int
 )
 
 @Entity
@@ -205,15 +283,13 @@ data class LineCrossSectionDAO(
 @Table(name = "InfluxDB")
 data class InfluxDBDAO(
         @Id
-        @GeneratedValue(strategy = GenerationType.IDENTITY)
-        val id:Int = 0,
+        val bucket:String,
         val url:String,
         val token:String,
-        val organization:String,
-        val user:String
+        val organization:String
 )
 
-@Entity
+/*@Entity
 @Table(name = "MQTT")
 data class MQTTDAO(
         @Id
@@ -223,4 +299,4 @@ data class MQTTDAO(
         val port:Int,
         val username:String,
         val password:String
-)
+)*/

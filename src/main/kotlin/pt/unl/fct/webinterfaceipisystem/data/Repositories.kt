@@ -11,6 +11,12 @@ interface UserRepository : JpaRepository<UserDAO, Long> {
     fun findByEmail(email : String): UserDAO
 }
 
+interface CompanyRepository : JpaRepository<CompanyDAO, Long> {
+
+    fun findById(id : Int): CompanyDAO
+}
+
+
 @Repository
 interface InclinometerRepository : JpaRepository<InclinometerDAO, Int> {
 
@@ -71,7 +77,7 @@ interface MeasurementsRepository : JpaRepository<MeasurementsDAO, Int> {
 @Repository
 interface ConnectionsRepository : JpaRepository<InfluxDBDAO, Int> {
 
-    fun findByUserAndUrl(user:String, url:String) : InfluxDBDAO
+    fun findByBucketAndUrl(bucket:String, url:String) : InfluxDBDAO
 
-    fun findByUser(user:String) : List<InfluxDBDAO>
+    fun findByBucket(bucket:String) : List<InfluxDBDAO>
 }
