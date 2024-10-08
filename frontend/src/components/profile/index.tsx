@@ -4,7 +4,7 @@ import {getUser} from "../../store/user";
 import jwt from 'jsonwebtoken';
 
 function Profile() {
-    const sessionToken: string = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJqb2FvQGdtYWlsLmNvbSIsImlhdCI6MTcyNDY4ODA1MywiZXhwIjoxNzI3MzE2MTQ5fQ.JhIkuaIYSxCe1km_YkmDEZF0VK6DvobmLeZcHO0KSD-vmPV32mI4g6x63Ch2fVVq3VLCW7XcmuTbpNlY6bZkkQ";
+    const sessionToken: string = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJqb2FvQGdtYWlsLmNvbSIsImlhdCI6MTcyNzM3MzU2MCwiZXhwIjoxNzMwMDAxNjU2fQ.OFdGB8u3r8kLx-KZxqJc7R6i06D2ytAue8Hp0_kZEP4-21b9WhPo1_Xrq-svMgoRZoRYKBi8-wYxohtFCXN2BA";
     const email: string = "joao@gmail.com"
     /*const decodedToken = jwt.decode(sessionToken);
     if (decodedToken) {
@@ -18,16 +18,42 @@ function Profile() {
 
     useEffect(() => { dispatch(getUser(email, sessionToken))}, [dispatch, ""]);
 
-    //const [selectedName, setSelectedName] = useState<string | null>('');
-    //const [selectedEmail, setSelectedEmail] = useState<string | null>('');
-    //const [selectedPhoneNumber, setSelectedPhoneNumber] = useState<number | null>(0);
-
     const [editingData, setEditingData] = useState(false)
     const [userCompany, setUserCompany]  = useState<string>("")
 
+    const [updatedName, setUpdatedName] = useState<string>(user?.name || '');
+    const [updatedEmail, setUpdatedEmail] = useState<string>(user?.email || '');
+    const [updatedPhoneNumber, setUpdatedPhoneNumber] = useState<number>(user?.phoneNumber || 0);
+
+
+    const [password, setPassword] = useState<string>('');
+    const [confirmPassword, setConfirmPassword] = useState<string>('');
+    const [passwordStrength, setPasswordStrength] = useState<string>('Weak');
+
+
     useEffect(() => {
         setUserCompany("FCT NOVA")
+        if(user?.email !== undefined && user?.name !== undefined && user?.phoneNumber !== undefined){
+            setUpdatedName(user?.name)
+            setUpdatedEmail(user?.email)
+            setUpdatedPhoneNumber(user?.phoneNumber)
+        }
     }, [user]);
+
+    const handlePasswordChange = (value: string) => {
+        setPassword(value);
+        const strength = calculatePasswordStrength(value);
+        setPasswordStrength(strength);
+    };
+
+    const calculatePasswordStrength = (password: string) => {
+        if (password.length > 8 && /[A-Z]/.test(password) && /\d/.test(password)) {
+            return 'Strong';
+        } else if (password.length > 5) {
+            return 'Medium';
+        }
+        return 'Weak';
+    };
 
     return (
         <div
@@ -64,11 +90,70 @@ function Profile() {
                     </div>
                 ) : (
                     <div>
-                        <p>Edit Personal Data
+                        <div
+                            className="input-group-profile">
+                            <label>Name:</label>
+                            <input
+                                type="text"
+                                value={updatedName}
+                                onChange={(e) => setUpdatedName(e.target.value)}
+                            />
+                        </div>
+                        <div
+                            className="input-group-profile">
+                            <label>Email:</label>
+                            <input
+                                type="email"
+                                value={updatedEmail}
+                                onChange={(e) => setUpdatedEmail(e.target.value)}
+                            />
+                        </div>
+                        <div
+                            className="input-group-profile">
+                            <label>Phone
+                                Number:</label>
+                            <input
+                                type="number"
+                                value={updatedPhoneNumber}
+                                onChange={(e) => setUpdatedPhoneNumber(Number(e.target.value))}
+                            />
+                        </div>
+                        <h3 className="password-title">Change
+                            Password</h3>
+                        <div
+                            className="input-group-profile">
+                            <label>New
+                                Password:</label>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => handlePasswordChange(e.target.value)}
+                            />
+                            <p>Password
+                                Strength: <strong>{passwordStrength}</strong>
                             </p>
+                        </div>
+                        <div
+                            className="input-group-profile">
+                            <label>Confirm
+                                Password:</label>
+                            <input
+                                type="password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                            />
+                        </div>
                         <button
                             className="save-button-profile"
-                            onClick={() => setEditingData(false)}>
+                            onClick={() => {
+                                if (password !== confirmPassword) {
+                                    alert("Passwords do not match!");
+                                } else {
+                                    setEditingData(false);
+                                }
+                            }}
+                            style={{marginTop: '20px'}}
+                        >
                             Save
                             Changes
                         </button>

@@ -29,6 +29,7 @@ function Settings() {
     const [url, setUrl] = useState<string>('');
     const [token, setToken] = useState<string>('');
     const [org, setOrg] = useState<string>('');
+    const [bucket, setBucket] = useState<string>('');
 
     const [api, setApi] = useState(new InfluxDB({
         url: '',
@@ -78,6 +79,10 @@ function Settings() {
 
     const handleOrg = (newOrg: string) => {
         setOrg(newOrg)
+    }
+
+    const handleBucket = (newBucket: string) => {
+        setBucket(newBucket)
     }
 
     const handleSubmit = () => {
@@ -196,6 +201,13 @@ function Settings() {
                             label="Organization"
                             style={{paddingBottom: '15px'}}
                             onChange={(e) => handleOrg(e.target.value)}
+                        />
+                        <TextField
+                            required
+                            id="outlined-required"
+                            label="Bucket"
+                            style={{paddingBottom: '15px'}}
+                            onChange={(e) => handleBucket(e.target.value)}
                         />
                         <Box display="flex" justifyContent="space-between" alignItems="center">
                             <Typography

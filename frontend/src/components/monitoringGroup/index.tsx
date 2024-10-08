@@ -7,8 +7,16 @@ import {
     alpha,
     Box,
     Checkbox,
+    Chip,
+    FormControl,
     IconButton,
+    InputLabel,
+    MenuItem,
+    Modal,
+    OutlinedInput,
     Paper,
+    Select,
+    SelectChangeEvent,
     Table,
     TableBody,
     TableCell,
@@ -17,9 +25,12 @@ import {
     TablePagination,
     TableRow,
     TableSortLabel,
+    TextField,
+    Theme,
     Toolbar,
     Tooltip,
-    Typography
+    Typography,
+    useTheme
 } from "@mui/material";
 import {
     visuallyHidden
@@ -28,6 +39,7 @@ import {
     ArrowBack,
     CheckBoxOutlineBlankRounded,
     CheckBoxRounded,
+    Clear,
     Close,
     Delete,
     OpenWith
@@ -44,6 +56,7 @@ import {
 } from "react-leaflet";
 import L
     from "leaflet";
+
 
 interface SoilItem {
     id: number;
@@ -96,6 +109,63 @@ function createDataMeasurement(
     };
 }
 
+interface Inclinometer {
+    id: number;
+    measurement: string;
+    inclinometer: string;
+    azimute: number;
+    latitude: number;
+    longitude: number;
+    topSensor: number;
+    casingAngle: number;
+}
+
+function createDataInclinometer(
+    id: number,
+    measurement: string,
+    inclinometer: string,
+    azimute: number,
+    latitude: number,
+    longitude: number,
+    topSensor: number,
+    casingAngle: number
+): Inclinometer {
+    return {
+        id,
+        measurement,
+        inclinometer,
+        azimute,
+        latitude,
+        longitude,
+        topSensor,
+        casingAngle
+    };
+}
+
+interface IncFreq {
+    id: number;
+    measurement: string;
+    inclinometer: string;
+    lastRecord: string;
+    avgFrequency: string;
+}
+
+function createDataIncFreq(
+    id: number,
+    measurement: string,
+    inclinometer: string,
+    lastRecord: string,
+    avgFrequency: string
+): IncFreq {
+    return {
+        id,
+        measurement,
+        inclinometer,
+        lastRecord,
+        avgFrequency
+    };
+}
+
 interface SensorSpacing {
     id: number;
     spacing: number;
@@ -119,6 +189,27 @@ function createDataSensorSpacing(
         referencePoint
     };
 }
+
+const ITEM_HEIGHT = 48;
+const ITEM_PADDING_TOP = 8;
+const MenuProps = {
+    PaperProps: {
+        style: {
+            maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
+            width: 250,
+        },
+    },
+};
+
+function getStyles(measurement: string, selectedMeasurements: readonly string[], theme: Theme) {
+    return {
+        fontWeight:
+            selectedMeasurements.indexOf(measurement) === -1
+                ? theme.typography.fontWeightRegular
+                : theme.typography.fontWeightMedium,
+    };
+}
+
 
 
 const createCustomIcon = (markerId: number) => {
@@ -171,6 +262,20 @@ interface HeadCellMeasurement {
     numeric: boolean;
 }
 
+interface HeadCellInclinometer {
+    disablePadding: boolean;
+    id: keyof Inclinometer;
+    label: string;
+    numeric: boolean;
+}
+
+interface HeadCellIncFreq {
+    disablePadding: boolean;
+    id: keyof IncFreq;
+    label: string;
+    numeric: boolean;
+}
+
 interface HeadCellSensor {
     disablePadding: boolean;
     id: keyof SensorSpacing;
@@ -211,6 +316,78 @@ const headCellsMeasurement: readonly HeadCellMeasurement[] = [
         numeric: false,
         disablePadding: false,
         label: 'host (MacAddress)',
+    }
+];
+
+const headCellsInclinometer: readonly HeadCellInclinometer[] = [
+    {
+        id: 'measurement',
+        numeric: false,
+        disablePadding: true,
+        label: 'Measurement',
+    },
+    {
+        id: 'inclinometer',
+        numeric: false,
+        disablePadding: false,
+        label: 'Inclinometer',
+    },
+    {
+        id: 'azimute',
+        numeric: false,
+        disablePadding: false,
+        label: 'Azimute (º)',
+    },
+    {
+        id: 'latitude',
+        numeric: false,
+        disablePadding: false,
+        label: 'Latitude',
+    },
+    {
+        id: 'longitude',
+        numeric: false,
+        disablePadding: false,
+        label: 'Longitude',
+    },
+    {
+        id: 'topSensor',
+        numeric: false,
+        disablePadding: false,
+        label: 'Level of top sensor (m)',
+    },
+    {
+        id: 'casingAngle',
+        numeric: false,
+        disablePadding: false,
+        label: 'Casing angle to horizontal (º)',
+    }
+];
+
+const headCellsIncFreq: readonly HeadCellIncFreq[] = [
+    {
+        id: 'measurement',
+        numeric: false,
+        disablePadding: true,
+        label: 'Measurement',
+    },
+    {
+        id: 'inclinometer',
+        numeric: false,
+        disablePadding: false,
+        label: 'Inclinometer',
+    },
+    {
+        id: 'lastRecord',
+        numeric: false,
+        disablePadding: false,
+        label: 'Last recorded date',
+    },
+    {
+        id: 'avgFrequency',
+        numeric: false,
+        disablePadding: false,
+        label: 'Average frequency',
     }
 ];
 
@@ -260,6 +437,22 @@ interface EnhancedTablePropsMeasurement {
     numSelected: number;
     onRequestSort: (event: React.MouseEvent<unknown>, property: keyof Measurement) => void;
     onSelectAllClick: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    order: Order;
+    orderBy: string;
+    rowCount: number;
+}
+
+interface EnhancedTablePropsInclinometer {
+    numSelected: number;
+    onRequestSort: (event: React.MouseEvent<unknown>, property: keyof Inclinometer) => void;
+    onSelectAllClick: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    order: Order;
+    orderBy: string;
+    rowCount: number;
+}
+
+interface EnhancedTablePropsIncFreq {
+    onRequestSort: (event: React.MouseEvent<unknown>, property: keyof IncFreq) => void;
     order: Order;
     orderBy: string;
     rowCount: number;
@@ -370,6 +563,93 @@ function EnhancedTableHeadMeasurement(props: EnhancedTablePropsMeasurement) {
     );
 }
 
+function EnhancedTableHeadInclinometer(props: EnhancedTablePropsInclinometer) {
+    const { onSelectAllClick, order, orderBy, numSelected, rowCount, onRequestSort } =
+        props;
+    const createSortHandler =
+        (property: keyof Inclinometer) => (event: React.MouseEvent<unknown>) => {
+            onRequestSort(event, property);
+        };
+
+    return (
+        <TableHead>
+            <TableRow>
+                <TableCell padding="checkbox" sx={{ backgroundColor: '#10b981' }}>
+                    <Checkbox
+                        color="primary"
+                        indeterminate={numSelected > 0 && numSelected < rowCount}
+                        checked={rowCount > 0 && numSelected === rowCount}
+                        onChange={onSelectAllClick}
+                        inputProps={{
+                            'aria-label': 'select all groups',
+                        }}
+                    />
+                </TableCell>
+                {headCellsInclinometer.map((headCell) => (
+                    <TableCell
+                        key={headCell.id}
+                        align={'center'}//headCell.numeric ? 'center' : 'left'}
+                        padding={headCell.disablePadding ? 'none' : 'normal'}
+                        sortDirection={orderBy === headCell.id ? order : false}
+                        sx={{ backgroundColor: '#10b981' }}
+                    >
+                        <TableSortLabel
+                            active={orderBy === headCell.id}
+                            direction={orderBy === headCell.id ? order : 'asc'}
+                            onClick={createSortHandler(headCell.id)}
+                        >
+                            {headCell.label}
+                            {orderBy === headCell.id ? (
+                                <Box component="span" sx={visuallyHidden}>
+                                    {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                                </Box>
+                            ) : null}
+                        </TableSortLabel>
+                    </TableCell>
+                ))}
+            </TableRow>
+        </TableHead>
+    );
+}
+
+function EnhancedTableHeadIncFreq(props: EnhancedTablePropsIncFreq) {
+    const { order, orderBy, rowCount, onRequestSort } =
+        props;
+    const createSortHandler =
+        (property: keyof IncFreq) => (event: React.MouseEvent<unknown>) => {
+            onRequestSort(event, property);
+        };
+
+    return (
+        <TableHead>
+            <TableRow>
+                {headCellsIncFreq.map((headCell) => (
+                    <TableCell
+                        key={headCell.id}
+                        align={'center'}
+                        padding={headCell.disablePadding ? 'none' : 'normal'}
+                        sortDirection={orderBy === headCell.id ? order : false}
+                        sx={{ backgroundColor: '#10b981' }}
+                    >
+                        <TableSortLabel
+                            active={orderBy === headCell.id}
+                            direction={orderBy === headCell.id ? order : 'asc'}
+                            onClick={createSortHandler(headCell.id)}
+                        >
+                            {headCell.label}
+                            {orderBy === headCell.id ? (
+                                <Box component="span" sx={visuallyHidden}>
+                                    {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                                </Box>
+                            ) : null}
+                        </TableSortLabel>
+                    </TableCell>
+                ))}
+            </TableRow>
+        </TableHead>
+    );
+}
+
 function EnhancedTableHeadSensor(props: EnhancedTablePropsSensor) {
     const { order, orderBy, rowCount, onRequestSort } =
         props;
@@ -444,7 +724,7 @@ function EnhancedTableToolbar(props: EnhancedTableToolbarProps) {
                     component="div"
                     color="white"
                 >
-                    Select groups from existing monitoring profiles
+                    Select the desired groups
                 </Typography>
             )}
             {numSelected > 0 && (
@@ -501,6 +781,71 @@ function EnhancedTableToolbarMeasurement(props: EnhancedTableToolbarPropsMeasure
     );
 }
 
+interface EnhancedTableToolbarPropsInclinometer {
+    numSelected: number;
+    onDelete: () => void;
+}
+
+function EnhancedTableToolbarInclinometer(props: EnhancedTableToolbarPropsInclinometer) {
+    const { numSelected, onDelete } = props;
+
+    return (
+        <Toolbar
+            sx={{
+                pl: { sm: 2 },
+                pr: { xs: 1, sm: 1 },
+                ...(numSelected > 0 && {
+                    bgcolor: (theme) =>
+                        alpha(theme.palette.primary.main, theme.palette.action.activatedOpacity),
+                }),backgroundColor: '#047857'
+            }}
+        >
+            {numSelected > 0 ? (
+                <Typography
+                    sx={{ flex: '1 1 100%' }}
+                    color="white"
+                    variant="subtitle1"
+                    component="div"
+                >
+                    {numSelected} selected
+                </Typography>
+            ) : (
+                <Typography
+                    sx={{ flex: '1 1 100%'}}
+                    variant="h6"
+                    id="tableTitle"
+                    component="div"
+                    color="white"
+                >
+                    Select from available inclinometers
+                </Typography>
+            )}
+        </Toolbar>
+    );
+}
+
+function EnhancedTableToolbarIncFreq() {
+    return (
+        <Toolbar
+            sx={{
+                pl: { sm: 2 },
+                pr: { xs: 1, sm: 1 },
+                backgroundColor: '#047857'
+            }}
+        >
+            <Typography
+                sx={{ flex: '1 1 100%'}}
+                variant="h6"
+                id="tableTitle"
+                component="div"
+                color="white"
+            >
+                Select an inclinometer to update
+            </Typography>
+
+        </Toolbar>
+    );
+}
 
 function EnhancedTableToolbarSensor() {
 
@@ -546,12 +891,14 @@ const RecenterMap = ({ markers }: RecenterMapProps) => {
 
 function MonitGroups() {
 
+    const theme = useTheme();
+
     //Pages
-    const [firstPageActive, setFirstPageActive] = React.useState(false); // colocar true
+    const [firstPageActive, setFirstPageActive] = React.useState(true);
     const [secondPageActive, setSecondPageActive] = React.useState(false);
     const [thirdPageActive, setThirdPageActive] = React.useState(false);
     const [fourthPageActive, setFourthPageActive] = React.useState(false);
-    const [fifthPageActive, setFifthPageActive] = React.useState(true); // true para testar
+    const [fifthPageActive, setFifthPageActive] = React.useState(false);
 
     //First page - monitoring groups
     const [order, setOrder] = React.useState<Order>('asc');
@@ -564,6 +911,35 @@ function MonitGroups() {
     const [checkedGroups, setCheckedGroups] = useState<number[]>([])
     const [groupSelected, setGroupSelected] = useState<boolean>(false);
 
+    const [selectedRegion, setSelectedRegion] = useState<string[]>([]);
+    const [groupName, setGroupName] = useState('');
+    const [description, setDescriptionName] = useState('');
+    const [missingFieldGroupName, setMissingFieldGroupName] = useState(false);
+    const [missingFieldDescription, setMissingFieldDescription] = useState(false);
+
+    const handleChangeRegion = (event: SelectChangeEvent<typeof selectedRegion>) => {
+        const {
+            target: { value },
+        } = event;
+        setSelectedRegion(
+            typeof value === 'string' ? value.split(',') : value,
+        );
+    };
+
+    const regions = ["Macedo de Cavaleiros"]
+
+    const handleGroupName = (newGroupName: string) => {
+        setGroupName(newGroupName)
+    }
+
+    const handleDescription = (newDescription: string) => {
+        setDescriptionName(newDescription)
+    }
+
+    const handleSubmitGroup = () => {
+
+    }
+
     //Second page - available measurements
     const [orderMeasurement, setOrderMeasurement] = React.useState<Order>('asc');
     const [orderByMeasurement, setOrderByMeasurement] = React.useState<keyof Measurement>('id');
@@ -573,16 +949,186 @@ function MonitGroups() {
     const [rowsPerPageMeasurement, setRowsPerPageMeasurement] = React.useState(5);
     const [rowsMeasurement, setRowsMeasurement] = React.useState<Measurement[]>([]);
     const [checkedGroupsMeasurement, setCheckedGroupsMeasurement] = useState<number[]>([])
-    const [groupSelectedMeasurement, setGroupSelectedMeasurement
-    ] = useState<boolean>(false);
+    const [groupSelectedMeasurement, setGroupSelectedMeasurement] = useState<boolean>(false);
+
+    const [openNew, setOpenNew] = useState(false);
+    const [openEdit, setOpenEdit] = useState(false);
+
+
+    const handleOpenNew = () => setOpenNew(true);
+
+    const handleCloseNew = () => {
+
+        setOpenNew(false)
+    };
+
+
+    const handleOpenEdit = () => setOpenEdit(true);
+
+    const handleCloseEdit = () => {
+
+        setOpenEdit(false)
+    };
+
+    const handleRequestSortMeasurement = (
+        event: React.MouseEvent<unknown>,
+        property: keyof Measurement,
+    ) => {
+        const isAsc = orderByMeasurement === property && orderMeasurement === 'asc';
+        setOrderMeasurement(isAsc ? 'desc' : 'asc');
+        setOrderByMeasurement(property);
+    };
+
+    const handleSelectAllClickMeasurement = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.checked) {
+            const newSelected = rowsMeasurement.map((n) => n.id);
+            setSelectedMeasurement(newSelected);
+            return;
+        }
+        setSelectedMeasurement([]);
+    };
+
+    const handleClickMeasurement = (event: React.MouseEvent<unknown>, id: number) => {
+        const selectedIndex = selected.indexOf(id);
+        let newSelected: readonly number[] = [];
+
+        if (selectedIndex === -1) {
+            newSelected = newSelected.concat(selected, id);
+        } else if (selectedIndex === 0) {
+            newSelected = newSelected.concat(selected.slice(1));
+        } else if (selectedIndex === selected.length - 1) {
+            newSelected = newSelected.concat(selected.slice(0, -1));
+        } else if (selectedIndex > 0) {
+            newSelected = newSelected.concat(
+                selected.slice(0, selectedIndex),
+                selected.slice(selectedIndex + 1),
+            );
+        }
+        setSelectedMeasurement(newSelected);
+    };
+
+    const handleChangePageMeasurement  = (event: unknown, newPage: number) => {
+        setPageMeasurement(newPage);
+    };
+
+    const handleChangeRowsPerPageMeasurement = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setRowsPerPageMeasurement(parseInt(event.target.value, 10));
+        setPageMeasurement(0);
+    };
+
+    const emptyRowsMeasurement =
+        pageMeasurement > 0 ? Math.max(0, (1 + pageMeasurement) * rowsPerPageMeasurement - rowsMeasurement.length) : 0;
+
+    const visibleRowsMeasurement = React.useMemo(
+        () => rowsMeasurement.slice().sort(getComparator(orderMeasurement, orderByMeasurement)).slice(
+            pageMeasurement * rowsPerPageMeasurement,
+            pageMeasurement * rowsPerPageMeasurement + rowsPerPageMeasurement),
+        [rowsMeasurement, orderMeasurement, orderByMeasurement, pageMeasurement, rowsPerPageMeasurement],
+    );
 
 
     //Third page - select inclinometers from measurements
+    const [orderInclinometer, setOrderInclinometer] = React.useState<Order>('asc');
+    const [orderByInclinometer, setOrderByInclinometer] = React.useState<keyof Inclinometer>('id');
+    const [selectedInclinometer, setSelectedInclinometer] = React.useState<readonly number[]>([]);
+    const [pageInclinometer, setPageInclinometer] = React.useState(0);
+    const [denseInclinometer, setDenseInclinometer] = React.useState(false);
+    const [rowsPerPageInclinometer, setRowsPerPageInclinometer] = React.useState(5);
+    const [rowsInclinometer, setRowsInclinometer] = React.useState<Inclinometer[]>([]);
+    const [checkedGroupsInclinometer, setCheckedGroupsInclinometer] = useState<number[]>([])
+    const [groupSelectedInclinometer, setGroupSelectedInclinometer] = useState<boolean>(false);
 
+    const handleRequestSortInclinometer = (
+        event: React.MouseEvent<unknown>,
+        property: keyof Inclinometer,
+    ) => {
+        const isAsc = orderByInclinometer === property && orderInclinometer === 'asc';
+        setOrderInclinometer(isAsc ? 'desc' : 'asc');
+        setOrderByInclinometer(property);
+    };
+
+    const handleSelectAllClickInclinometer = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.checked) {
+            const newSelected = rowsInclinometer.map((n) => n.id);
+            setSelectedInclinometer(newSelected);
+            return;
+        }
+        setSelectedInclinometer([]);
+    };
+
+    const handleClickInclinometer = (event: React.MouseEvent<unknown>, id: number) => {
+        const selectedIndex = selected.indexOf(id);
+        let newSelected: readonly number[] = [];
+
+        if (selectedIndex === -1) {
+            newSelected = newSelected.concat(selected, id);
+        } else if (selectedIndex === 0) {
+            newSelected = newSelected.concat(selected.slice(1));
+        } else if (selectedIndex === selected.length - 1) {
+            newSelected = newSelected.concat(selected.slice(0, -1));
+        } else if (selectedIndex > 0) {
+            newSelected = newSelected.concat(
+                selected.slice(0, selectedIndex),
+                selected.slice(selectedIndex + 1),
+            );
+        }
+        setSelectedInclinometer(newSelected);
+    };
+
+    const handleChangePageInclinometer  = (event: unknown, newPage: number) => {
+        setPageInclinometer(newPage);
+    };
+
+    const handleChangeRowsPerPageInclinometer = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setRowsPerPageInclinometer(parseInt(event.target.value, 10));
+        setPageInclinometer(0);
+    };
+
+    const emptyRowsInclinometer =
+        pageInclinometer > 0 ? Math.max(0, (1 + pageInclinometer) * rowsPerPageInclinometer - rowsInclinometer.length) : 0;
+
+    const visibleRowsInclinometer = React.useMemo(
+        () => rowsInclinometer.slice().sort(getComparator(orderInclinometer, orderByInclinometer)).slice(
+            pageInclinometer * rowsPerPageInclinometer,
+            pageInclinometer * rowsPerPageInclinometer + rowsPerPageInclinometer),
+        [rowsInclinometer, orderInclinometer, orderByInclinometer, pageInclinometer, rowsPerPageInclinometer],
+    );
 
     //Fourth page - set general settings of selected inclinometers
+    const [orderIncFreq, setOrderIncFreq] = React.useState<Order>('asc');
+    const [orderByIncFreq, setOrderByIncFreq] = React.useState<keyof IncFreq>('id');
+    const [pageIncFreq, setPageIncFreq] = React.useState(0);
+    const [denseIncFreq, setDenseIncFreq] = React.useState(false);
+    const [rowsPerPageIncFreq, setRowsPerPageIncFreq] = React.useState(5);
+    const [rowsIncFreq, setRowsIncFreq] = React.useState<IncFreq[]>([]);
 
+    const handleRequestSortIncFreq = (
+        event: React.MouseEvent<unknown>,
+        property: keyof IncFreq,
+    ) => {
+        const isAsc = orderByIncFreq === property && orderIncFreq === 'asc';
+        setOrderIncFreq(isAsc ? 'desc' : 'asc');
+        setOrderByIncFreq(property);
+    };
 
+    const handleChangePageIncFreq  = (event: unknown, newPage: number) => {
+        setPageIncFreq(newPage);
+    };
+
+    const handleChangeRowsPerPageIncFreq = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setRowsPerPageIncFreq(parseInt(event.target.value, 10));
+        setPageIncFreq(0);
+    };
+
+    const emptyRowsIncFreq =
+        pageIncFreq > 0 ? Math.max(0, (1 + pageIncFreq) * rowsPerPageIncFreq - rowsIncFreq.length) : 0;
+
+    const visibleRowsIncFreq = React.useMemo(
+        () => rowsIncFreq.slice().sort(getComparator(orderIncFreq, orderByIncFreq)).slice(
+            pageIncFreq * rowsPerPageIncFreq,
+            pageIncFreq * rowsPerPageIncFreq + rowsPerPageIncFreq),
+        [rowsIncFreq, orderIncFreq, orderByIncFreq, pageIncFreq, rowsPerPageIncFreq],
+    );
     //Fifth page - General Settings / Sensors spacing / Soil Layers
 
     const [selectedSettingTab, setSelectedSettingTab] = useState<number>(1);
@@ -667,6 +1213,69 @@ function MonitGroups() {
     useEffect(() => {
         setRows([createData(1, "A12_PK150aPK300", "Macedo de Cavaleiros", "Azibo's dam monitoring group",1)])
     }, [firstPageActive]);
+
+    useEffect(() => {
+        setRowsMeasurement([createDataMeasurement(1, "Azibo's dam", "de41c92c9186"), createDataMeasurement(2, "Lab Test", "90f3ec78d23f")])
+    }, [secondPageActive]);
+
+    useEffect(() => {
+        let checkedMeasureSet = new Set(checkedGroupsMeasurement);
+        if(checkedGroupsMeasurement.length === 1){
+            if(checkedMeasureSet.has(1)){
+                setRowsInclinometer([createDataInclinometer(2, "Azibo's dam", "I1", 180, 41.55680, -6.89017, 606, 90),
+                    createDataInclinometer(3, "Azibo's dam", "I2", 180, 41.55648,-6.89018, 591, 90),
+                    createDataInclinometer(4, "Azibo's dam", "I3", 180, 41.55679,-6.88922, 606, 90),
+                    createDataInclinometer(5, "Azibo's dam", "I4", 180, 41.55648,-6.88924, 591, 90),
+                    createDataInclinometer(6, "Azibo's dam", "I5", 180, 41.55614,-6.88925, 576, 90),
+                    createDataInclinometer(7, "Azibo's dam", "I6", 180, 41.55676,-6.88857, 606, 90),
+                    createDataInclinometer(8, "Azibo's dam", "I8", 180, 41.55614,-6.88856, 576, 90),
+                    createDataInclinometer(9, "Azibo's dam", "I9", 180, 41.55675,-6.88767, 606, 90),
+                    createDataInclinometer(10, "Azibo's dam", "I10", 180, 41.55644,-6.88767, 591, 90)])
+            }else{
+                setRowsInclinometer([createDataInclinometer(1, "Lab Test", "I1", 180, 41.55648, -6.89018, 606, 90)])
+            }
+        }else{
+            setRowsInclinometer([createDataInclinometer(1, "Lab Test", "I1", 180, 41.55648, -6.89018, 606, 90)
+                ,createDataInclinometer(2, "Azibo's dam", "I1", 180, 41.55680, -6.89017, 606, 90),
+                createDataInclinometer(3, "Azibo's dam", "I2", 180, 41.55648,-6.89018, 591, 90),
+                createDataInclinometer(4, "Azibo's dam", "I3", 180, 41.55679,-6.88922, 606, 90),
+                createDataInclinometer(5, "Azibo's dam", "I4", 180, 41.55648,-6.88924, 591, 90),
+                createDataInclinometer(6, "Azibo's dam", "I5", 180, 41.55614,-6.88925, 576, 90),
+                createDataInclinometer(7, "Azibo's dam", "I6", 180, 41.55676,-6.88857, 606, 90),
+                createDataInclinometer(8, "Azibo's dam", "I8", 180, 41.55614,-6.88856, 576, 90),
+                createDataInclinometer(9, "Azibo's dam", "I9", 180, 41.55675,-6.88767, 606, 90),
+                createDataInclinometer(10, "Azibo's dam", "I10", 180, 41.55644,-6.88767, 591, 90)
+            ])
+        }
+    }, [thirdPageActive]);
+
+    useEffect(() => {
+        //let rowsInc = new Set(rowsInclinometer);
+        //console.log(rowsInc)
+
+        let tempRowsIncFreq = [createDataIncFreq(1, "Lab Test", "I1", "2024-04-23", "10 seconds"),
+            createDataIncFreq(2, "Azibo's dam", "I1", "2023-10-25", "1.7 years"),
+            createDataIncFreq(3, "Azibo's dam", "I2", "2023-10-25", "1.7 years"),
+            createDataIncFreq(4, "Azibo's dam", "I3", "2023-10-25", "1.7 years"),
+            createDataIncFreq(5, "Azibo's dam", "I4", "2023-10-25", "1.7 years"),
+            createDataIncFreq(6, "Azibo's dam", "I5", "2023-10-25", "1.7 years"),
+            createDataIncFreq(7, "Azibo's dam", "I6", "2016-06-23", "1.7 years"),
+            createDataIncFreq(8, "Azibo's dam", "I8", "2023-10-25", "1.7 years"),
+            createDataIncFreq(9, "Azibo's dam", "I9", "2023-10-25", "1.7 years"),
+            createDataIncFreq(10, "Azibo's dam", "I10", "2016-06-23", "1.7 years")
+        ]
+
+        if(checkedGroupsInclinometer.length > 0){
+            let newRowsIncFreq = [];
+            for(let i = 0; i < checkedGroupsInclinometer.length; i++){
+                let newRow = tempRowsIncFreq[checkedGroupsInclinometer[i]-1]
+                newRowsIncFreq.push(newRow)
+            }
+            setRowsIncFreq(newRowsIncFreq)
+        } else {
+            setRowsIncFreq(tempRowsIncFreq)
+        }
+    }, [fourthPageActive]);
 
     useEffect(() => {
         setRowsSensor([createDataSensorSpacing(1, -1, 17.5, 452.25, true)])
@@ -806,6 +1415,67 @@ function MonitGroups() {
         }
     }
 
+    const handleSubmitMeasurements = () => {
+        if(checkedGroupsMeasurement.length === 0){
+            setGroupSelectedMeasurement(false);
+            /*setAlertNothingSelected(true);
+            setTimeout(() => {
+                setAlertNothingSelected(false);
+            }, 5000);*/
+        }else{
+            setGroupSelectedMeasurement(true);
+            let tempRows = []
+            let checkedMeasurementsSet = new Set(checkedGroupsMeasurement);
+
+            /*for (let i = 0; i < rows.length; i++) {
+                if (checkedGroupsSet.has(rows[i].id)) {
+                    for(let j = 0; j < monitoringProfilesTableData.length; j++) {
+                        if(monitoringProfilesTableData[j].group === rows[i].group){
+                            tempRows.push(monitoringProfilesTableData[j]);
+                        }
+                    }
+                }
+            }*/
+
+            //setRows(tempRows);
+            setThirdPageActive(true);
+            setSecondPageActive(false);
+        }
+    }
+
+    const handleSubmitIncs = () => {
+        if(checkedGroupsInclinometer.length === 0){
+            setGroupSelectedInclinometer(false);
+            /*setAlertNothingSelected(true);
+            setTimeout(() => {
+                setAlertNothingSelected(false);
+            }, 5000);*/
+        }else{
+            setGroupSelectedInclinometer(true);
+            let tempRows = []
+            let checkedInclinometerSet = new Set(checkedGroupsInclinometer);
+
+            /*for (let i = 0; i < rows.length; i++) {
+                if (checkedGroupsSet.has(rows[i].id)) {
+                    for(let j = 0; j < monitoringProfilesTableData.length; j++) {
+                        if(monitoringProfilesTableData[j].group === rows[i].group){
+                            tempRows.push(monitoringProfilesTableData[j]);
+                        }
+                    }
+                }
+            }*/
+
+            //setRows(tempRows);
+            setFourthPageActive(true);
+            setThirdPageActive(false);
+        }
+    }
+
+    const handleClickInc = (rowId: number) => {
+        setFifthPageActive(true);
+        setFourthPageActive(false);
+    }
+
     const handleBackButtonToFirst = () => {
         setFirstPageActive(true);
         setSecondPageActive(false);
@@ -921,6 +1591,205 @@ function MonitGroups() {
             {firstPageActive && (
                 <div
                     className="filter-container-monitProfile">
+                    <div
+                        className="relative inline-block w-30 mr-2 ml-2 mb-4 align-middle select-none">
+                        <button
+                            type="button"
+                            className="py-2 px-4  bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                            onClick={handleOpenNew}>
+                            New
+                            group
+                        </button>
+                    </div>
+                    <Modal
+                        open={openNew}
+                        onClose={handleCloseNew}
+                        aria-labelledby="modal-title"
+                        aria-describedby="modal-description"
+                    >
+                        <Box
+                            sx={{
+                                position: 'absolute' as 'absolute',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                width: 400,
+                                bgcolor: 'background.paper',
+                                border: '2px solid #000',
+                                boxShadow: 24,
+                                p: 4,
+                                borderRadius: 2,
+                                '& .close-button': {
+                                    position: 'absolute',
+                                    top: 8,
+                                    right: 8,
+                                },
+                            }}>
+                            <IconButton
+                                className="close-button"
+                                aria-label="close"
+                                onClick={handleCloseNew}>
+                                <Clear/>
+                            </IconButton>
+                            <div
+                                className='pt-1 pl-16 pb-5'>
+                                <Listbox>
+                                    <Listbox.Label
+                                        className="text-2xl font-medium leading-6 text-gray-900 text-left">Add
+                                        new
+                                        group</Listbox.Label>
+                                </Listbox>
+                            </div>
+                            {!missingFieldGroupName ? (
+                                <>
+                                    <TextField
+                                        required
+                                        id="outlined-required"
+                                        label="Group Name"
+                                        onChange={(e) => handleGroupName(e.target.value)}
+                                        sx={{
+                                            mt: 2,
+                                            mb: 2,
+                                            ml: 2,
+                                            width: 300
+                                        }}
+                                    />
+                                </>
+                            ) : (
+                                <>
+                                    <TextField
+                                        error
+                                        id="outlined-error-text"
+                                        label="Group Name *"
+                                        sx={{
+                                            mt: 2,
+                                            ml: 2,
+                                            width: 300
+                                        }}
+                                    />
+                                    <Box
+                                        sx={{
+                                            color: 'red',
+                                            mt: 1,
+                                            ml: 2
+                                        }}>
+                                        Missing
+                                        group
+                                        name.
+                                    </Box>
+                                </>
+                            )}
+                            <>
+                                <FormControl
+                                    sx={{
+                                        mt: 2,
+                                        mb: 2,
+                                        ml: 2,
+                                        width: 300
+                                    }}>
+                                    <InputLabel
+                                        id="multiple-chip-label">Region
+                                        *</InputLabel>
+                                    <Select
+                                        labelId="multiple-chip-label"
+                                        id="multiple-chip"
+                                        multiple
+                                        value={selectedRegion}
+                                        onChange={handleChangeRegion}
+                                        input={
+                                            <OutlinedInput
+                                                id="select-multiple-chip"
+                                                label="Region *"/>}
+                                        renderValue={(selected) => (
+                                            <Box
+                                                sx={{
+                                                    display: 'flex',
+                                                    flexWrap: 'wrap',
+                                                    gap: 0.5
+                                                }}>
+                                                {selected.map((value) => (
+                                                    <Chip
+                                                        key={value}
+                                                        label={value}/>
+                                                ))}
+                                            </Box>
+                                        )}
+                                        MenuProps={MenuProps}
+                                    >
+                                        {regions.map((m) => (
+                                            <MenuItem
+                                                key={m}
+                                                value={m}
+                                                style={getStyles(m, selectedRegion, theme)}
+                                            >
+                                                {m}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </>
+                            {!missingFieldDescription ? (
+                                <>
+                                    <TextField
+                                        required
+                                        id="outlined-required"
+                                        label="Description"
+                                        onChange={(e) => handleDescription(e.target.value)}
+                                        sx={{
+                                            mt: 2,
+                                            mb: 2,
+                                            ml: 2,
+                                            width: 300
+                                        }}
+                                    />
+                                </>
+                            ) : (
+                                <>
+                                    <TextField
+                                        error
+                                        id="outlined-error-text"
+                                        label="Description *"
+                                        sx={{
+                                            mt: 2,
+                                            ml: 2,
+                                            width: 300
+                                        }}
+                                    />
+                                    <Box
+                                        sx={{
+                                            color: 'red',
+                                            mt: 1,
+                                            ml: 2
+                                        }}>
+                                        Missing
+                                        group
+                                        name.
+                                    </Box>
+                                </>
+                            )}
+                            <div
+                                className="submit-button">
+                                <button
+                                    type="button"
+                                    className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                    onClick={handleSubmitGroup}
+                                >
+                                    Submit
+                                </button>
+                            </div>
+                        </Box>
+                    </Modal>
+                    <div
+                        className="relative inline-block w-30 mr-2 ml-2 mb-4 align-middle select-none">
+                        <button
+                            type="button"
+                            className="py-2 px-4  bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                            onClick={handleOpenEdit}>
+                            Edit
+                            existing
+                            group
+                        </button>
+                    </div>
                     <Box
                         sx={{width: '100%'}}>
                         <Paper
@@ -1029,7 +1898,9 @@ function MonitGroups() {
                 </div>)}
             {secondPageActive && (
                 <div
-                    className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
+                    className="filter-container-monitProfile">
+                <div
+                    className="relative inline-block w-30 mr-2 ml-2 mb-4 align-middle select-none">
                     <button
                         type="button"
                         className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
@@ -1040,10 +1911,116 @@ function MonitGroups() {
                         to
                         Groups
                     </button>
+                </div>
+                    <Box
+                    sx={{width: '100%'}}>
+                    <Paper
+                        sx={{
+                            width: '100%',
+                            mb: 2
+                        }}>
+                        <EnhancedTableToolbarMeasurement
+                            numSelected={selected.length}
+                            onDelete={handleDelete}
+                        />
+                        <TableContainer>
+                            <Table
+                                sx={{minWidth: 750}}
+                                aria-labelledby="tableTitle"
+                                size={dense ? 'small' : 'medium'}
+                            >
+                                <EnhancedTableHeadMeasurement
+                                    numSelected={selected.length}
+                                    order={orderMeasurement}
+                                    orderBy={orderByMeasurement}
+                                    onSelectAllClick={handleSelectAllClickMeasurement}
+                                    onRequestSort={handleRequestSortMeasurement}
+                                    rowCount={rowsMeasurement.length}
+                                />
+                                <TableBody>
+                                    {visibleRowsMeasurement.map((row, index) => {
+                                        const isItemSelected = isSelected(row.id);
+                                        if (isItemSelected && !checkedGroupsMeasurement.includes(row.id)) {
+                                            let tempCheck = checkedGroupsMeasurement;
+                                            tempCheck.push(row.id);
+                                            setCheckedGroupsMeasurement(tempCheck);
+                                        } else if (!isItemSelected && checkedGroupsMeasurement.includes(row.id)) {
+                                            let tempCheck = checkedGroupsMeasurement;
+                                            tempCheck = tempCheck.filter(toRemove => toRemove !== row.id);
+                                            setCheckedGroupsMeasurement(tempCheck);
+                                        }
+
+                                        const labelId = `enhanced-table-checkbox-${index}`;
+
+                                        return (
+                                            <TableRow
+                                                hover
+                                                onClick={(event) => handleClick(event, row.id)}
+                                                role="checkbox"
+                                                aria-checked={isItemSelected}
+                                                tabIndex={-1}
+                                                key={row.id}
+                                                selected={isItemSelected}
+                                                sx={{cursor: 'pointer'}}
+                                            >
+                                                <TableCell
+                                                    padding="checkbox">
+                                                    <Checkbox
+                                                        color="primary"
+                                                        checked={isItemSelected}
+                                                        inputProps={{
+                                                            'aria-labelledby': labelId,
+                                                        }}
+                                                    />
+                                                </TableCell>
+                                                <TableCell
+                                                    align="left">{row.measurement}</TableCell>
+                                                <TableCell
+                                                    align="center">{row.host}</TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                    {emptyRowsMeasurement > 0 && (
+                                        <TableRow
+                                            style={{
+                                                height: (dense ? 33 : 53) * emptyRowsMeasurement,
+                                            }}
+                                        >
+                                            <TableCell
+                                                colSpan={6}/>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                        <TablePagination
+                            rowsPerPageOptions={[5, 10, 25]}
+                            component="div"
+                            count={rowsMeasurement.length}
+                            rowsPerPage={rowsPerPageMeasurement}
+                            page={pageMeasurement}
+                            onPageChange={handleChangePageMeasurement}
+                            onRowsPerPageChange={handleChangeRowsPerPageMeasurement}
+                        />
+                    </Paper>
+                </Box>
+                    <div>
+                        <button
+                            type="button"
+                            className="py-3 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-lg"
+                            onClick={handleSubmitMeasurements}
+                        >
+                            Define
+                            selected
+                            measurements
+                        </button>
+                    </div>
                 </div>)}
             {thirdPageActive && (
                 <div
-                    className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
+                    className="filter-container-monitProfile">
+                <div
+                    className="relative inline-block w-30 mr-2 ml-2 mb-4 align-middle select-none">
                     <button
                         type="button"
                         className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
@@ -1055,10 +2032,126 @@ function MonitGroups() {
                         Available
                         Structures
                     </button>
+                </div>
+                    <Box
+                        sx={{width: '100%'}}>
+                        <Paper
+                            sx={{
+                                width: '100%',
+                                mb: 2
+                            }}>
+                            <EnhancedTableToolbarInclinometer
+                                numSelected={selected.length}
+                                onDelete={handleDelete}
+                            />
+                            <TableContainer>
+                                <Table
+                                    sx={{minWidth: 750}}
+                                    aria-labelledby="tableTitle"
+                                    size={dense ? 'small' : 'medium'}
+                                >
+                                    <EnhancedTableHeadInclinometer
+                                        numSelected={selected.length}
+                                        order={orderInclinometer}
+                                        orderBy={orderByInclinometer}
+                                        onSelectAllClick={handleSelectAllClickInclinometer}
+                                        onRequestSort={handleRequestSortInclinometer}
+                                        rowCount={rowsInclinometer.length}
+                                    />
+                                    <TableBody>
+                                        {visibleRowsInclinometer.map((row, index) => {
+                                            const isItemSelected = isSelected(row.id);
+                                            if (isItemSelected && !checkedGroupsInclinometer.includes(row.id)) {
+                                                let tempCheck = checkedGroupsInclinometer;
+                                                tempCheck.push(row.id);
+                                                setCheckedGroupsInclinometer(tempCheck);
+                                            } else if (!isItemSelected && checkedGroupsInclinometer.includes(row.id)) {
+                                                let tempCheck = checkedGroupsInclinometer;
+                                                tempCheck = tempCheck.filter(toRemove => toRemove !== row.id);
+                                                setCheckedGroupsInclinometer(tempCheck);
+                                            }
+
+                                            const labelId = `enhanced-table-checkbox-${index}`;
+
+                                            return (
+                                                <TableRow
+                                                    hover
+                                                    onClick={(event) => handleClick(event, row.id)}
+                                                    role="checkbox"
+                                                    aria-checked={isItemSelected}
+                                                    tabIndex={-1}
+                                                    key={row.id}
+                                                    selected={isItemSelected}
+                                                    sx={{cursor: 'pointer'}}
+                                                >
+                                                    <TableCell
+                                                        padding="checkbox">
+                                                        <Checkbox
+                                                            color="primary"
+                                                            checked={isItemSelected}
+                                                            inputProps={{
+                                                                'aria-labelledby': labelId,
+                                                            }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell
+                                                        align="left">{row.measurement}</TableCell>
+                                                    <TableCell
+                                                        align="center">{row.inclinometer}</TableCell>
+                                                    <TableCell
+                                                        align="center">{row.azimute}</TableCell>
+                                                    <TableCell
+                                                        align="center">{row.latitude}</TableCell>
+                                                    <TableCell
+                                                        align="center">{row.longitude}</TableCell>
+                                                    <TableCell
+                                                        align="center">{row.topSensor}</TableCell>
+                                                    <TableCell
+                                                        align="center">{row.casingAngle}</TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                        {emptyRowsInclinometer > 0 && (
+                                            <TableRow
+                                                style={{
+                                                    height: (dense ? 33 : 53) * emptyRowsInclinometer,
+                                                }}
+                                            >
+                                                <TableCell
+                                                    colSpan={6}/>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                            <TablePagination
+                                rowsPerPageOptions={[5, 10, 25]}
+                                component="div"
+                                count={rowsInclinometer.length}
+                                rowsPerPage={rowsPerPageInclinometer}
+                                page={pageInclinometer}
+                                onPageChange={handleChangePageInclinometer}
+                                onRowsPerPageChange={handleChangeRowsPerPageInclinometer}
+                            />
+                        </Paper>
+                    </Box>
+                    <div>
+                        <button
+                            type="button"
+                            className="py-3 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-lg"
+                            onClick={handleSubmitIncs}
+                        >
+                            Define
+                            selected
+                            inclinometers
+                        </button>
+                    </div>
                 </div>)}
             {fourthPageActive && (
                 <div
-                    className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
+                    className="filter-container-monitProfile">
+                <div
+                    className="relative inline-block w-30 mr-2 ml-2 mb-4 align-middle select-none">
                     <button
                         type="button"
                         className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
@@ -1070,6 +2163,76 @@ function MonitGroups() {
                         Inclinometer
                         Selection
                     </button>
+                </div>
+                    <Box
+                        sx={{width: '100%'}}>
+                        <Paper
+                            sx={{
+                                width: '100%',
+                                mb: 2
+                            }}>
+                            <EnhancedTableToolbarIncFreq/>
+                            <TableContainer>
+                                <Table
+                                    sx={{minWidth: 750}}
+                                    aria-labelledby="tableTitle"
+                                    size={dense ? 'small' : 'medium'}
+                                >
+                                    <EnhancedTableHeadIncFreq
+                                        order={orderIncFreq}
+                                        orderBy={orderByIncFreq}
+                                        onRequestSort={handleRequestSortIncFreq}
+                                        rowCount={rowsIncFreq.length}
+                                    />
+                                    <TableBody>
+                                        {visibleRowsIncFreq.map((row, index) => {
+
+                                            const labelId = `enhanced-table-checkbox-${index}`;
+
+                                            return (
+                                                <TableRow
+                                                    hover
+                                                    role="checkbox"
+                                                    tabIndex={-1}
+                                                    key={row.id}
+                                                    sx={{cursor: 'pointer'}}
+                                                    onClick={() => handleClickInc(row.id)}
+                                                >
+                                                    <TableCell
+                                                        align="center">{row.measurement}</TableCell>
+                                                    <TableCell
+                                                        align="center">{row.inclinometer}</TableCell>
+                                                    <TableCell
+                                                        align="center">{row.lastRecord}</TableCell>
+                                                    <TableCell
+                                                        align="center">{row.avgFrequency}</TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                        {emptyRowsIncFreq > 0 && (
+                                            <TableRow
+                                                style={{
+                                                    height: (dense ? 33 : 53) * emptyRowsIncFreq,
+                                                }}
+                                            >
+                                                <TableCell
+                                                    colSpan={6}/>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                            <TablePagination
+                                rowsPerPageOptions={[5, 10, 25]}
+                                component="div"
+                                count={rowsIncFreq.length}
+                                rowsPerPage={rowsPerPageIncFreq}
+                                page={pageIncFreq}
+                                onPageChange={handleChangePageIncFreq}
+                                onRowsPerPageChange={handleChangeRowsPerPageIncFreq}
+                            />
+                        </Paper>
+                    </Box>
                 </div>)}
             {fifthPageActive && (
                 <>
@@ -1083,8 +2246,8 @@ function MonitGroups() {
                                 sx={{color: 'white'}}/>
                             Back
                             to
-                            General
-                            Settings
+                            individual
+                            selection
                         </button>
                     </div>
                     <div

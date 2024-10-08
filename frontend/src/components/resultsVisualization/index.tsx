@@ -734,6 +734,66 @@ export function getTestData() {
     }
 }
 
+export function getDataPerformanceTests1() {
+    try {
+        const fluxQuery = 'from(bucket:"inputs") |> range(start: 2023-01-01T23:30:00Z, stop: 2023-12-31T00:00:00Z) |> filter(fn: (r) => r._measurement == "BarragemX")';
+        const response = api.collectRows(fluxQuery);
+
+        console.log('Query Response:', response);
+        return response
+    } catch (error) {
+        throw error;
+    }
+}
+
+export function getDataPerformanceTests2() {
+    try {
+        const fluxQuery = 'from(bucket:"inputs") |> range(start: 2009-01-01T23:30:00Z, stop: 2023-12-31T00:00:00Z) |> filter(fn: (r) => r._measurement == "BarragemX")';
+        const response = api.collectRows(fluxQuery);
+
+        console.log('Query Response:', response);
+        return response
+    } catch (error) {
+        throw error;
+    }
+}
+
+export function getDataPerformanceTests3() {
+    try {
+        const fluxQuery = 'from(bucket:"inputs") |> range(start: 2004-01-01T23:30:00Z, stop: 2023-12-31T00:00:00Z) |> filter(fn: (r) => r._measurement == "BarragemX")';
+        const response = api.collectRows(fluxQuery);
+
+        console.log('Query Response:', response);
+        return response
+    } catch (error) {
+        throw error;
+    }
+}
+
+export function getDataPerformanceTests4() {
+    try {
+        const fluxQuery = 'from(bucket:"inputs") |> range(start: 1986-01-01T23:30:00Z, stop: 2023-12-31T00:00:00Z) |> filter(fn: (r) => r._measurement == "BarragemX")';
+        const response = api.collectRows(fluxQuery);
+
+        console.log('Query Response:', response);
+        return response
+    } catch (error) {
+        throw error;
+    }
+}
+
+export function getDataPerformanceTests5() {
+    try {
+        const fluxQuery = 'from(bucket:"inputs") |> range(start: 1984-01-01T23:30:00Z, stop: 2023-12-31T00:00:00Z) |> filter(fn: (r) => r._measurement == "BarragemX")';
+        const response = api.collectRows(fluxQuery);
+
+        console.log('Query Response:', response);
+        return response
+    } catch (error) {
+        throw error;
+    }
+}
+
 /*
 export function getDataFromLastYear() {
     try {
@@ -4533,7 +4593,7 @@ const makeCalcAgain = (maxDisplacementItem: InclinometerData, orthoNeeded: strin
 
 function ResultsVisualization() {
 
-    const sessionToken: string = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJqb2FvQGdtYWlsLmNvbSIsImlhdCI6MTcyNDY4ODA1MywiZXhwIjoxNzI3MzE2MTQ5fQ.JhIkuaIYSxCe1km_YkmDEZF0VK6DvobmLeZcHO0KSD-vmPV32mI4g6x63Ch2fVVq3VLCW7XcmuTbpNlY6bZkkQ";
+    const sessionToken: string = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJqb2FvQGdtYWlsLmNvbSIsImlhdCI6MTcyNzM3MzU2MCwiZXhwIjoxNzMwMDAxNjU2fQ.OFdGB8u3r8kLx-KZxqJc7R6i06D2ytAue8Hp0_kZEP4-21b9WhPo1_Xrq-svMgoRZoRYKBi8-wYxohtFCXN2BA";
     const dispatch = useAppDispatch()
     const dbMeasurementsList = useMeasurementsSelector(state => state.measurements)
     const dbMPGroups = useMPSelector(state => state.mpGroups)
@@ -4662,6 +4722,12 @@ function ResultsVisualization() {
     }, [dataArrayX, dataArrayY, arrayInitialized]);
 
     async function fetchData() {
+        /*try {
+            const response1 = await getDataPerformanceTests3();
+
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }*/
         try {
             const response = await getData() as InfluxDataAux[];//getDataFromLastYear() as InfluxDataAux[];
             const mappedData: InclinometerData[] = response.filter(i => formatDate(i._time) !== "2012-11-27 00:00:00").map(i => ({
@@ -4693,9 +4759,16 @@ function ResultsVisualization() {
             setFilteredDataArrayTemp(mappedData);*/
             defineInitialValues(mappedData);
 
+            //testing
+            //const response1 = await getDataPerformanceTests1();
+            //const response2 = await getDataPerformanceTests2();
+            //const response3 = await getDataPerformanceTests3();
+            //const response4 = await getDataPerformanceTests4();
+
         } catch (error) {
             console.error('Error fetching data:', error);
         }
+
     }
 
     const defineInitialValues = (mappedData: InclinometerData[]) => {

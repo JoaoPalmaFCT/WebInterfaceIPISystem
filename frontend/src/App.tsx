@@ -23,6 +23,8 @@ import {
     Drawer,
 } from "@mui/material";
 import {FormatListBulleted,SsidChart, Home, AccountCircle, Logout, Settings} from "@mui/icons-material";
+import Login
+    from "./components/login";
 
 function App() {
   /*useEffect(() => {
@@ -153,6 +155,10 @@ function App() {
                           path="/profile"
                           element={
                               <Profile/>}/>
+                      <Route
+                          path="/login"
+                          element={
+                              <Login/>}/>
                   </Routes>
               </Container>
               <Footer/>
