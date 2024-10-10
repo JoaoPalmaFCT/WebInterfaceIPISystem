@@ -41,7 +41,7 @@ interface SettingsAPI {
     ])
     fun deleteConnection(@RequestBody connection: ConnectionDTO)
 
-    @GetMapping("/connection/{user}")
+    @GetMapping("/connection")
     @Operation(summary = "Get all connections",
             description = "Retrieves all connections of a user from the system. The connection data must be valid and complete.")
     @ApiResponses(value = [
@@ -49,7 +49,7 @@ interface SettingsAPI {
         ApiResponse(responseCode = "400", description = "Invalid connection data"),
         ApiResponse(responseCode = "500", description = "Internal Server Error")
     ])
-    fun getConnections(@PathVariable user:String) : List<ConnectionDTO>
+    fun getConnections() : List<ConnectionDTO>
 
     @GetMapping("/connectionMP/{mg}")
     @Operation(summary = "Get all Monitoring Group connections",

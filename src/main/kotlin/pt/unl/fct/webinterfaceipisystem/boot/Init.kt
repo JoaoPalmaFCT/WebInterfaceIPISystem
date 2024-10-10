@@ -18,6 +18,7 @@ class Init1(val userRepository: UserRepository,
             val markerRepository: MarkerRepository,
             val profilePositionAdjustmentRepository: ProfilePositionAdjustmentRepository,
             val monitoringProfileRepository: MonitoringProfileRepository,
+            val connectionsRepository: ConnectionsRepository,
             private val encoder: PasswordEncoder) : CommandLineRunner {
     @Transactional
     override fun run(vararg args: String?) {
@@ -29,6 +30,11 @@ class Init1(val userRepository: UserRepository,
         val listOfCompanies = mutableListOf<CompanyDAO>()
         listOfCompanies.add(CompanyDAO(1, "FCT NOVA"))
         companyRepository.saveAll(listOfCompanies)
+
+        val listOfConnections = mutableListOf<InfluxDBDAO>()
+        listOfConnections.add(InfluxDBDAO("inputs", "//localhost:8086/", "5q-pfsRjWHQvyFZqhQ3Y8BT9CQmUJBAbd4e_paPOo5bMuwDtqSi-vG_PVQMQhs06Fm45PEPDySxu7Z0DLDjJRA==", "c5936632b4808196"))
+        listOfConnections.add(InfluxDBDAO("telegraf", "//localhost:8086/", "5q-pfsRjWHQvyFZqhQ3Y8BT9CQmUJBAbd4e_paPOo5bMuwDtqSi-vG_PVQMQhs06Fm45PEPDySxu7Z0DLDjJRA==", "c5936632b4808196"))
+        connectionsRepository.saveAll(listOfConnections)
 
         val listOfMPGroups = mutableListOf<MonitoringProfileGroupDAO>()
         listOfMPGroups.add(MonitoringProfileGroupDAO(1, "Barragem do Azibo", "Barragem do Azibo", 1))

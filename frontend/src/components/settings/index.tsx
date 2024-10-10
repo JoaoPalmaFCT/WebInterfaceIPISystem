@@ -17,8 +17,47 @@ import {
 import {
     InfluxDB
 } from "@influxdata/influxdb-client";
+import {
+    addPoint
+} from "../../store/monitoringProfile";
+import {
+    useAppDispatch,
+    useConnectionsSelector,
+    useMeasurementsSelector
+} from "../../store/hooks";
+import {
+    addConnection,
+    getAllConnections
+} from "../../store/settings";
+
+interface Connection {
+    id: number;
+    url: string;
+    token: string;
+    org: string;
+    bucket: string;
+}
+
+function createConnection(
+    id: number,
+    url: string,
+    token: string,
+    org: string,
+    bucket: string
+): Connection {
+    return {
+        id,
+        url,
+        token,
+        org,
+        bucket
+    };
+}
 
 function Settings() {
+
+    const dispatch = useAppDispatch()
+    const sessionToken: string = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJqb2FvQGdtYWlsLmNvbSIsImlhdCI6MTcyNzM3MzU2MCwiZXhwIjoxNzMwMDAxNjU2fQ.OFdGB8u3r8kLx-KZxqJc7R6i06D2ytAue8Hp0_kZEP4-21b9WhPo1_Xrq-svMgoRZoRYKBi8-wYxohtFCXN2BA";
 
     const [loading, setLoading] = useState(false);
     const [connectionStatus, setConnectionStatus] = useState<string>('');
@@ -41,6 +80,32 @@ function Settings() {
         url: '//localhost:8086/',
         token: '5q-pfsRjWH5q-pfsRjWHQvyFZqhBAbd4e_paPOo5bMuwDtqSi-vG_PVQMQhs06Fm45PEPDySxu7Z0DLDjJRA=='
     }).getQueryApi('c5936632b4808196');*/
+
+    const dbConnectionsList = useConnectionsSelector(state => state.connections)
+    const [connectedDatabases, setConnectedDatabases] = useState<Connection[]>([]);
+
+    useEffect(() => {
+        dispatch(getAllConnections(sessionToken));
+    }, [dispatch]);
+
+    useEffect(() => {
+        if(dbConnectionsList != undefined){
+            let m = [];
+            for(let i = 0; i<(dbConnectionsList ?? []).length; i++) {
+                let url = dbConnectionsList[i].url;
+                let token = dbConnectionsList[i].token;
+                let org = dbConnectionsList[i].org;
+                let bucket = dbConnectionsList[i].bucket;
+
+                if(url !== undefined && token !== undefined && org !== undefined && bucket !== undefined){
+                    m.push(createConnection(i, url, token, org, bucket))
+                }
+            }
+            setConnectedDatabases(m)
+        }
+
+    }, [dbConnectionsList]);
+
 
     const handleTestConnection = async () => {
         setLoading(true);
@@ -100,6 +165,8 @@ function Settings() {
             }).getQueryApi(org);
 
             setApi(newApi)
+
+            dispatch(addConnection(url, token, org, bucket, sessionToken))
 
             setAlertSuccess(true);
             setTimeout(() => {
@@ -232,6 +299,31 @@ function Settings() {
                     </Box>
                 </CardContent>
             </Card>
+            {connectedDatabases.length > 0 && (
+                <Card sx={{ minWidth: 700, marginTop: '20px' }}>
+                    <CardContent>
+                        <Typography variant="h5" textAlign="left" style={{ paddingBottom: '10px' }}>
+                            Connected Databases
+                        </Typography>
+                        {connectedDatabases.map((db, index) => (
+                            <Box key={index} mb={2} p={2} border={1} borderRadius={4} borderColor="grey.300">
+                                <Typography variant="body1">
+                                    <strong>URL:</strong> {db.url}
+                                </Typography>
+                                <Typography variant="body1">
+                                    <strong>Token:</strong> {'******' + db.token.slice(-5)}
+                                </Typography>
+                                <Typography variant="body1">
+                                    <strong>Organization:</strong> {'******' + db.org.slice(-5)}
+                                </Typography>
+                                <Typography variant="body1">
+                                    <strong>Bucket:</strong> {db.bucket}
+                                </Typography>
+                            </Box>
+                        ))}
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
 }

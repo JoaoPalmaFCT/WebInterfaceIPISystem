@@ -68,9 +68,9 @@ class SettingsController (val app: SettingsApplication) : SettingsAPI{
         }
     }
 
-    override fun getConnections(bucket: String): List<ConnectionDTO> {
+    override fun getConnections(): List<ConnectionDTO> {
         try {
-            val connections = app.getConnectionsByBucket(bucket)
+            val connections = app.getAllConnections()
             return connections.map {
                 ConnectionDTO(
                         url = it.url,

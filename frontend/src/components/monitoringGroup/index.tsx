@@ -56,7 +56,7 @@ import {
 } from "react-leaflet";
 import L
     from "leaflet";
-
+import districtsData from './JSON_Municipios_Portugal.json';
 
 interface SoilItem {
     id: number;
@@ -71,6 +71,7 @@ interface MonitoringGroup {
     id: number;
     name: string;
     region: string;
+    district: string;
     description: string;
     databaseId: number;
 }
@@ -79,6 +80,7 @@ function createData(
     id: number,
     name: string,
     region: string,
+    district: string,
     description: string,
     databaseId: number,
 ): MonitoringGroup {
@@ -86,6 +88,7 @@ function createData(
         id,
         name,
         region,
+        district,
         description,
         databaseId
     };
@@ -916,6 +919,25 @@ function MonitGroups() {
     const [description, setDescriptionName] = useState('');
     const [missingFieldGroupName, setMissingFieldGroupName] = useState(false);
     const [missingFieldDescription, setMissingFieldDescription] = useState(false);
+    const [selectedDistrict, setSelectedDistrict] = useState<string>('');
+    const [regions, setRegions] = useState<string[]>([]);
+
+    const [selectedGroup, setSelectedGroup] = useState<number>(0);
+
+    const handleChangeDistrict = (event: SelectChangeEvent<typeof selectedDistrict>) => {
+        const tempSelectedDistrict = event.target.value as keyof typeof districtsData;
+        setSelectedDistrict(tempSelectedDistrict);
+
+        setRegions(districtsData[tempSelectedDistrict]);
+        /*
+        if (districtsData[tempSelectedDistrict]) {
+            setRegions(districtsData[tempSelectedDistrict] as string[]);
+        } else {
+            setRegions([]);
+        }*/
+
+        setSelectedRegion([]);
+    };
 
     const handleChangeRegion = (event: SelectChangeEvent<typeof selectedRegion>) => {
         const {
@@ -926,8 +948,6 @@ function MonitGroups() {
         );
     };
 
-    const regions = ["Macedo de Cavaleiros"]
-
     const handleGroupName = (newGroupName: string) => {
         setGroupName(newGroupName)
     }
@@ -937,6 +957,23 @@ function MonitGroups() {
     }
 
     const handleSubmitGroup = () => {
+
+    }
+
+    const handleSelectGroup = (event: SelectChangeEvent<typeof selectedGroup>) => {
+        const groupId = Number(event.target.value);
+        setSelectedGroup(groupId);
+
+        const group = rows.find(g => g.id === groupId);
+        if (group) {
+            setGroupName(group.name);
+            setSelectedDistrict(group.district);
+            setSelectedRegion([group.region]);
+            setDescriptionName(group.description);
+        }
+    };
+
+    const handleSubmitGroupEdit = () => {
 
     }
 
@@ -1211,7 +1248,7 @@ function MonitGroups() {
     }, [latitude, longitude]);
 
     useEffect(() => {
-        setRows([createData(1, "A12_PK150aPK300", "Macedo de Cavaleiros", "Azibo's dam monitoring group",1)])
+        setRows([createData(1, "A12_PK150aPK300", "Macedo de Cavaleiros", "Bragança", "Azibo's dam monitoring group",1)])
     }, [firstPageActive]);
 
     useEffect(() => {
@@ -1632,7 +1669,7 @@ function MonitGroups() {
                                 <Clear/>
                             </IconButton>
                             <div
-                                className='pt-1 pl-16 pb-5'>
+                                className='pt-1 pl-4 pb-5'>
                                 <Listbox>
                                     <Listbox.Label
                                         className="text-2xl font-medium leading-6 text-gray-900 text-left">Add
@@ -1687,42 +1724,47 @@ function MonitGroups() {
                                         ml: 2,
                                         width: 300
                                     }}>
-                                    <InputLabel
-                                        id="multiple-chip-label">Region
-                                        *</InputLabel>
+                                    <InputLabel id="district-select-label">District *</InputLabel>
                                     <Select
-                                        labelId="multiple-chip-label"
-                                        id="multiple-chip"
+                                        labelId="district-select-label"
+                                        id="district-select"
+                                        value={selectedDistrict}
+                                        onChange={handleChangeDistrict}
+                                        input={<OutlinedInput label="District *" />}
+                                    >
+                                        {Object.keys(districtsData).map((district) => (
+                                            <MenuItem key={district} value={district}>
+                                                {district}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                                <FormControl
+                                    sx={{
+                                        mt: 2,
+                                        mb: 2,
+                                        ml: 2,
+                                        width: 300
+                                    }}>
+                                    <InputLabel id="region-select-label">Region *</InputLabel>
+                                    <Select
+                                        labelId="region-select-label"
+                                        id="region-select"
                                         multiple
                                         value={selectedRegion}
                                         onChange={handleChangeRegion}
-                                        input={
-                                            <OutlinedInput
-                                                id="select-multiple-chip"
-                                                label="Region *"/>}
+                                        input={<OutlinedInput id="select-multiple-chip" label="Region *" />}
                                         renderValue={(selected) => (
-                                            <Box
-                                                sx={{
-                                                    display: 'flex',
-                                                    flexWrap: 'wrap',
-                                                    gap: 0.5
-                                                }}>
+                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                                                 {selected.map((value) => (
-                                                    <Chip
-                                                        key={value}
-                                                        label={value}/>
+                                                    <Chip key={value} label={value} />
                                                 ))}
                                             </Box>
                                         )}
-                                        MenuProps={MenuProps}
                                     >
-                                        {regions.map((m) => (
-                                            <MenuItem
-                                                key={m}
-                                                value={m}
-                                                style={getStyles(m, selectedRegion, theme)}
-                                            >
-                                                {m}
+                                        {regions.map((region) => (
+                                            <MenuItem key={region} value={region}>
+                                                {region}
                                             </MenuItem>
                                         ))}
                                     </Select>
@@ -1790,6 +1832,185 @@ function MonitGroups() {
                             group
                         </button>
                     </div>
+                    <Modal
+                        open={openEdit}
+                        onClose={handleCloseEdit}
+                        aria-labelledby="modal-title"
+                        aria-describedby="modal-description"
+                    >
+                        <Box
+                            sx={{
+                                position: 'absolute' as 'absolute',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                width: 400,
+                                bgcolor: 'background.paper',
+                                border: '2px solid #000',
+                                boxShadow: 24,
+                                p: 4,
+                                borderRadius: 2,
+                                '& .close-button': {
+                                    position: 'absolute',
+                                    top: 8,
+                                    right: 8,
+                                },
+                            }}
+                        >
+                            <IconButton
+                                className="close-button"
+                                aria-label="close"
+                                onClick={handleCloseEdit}
+                            >
+                                <Clear/>
+                            </IconButton>
+                            <div
+                                className='pt-1 pl-18 pb-5'>
+                                <Listbox>
+                                    <Listbox.Label
+                                        className="text-2xl font-medium leading-6 text-gray-900 text-left">Edit group</Listbox.Label>
+                                </Listbox>
+                            </div>
+                            <div
+                                className="pt-1 pl-4 pr-4">
+                                <FormControl
+                                    sx={{
+                                        mb: 3,
+                                        width: '100%'
+                                    }}>
+                                    <InputLabel
+                                        id="group-select-label">Select
+                                        Group
+                                        *</InputLabel>
+                                    <Select
+                                        labelId="group-select-label"
+                                        id="group-select"
+                                        value={selectedGroup}
+                                        onChange={handleSelectGroup}
+                                        input={
+                                            <OutlinedInput
+                                                label="Select Group *"/>}
+                                    >
+                                        {rows.map((group) => (
+                                            <MenuItem
+                                                key={group.id}
+                                                value={group.id}>
+                                                {group.name}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </div>
+                            <TextField
+                                required
+                                id="outlined-required"
+                                label="Group Name"
+                                value={groupName}
+                                onChange={(e) => handleGroupName(e.target.value)}
+                                sx={{
+                                    mb: 2,
+                                    ml: 2,
+                                    width: 300,
+                                }}
+                            />
+                            <FormControl
+                                sx={{
+                                    mt: 2,
+                                    mb: 2,
+                                    ml: 2,
+                                    width: 300
+                                }}>
+                                <InputLabel
+                                    id="district-select-label">District
+                                    *</InputLabel>
+                                <Select
+                                    labelId="district-select-label"
+                                    id="district-select"
+                                    value={selectedDistrict}
+                                    onChange={handleChangeDistrict}
+                                    input={
+                                        <OutlinedInput
+                                            label="District *"/>}
+                                >
+                                    {Object.keys(districtsData).map((district) => (
+                                        <MenuItem
+                                            key={district}
+                                            value={district}>
+                                            {district}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                            <FormControl
+                                sx={{
+                                    mt: 2,
+                                    mb: 2,
+                                    ml: 2,
+                                    width: 300
+                                }}>
+                                <InputLabel
+                                    id="region-select-label">Region
+                                    *</InputLabel>
+                                <Select
+                                    labelId="region-select-label"
+                                    id="region-select"
+                                    multiple
+                                    value={selectedRegion}
+                                    onChange={handleChangeRegion}
+                                    input={
+                                        <OutlinedInput
+                                            id="select-multiple-chip"
+                                            label="Region *"/>}
+                                    renderValue={(selected) => (
+                                        <Box
+                                            sx={{
+                                                display: 'flex',
+                                                flexWrap: 'wrap',
+                                                gap: 0.5
+                                            }}>
+                                            {selected.map((value) => (
+                                                <Chip
+                                                    key={value}
+                                                    label={value}/>
+                                            ))}
+                                        </Box>
+                                    )}
+                                >
+                                    {regions.map((region) => (
+                                        <MenuItem
+                                            key={region}
+                                            value={region}>
+                                            {region}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                            <TextField
+                                required
+                                id="outlined-required"
+                                label="Description"
+                                value={description}
+                                onChange={(e) => handleDescription(e.target.value)}
+                                sx={{
+                                    mt: 2,
+                                    mb: 2,
+                                    ml: 2,
+                                    width: 300,
+                                }}
+                            />
+                            <div
+                                className="submit-button">
+                                <button
+                                    type="button"
+                                    className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg"
+                                    onClick={handleSubmitGroupEdit}
+                                >
+                                    Save
+                                    Changes
+                                </button>
+                            </div>
+                        </Box>
+                    </Modal>
                     <Box
                         sx={{width: '100%'}}>
                         <Paper

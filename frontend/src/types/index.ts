@@ -59,3 +59,10 @@ export interface LineCrossSection {
     bottomY: number | undefined;
     profilePositionAdjustmentId: number | undefined;
 }
+
+export interface Connection {
+    url: string | undefined;
+    token: string | undefined;
+    org: string | undefined;
+    bucket: string | undefined;
+}

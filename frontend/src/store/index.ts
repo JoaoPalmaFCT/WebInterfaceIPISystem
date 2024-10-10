@@ -7,7 +7,8 @@ export const store = configureStore({
     reducer: {
         user: userReducer,
         mp: monitoringProfileReducer,
-        measurements: measurementsReducer
+        measurements: measurementsReducer,
+        connections: measurementsReducer
     },
     //middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat([logger]),
 });

@@ -16,3 +16,6 @@ export const useMPSelector: TypedUseSelectorHook<MonitoringProfileState> =
 
 export const useMeasurementsSelector: TypedUseSelectorHook<MeasurementsState> =
     <T>(f:(state:MeasurementsState) => T) => useAppSelector((state:State) => f(state.measurements))
+
+export const useConnectionsSelector: TypedUseSelectorHook<MeasurementsState> =
+    <T>(f:(state:MeasurementsState) => T) => useAppSelector((state:State) => f(state.connections))
