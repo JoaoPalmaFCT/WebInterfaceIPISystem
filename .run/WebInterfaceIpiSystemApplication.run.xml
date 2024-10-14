@@ -1,0 +1,12 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="WebInterfaceIpiSystemApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+    <envs>
+      <env name="JWT_KEY" value="adwbdiybawydbawiduawhdjdwbdiybawydbawiduawhdjdwbdiybawydbawiduawhdjdwbdiyb" />
+    </envs>
+    <module name="WebInterfaceIPISystem" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="pt.unl.fct.webinterfaceipisystem.WebInterfaceIpiSystemApplication" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

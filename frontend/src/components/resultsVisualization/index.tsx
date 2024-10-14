@@ -26,13 +26,9 @@ import {
     LegendProps
 } from 'recharts';
 import {
-    DatePicker//,
-    //RangeSlider,
-    //Slider
+    DatePicker
 } from 'rsuite';
 import 'rsuite/DatePicker/styles/index.css';
-//import 'rsuite/RangeSlider/styles/index.css';
-//import 'rsuite/Slider/styles/index.css';
 import {
     Listbox,
     Transition
@@ -46,7 +42,6 @@ import Slider
 import * as Papa from 'papaparse';
 import { SyncLoader } from 'react-spinners';
 import Konva from 'konva';
-import { Stage } from 'konva/lib/Stage';
 import {
     Table,
     TableCell,
@@ -110,8 +105,11 @@ import {
     getProfilePositionAdjustments,
     getSpecificProfilePositionAdjustments
 } from "../../store/monitoringProfile";
+
 /*
+ *
  * INCLINOMETER DATA
+ *
  */
 
 interface InfluxDataAux {
@@ -231,7 +229,6 @@ function createMeasurement(
 
 interface ChartProps {
     graphData: InclinometerData[];
-    //colorArray: string[];
     loadingData: boolean;
 }
 
@@ -239,21 +236,18 @@ interface ChartPropsInc {
     graphData: InclinometerData[];
     loadingData: boolean;
     refDate: string;
-    //colorArray: string[];
 }
 
 interface ChartPropsTotal {
     graphDataX: InclinometerData[];
     graphDataY: InclinometerData[];
     loadingData: boolean;
-    //colorArray: string[];
 }
 
 interface ChartPropsClock {
     graphDataA: InclinometerData[];
     graphDataB: InclinometerData[];
     loadingData: boolean;
-    //colorArray: string[];
 }
 
 interface ChartPropsDetails {
@@ -262,7 +256,6 @@ interface ChartPropsDetails {
     minDepth: number;
     maxDepth: number;
     loadingData: boolean;
-    //colorArray: string[];
 }
 
 interface ChartPropsDetailsTotal {
@@ -282,7 +275,9 @@ interface ChartSoil {
 }
 
 /*
+ *
  * PROFILE DATA
+ *
  */
 
 const createCustomIcon = (markerId: number) => {
@@ -296,6 +291,12 @@ const createCustomIcon = (markerId: number) => {
         className: ''
     });
 };
+
+/*
+ *
+ * Data types definitions
+ *
+ */
 
 interface ChartPropsProfileInc {
     graphData: InclinometerData[];
@@ -695,137 +696,7 @@ function createCrossSectionCheckbox(
     };
 }
 
-/*
- *
- * INFLUXDB API QUERIES
- *
- * Queries to get inclinometer data from InfluxDB
- *
- * START
- */
-
-const api = new InfluxDB({
-    //url: 'https://positive-presumably-bluegill.ngrok-free.app/',
-    url: '//localhost:8086/',
-    token: '5q-pfsRjWHQvyFZqhQ3Y8BT9CQmUJBAbd4e_paPOo5bMuwDtqSi-vG_PVQMQhs06Fm45PEPDySxu7Z0DLDjJRA=='
-}).getQueryApi('c5936632b4808196');
-
-export function getData() {
-    try {
-        const fluxQuery = 'from(bucket:"inputs") |> range(start: 0) |> filter(fn: (r) => r._measurement == "BarragemX")';
-        const response = api.collectRows(fluxQuery);
-
-        console.log('Query Response:', response);
-        return response
-    } catch (error) {
-        throw error;
-    }
-}
-
-export function getTestData() {
-    try {
-        const fluxQuery = 'from(bucket:"telegraf") |> range(start: 0) |> filter(fn: (r) => r._measurement == "I1")';
-        const response = api.collectRows(fluxQuery);
-
-        console.log('Query Response:', response);
-        return response
-    } catch (error) {
-        throw error;
-    }
-}
-
-export function getDataPerformanceTests1() {
-    try {
-        const fluxQuery = 'from(bucket:"inputs") |> range(start: 2023-01-01T23:30:00Z, stop: 2023-12-31T00:00:00Z) |> filter(fn: (r) => r._measurement == "BarragemX")';
-        const response = api.collectRows(fluxQuery);
-
-        console.log('Query Response:', response);
-        return response
-    } catch (error) {
-        throw error;
-    }
-}
-
-export function getDataPerformanceTests2() {
-    try {
-        const fluxQuery = 'from(bucket:"inputs") |> range(start: 2009-01-01T23:30:00Z, stop: 2023-12-31T00:00:00Z) |> filter(fn: (r) => r._measurement == "BarragemX")';
-        const response = api.collectRows(fluxQuery);
-
-        console.log('Query Response:', response);
-        return response
-    } catch (error) {
-        throw error;
-    }
-}
-
-export function getDataPerformanceTests3() {
-    try {
-        const fluxQuery = 'from(bucket:"inputs") |> range(start: 2004-01-01T23:30:00Z, stop: 2023-12-31T00:00:00Z) |> filter(fn: (r) => r._measurement == "BarragemX")';
-        const response = api.collectRows(fluxQuery);
-
-        console.log('Query Response:', response);
-        return response
-    } catch (error) {
-        throw error;
-    }
-}
-
-export function getDataPerformanceTests4() {
-    try {
-        const fluxQuery = 'from(bucket:"inputs") |> range(start: 1986-01-01T23:30:00Z, stop: 2023-12-31T00:00:00Z) |> filter(fn: (r) => r._measurement == "BarragemX")';
-        const response = api.collectRows(fluxQuery);
-
-        console.log('Query Response:', response);
-        return response
-    } catch (error) {
-        throw error;
-    }
-}
-
-export function getDataPerformanceTests5() {
-    try {
-        const fluxQuery = 'from(bucket:"inputs") |> range(start: 1984-01-01T23:30:00Z, stop: 2023-12-31T00:00:00Z) |> filter(fn: (r) => r._measurement == "BarragemX")';
-        const response = api.collectRows(fluxQuery);
-
-        console.log('Query Response:', response);
-        return response
-    } catch (error) {
-        throw error;
-    }
-}
-
-/*
-export function getDataFromLastYear() {
-    try {
-        const fluxQuery = 'from(bucket:"inputs") |> range(start: 0) |> filter(fn: (r) => r._measurement == "BarragemX") |> range(start: 2023-01-01T23:30:00Z, stop: 2023-12-31T00:00:00Z)';
-        const response = api.collectRows(fluxQuery);
-
-        console.log('Query Response:', response);
-
-        return response
-    } catch (error) {
-        throw error;
-    }
-}*/
-
-/*
- * INFLUXDB API QUERIES
- *
- * END
- */
-
-const profilePosArray: number[] = [
-    293.9759051572062,137.467221651754,
-    307.0369757491928,178.48439409197888,
-    384.5834641373972,116.29482793608675,
-    397.1268966391787,155.38014872373353,
-    405.5478067907014,194.53481986550128,
-    435.51871388561534,101.61149271936408,
-    458.41490819149766,179.33384655857358,
-    498.3038925944048,84.78825478770023,
-    513.0379957938668,124.321863311431
-]
-
+/* Colors array used for chart lines */
 const colorsArray: string[] = [
     "#33A4FF",
     "#1e7226",
@@ -1111,10 +982,135 @@ const exportSelect = [
 
 let desiredDepth = 0;
 
+
+/*
+ *
+ * INFLUXDB API QUERIES
+ *
+ * Queries to get inclinometer data from InfluxDB
+ *
+ */
+
+/* API Config */
+const api = new InfluxDB({
+    //url: 'https://positive-presumably-bluegill.ngrok-free.app/',
+    url: '//localhost:8086/',
+    token: '5q-pfsRjWHQvyFZqhQ3Y8BT9CQmUJBAbd4e_paPOo5bMuwDtqSi-vG_PVQMQhs06Fm45PEPDySxu7Z0DLDjJRA=='
+}).getQueryApi('c5936632b4808196');
+
+/* Query for Azibo's dam data */
+export function getData() {
+    try {
+        const fluxQuery = 'from(bucket:"inputs") |> range(start: 0) |> filter(fn: (r) => r._measurement == "BarragemX")';
+        const response = api.collectRows(fluxQuery);
+
+        console.log('Query Response:', response);
+        return response
+    } catch (error) {
+        throw error;
+    }
+}
+
+/* Query for lab test data */
+export function getTestData() {
+    try {
+        const fluxQuery = 'from(bucket:"telegraf") |> range(start: 0) |> filter(fn: (r) => r._measurement == "I1")';
+        const response = api.collectRows(fluxQuery);
+
+        console.log('Query Response:', response);
+        return response
+    } catch (error) {
+        throw error;
+    }
+}
+
+/* Queries for performance tests */
+
+export function getDataPerformanceTests1() {
+    try {
+        const fluxQuery = 'from(bucket:"inputs") |> range(start: 2023-01-01T23:30:00Z, stop: 2023-12-31T00:00:00Z) |> filter(fn: (r) => r._measurement == "BarragemX")';
+        const response = api.collectRows(fluxQuery);
+
+        console.log('Query Response:', response);
+        return response
+    } catch (error) {
+        throw error;
+    }
+}
+
+export function getDataPerformanceTests2() {
+    try {
+        const fluxQuery = 'from(bucket:"inputs") |> range(start: 2009-01-01T23:30:00Z, stop: 2023-12-31T00:00:00Z) |> filter(fn: (r) => r._measurement == "BarragemX")';
+        const response = api.collectRows(fluxQuery);
+
+        console.log('Query Response:', response);
+        return response
+    } catch (error) {
+        throw error;
+    }
+}
+
+export function getDataPerformanceTests3() {
+    try {
+        const fluxQuery = 'from(bucket:"inputs") |> range(start: 2004-01-01T23:30:00Z, stop: 2023-12-31T00:00:00Z) |> filter(fn: (r) => r._measurement == "BarragemX")';
+        const response = api.collectRows(fluxQuery);
+
+        console.log('Query Response:', response);
+        return response
+    } catch (error) {
+        throw error;
+    }
+}
+
+export function getDataPerformanceTests4() {
+    try {
+        const fluxQuery = 'from(bucket:"inputs") |> range(start: 1986-01-01T23:30:00Z, stop: 2023-12-31T00:00:00Z) |> filter(fn: (r) => r._measurement == "BarragemX")';
+        const response = api.collectRows(fluxQuery);
+
+        console.log('Query Response:', response);
+        return response
+    } catch (error) {
+        throw error;
+    }
+}
+
+export function getDataPerformanceTests5() {
+    try {
+        const fluxQuery = 'from(bucket:"inputs") |> range(start: 1984-01-01T23:30:00Z, stop: 2023-12-31T00:00:00Z) |> filter(fn: (r) => r._measurement == "BarragemX")';
+        const response = api.collectRows(fluxQuery);
+
+        console.log('Query Response:', response);
+        return response
+    } catch (error) {
+        throw error;
+    }
+}
+
+/*
+export function getDataFromLastYear() {
+    try {
+        const fluxQuery = 'from(bucket:"inputs") |> range(start: 0) |> filter(fn: (r) => r._measurement == "BarragemX") |> range(start: 2023-01-01T23:30:00Z, stop: 2023-12-31T00:00:00Z)';
+        const response = api.collectRows(fluxQuery);
+
+        console.log('Query Response:', response);
+
+        return response
+    } catch (error) {
+        throw error;
+    }
+}*/
+
+/*
+ *
+ * AUXILIAR FUNCTIONS FOR CHART GENERATION AND DATA FILTERING
+ *
+ */
+
 function classNames(...classes: string[]) {
     return classes.filter(Boolean).join(' ')
 }
 
+/* Formatting dates */
 const formatDate = (dateS: string) => {
     const date = new Date(dateS);
     const year = date.getUTCFullYear();
@@ -1127,6 +1123,7 @@ const formatDate = (dateS: string) => {
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
+/* Returns the number of sensors for an inclinometer */
 const getNumberOfSensors = (graphData: InclinometerData[], inc: number) => {
     let sensorNumber = 0;
 
@@ -1137,6 +1134,7 @@ const getNumberOfSensors = (graphData: InclinometerData[], inc: number) => {
     return sensorNumber;
 }
 
+/* Returns the oldest date when the oldest reference date is selected */
 const getRefDate = (graphData: Inclinometer[]) => {
     let oldestDate = graphData[0].time;
 
@@ -1148,29 +1146,19 @@ const getRefDate = (graphData: Inclinometer[]) => {
     return oldestDate
 }
 
+/* Returns the most recent date selected */
 const getMostRecentDate = (graphData: Inclinometer[]) => {
-    let oldestDate = graphData[0].time;
+    let recentDate = graphData[0].time;
 
     graphData.map(g => {
-        if (oldestDate < g.time)
-            oldestDate = g.time
+        if (recentDate < g.time)
+            recentDate = g.time
     })
 
-    return oldestDate
+    return recentDate
 }
 
-/*const getMaxDisplacement = (graphData: Inclinometer[]) => {
-    let maxDisplacement = graphData[0].value;
-
-    graphData.map(g => {
-        if (oldestDate < g.time)
-            oldestDate = g.time
-    })
-
-    return oldestDate
-}*/
-
-
+/* Returns the data within a certain interval */
 const getIntervalDates = (graphData: InclinometerData[], initialDate: string, lastDate: string) => {
     let tempData: InclinometerData[] = [];
     graphData.map(g => {
@@ -1180,6 +1168,7 @@ const getIntervalDates = (graphData: InclinometerData[], initialDate: string, la
     return tempData;
 }
 
+/* Test function for returning the initial dates checked */
 const getInitialDatesChecked = (graphData: InclinometerData[]) => {
     let tempDateArray: string[] = []
 
@@ -1212,6 +1201,7 @@ const getInitialDatesChecked = (graphData: InclinometerData[]) => {
     });
 }
 
+/* Returns the unique dates available */
 const getUniqueDates = (graphData: InclinometerData[]) => {
     let tempDateArray: string[] = []
 
@@ -1231,6 +1221,7 @@ const getUniqueDates = (graphData: InclinometerData[]) => {
     });
 }
 
+/* Returns the unique inclinometers available */
 const getUniqueInclinometers = (dataArray: InclinometerData[]) => {
     let tempDateArray: string[] = []
 
@@ -1242,6 +1233,7 @@ const getUniqueInclinometers = (dataArray: InclinometerData[]) => {
     return Array.from(uniqueInc);
 }
 
+/* Returns the unique depths available for an inclinometer */
 const getUniqueDepth = (inc: number, dataArray: InclinometerData[]) => {
     let tempDateArray: number[] = []
 
@@ -1254,6 +1246,7 @@ const getUniqueDepth = (inc: number, dataArray: InclinometerData[]) => {
     return Array.from(uniqueSensors);
 }
 
+/* Returns the depth of a specific sensor */
 const getDepth = (data: InclinometerData[], inc: number, depth: number) => {
     let numberOfSensors = getNumberOfSensors(data, inc);
     let value;
@@ -1263,73 +1256,10 @@ const getDepth = (data: InclinometerData[], inc: number, depth: number) => {
     } else {
         value = numberOfSensors / 2 - depth
     }
-    /*}else{
-        value = depth - 0.5
-    }*/
     return value;
 }
 
-
-/*const generateRandomHexColor = (): string => {
-    const color = Math.floor(Math.random() * 16777215);
-    const hexColor = color.toString(16).padStart(6, '0');
-
-    return `#${hexColor}`;
-};*/
-
-/*const CustomTooltip: React.FC<TooltipProps<any, any>> = ({
-                                                             active,
-                                                             payload,
-                                                             label
-                                                         }) => {
-    if (active && payload && payload.length) {
-        return (
-            <div
-                className="custom-tooltip">
-                <div
-                    style={{
-                        backgroundColor: 'white',
-                        padding: '10px',
-                        borderRadius: '5px',
-                        boxShadow: '0 4px 4px rgba(0, 0, 0, 0.1)',
-                        border: '1px solid black',
-                        width: '130px'
-                    }}>
-                    {payload.map((p, index) => (
-                        <div
-                            key={index}>
-                            {index === 0 &&
-                                <p className="label"
-                                   style={{margin: 0}}>{`Depth ${p.payload.depth} (m)`}</p>
-                            }
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    color: p.color
-                                }}>
-                                <p style={{
-                                    margin: 0,
-                                    width: '10px',
-                                    height: '10px',
-                                    borderRadius: '50%',
-                                    backgroundColor: p.color,
-                                    marginRight: '10px',
-                                    marginLeft: '20px'
-                                }}/>
-                                <p style={{margin: 0}}
-                                   className="label">{`${p.value.toFixed(2)}`}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        );
-    }
-    return null;
-};*/
-
-
+/* Custom tooltip element for charts */
 const CustomTooltip: React.FC<TooltipProps<any, any>> = ({
                                                              active,
                                                              payload,
@@ -1421,6 +1351,7 @@ const CustomTooltip: React.FC<TooltipProps<any, any>> = ({
     return null;
 };
 
+/* Custom tooltip element for charts */
 const CustomTooltipDetails: React.FC<TooltipProps<any, any>> = ({
                                                                     active,
                                                                     payload,
