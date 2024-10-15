@@ -108,7 +108,7 @@ import {
 
 /*
  *
- * INCLINOMETER DATA
+ * INDIVIDUAL INCLINOMETER SECTION
  *
  */
 
@@ -1259,7 +1259,7 @@ const getDepth = (data: InclinometerData[], inc: number, depth: number) => {
     return value;
 }
 
-/* Custom tooltip element for charts */
+/* Custom tooltip element for charts displacement over depth */
 const CustomTooltip: React.FC<TooltipProps<any, any>> = ({
                                                              active,
                                                              payload,
@@ -1351,7 +1351,7 @@ const CustomTooltip: React.FC<TooltipProps<any, any>> = ({
     return null;
 };
 
-/* Custom tooltip element for charts */
+/* Custom tooltip element for displacement over dates charts */
 const CustomTooltipDetails: React.FC<TooltipProps<any, any>> = ({
                                                                     active,
                                                                     payload,
@@ -1432,6 +1432,7 @@ const CustomTooltipDetails: React.FC<TooltipProps<any, any>> = ({
     return null;
 };
 
+/* Testing depths for bar chart */
 const getSoilDepth = (depth: number) => {
     switch (depth) {
         case 4:
@@ -1447,7 +1448,7 @@ const getSoilDepth = (depth: number) => {
     }
 }
 
-
+/* Custom tooltip element for soil charts */
 const CustomTooltipSoil: React.FC<TooltipProps<any, any>> = ({
                                                                  active,
                                                                  payload,
@@ -1494,6 +1495,7 @@ const CustomTooltipSoil: React.FC<TooltipProps<any, any>> = ({
     return null;
 };
 
+/* Data preparation for total displacements charts */
 const ChartDataPrepTotal = (graphDataX: InclinometerData[], graphDataY: InclinometerData[]): InclinometerData[][] => {
     let data: InclinometerData[][] = [];
 
@@ -1519,6 +1521,7 @@ const ChartDataPrepTotal = (graphDataX: InclinometerData[], graphDataY: Inclinom
     return data;
 }
 
+/* Data preparation for orthogonal direction displacements over depth charts */
 const ChartDataPrep = (graphData: InclinometerData[]): InclinometerData[][] => {
     let data: InclinometerData[][] = [];
 
@@ -1539,6 +1542,7 @@ const ChartDataPrep = (graphData: InclinometerData[]): InclinometerData[][] => {
     return data;
 }
 
+/* Data preparation for orthogonal directions displacements over dates charts */
 const ChartDataPrepDetails = (graphData: InclinometerData[], maxD: number, minD: number): InclinometerData[][] => {
     let data: InclinometerData[][] = [];
     const startTime = performance.now();
@@ -1557,20 +1561,6 @@ const ChartDataPrepDetails = (graphData: InclinometerData[], maxD: number, minD:
             data[i].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
         }
     }
-    /*const uniqueDates = getUniqueDates(graphData);
-    const numberOfDates = uniqueDates.length;
-
-    for (let i = 0; i < numberOfDates; i++) {
-        let tempArray: InclinometerData[] = []
-        graphData.map(g => {
-            if (g.time === uniqueDates[i]) {
-                tempArray.push(g)
-            }
-        })
-        data[i] = tempArray
-        data[i].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
-    }
-*/
 
     const endTime = performance.now();
     const responseTime = endTime-startTime
@@ -1578,29 +1568,8 @@ const ChartDataPrepDetails = (graphData: InclinometerData[], maxD: number, minD:
     return data;
 }
 
+/* Data preparation for total displacements over dates charts */
 const ChartDataPrepDetailsTotal = (graphDataX: InclinometerData[], graphDataY: InclinometerData[], maxD: number, minD: number): InclinometerData[][] => {
-    /*let data: InclinometerData[][] = [];
-
-    const uniqueDates = getUniqueDates(graphDataX)
-    const numberOfDates = uniqueDates.length;
-
-    for (let i = 0; i < numberOfDates; i++) {
-        let tempArray: InclinometerData[] = []
-        graphDataX.map(g => {
-            if (g.time === uniqueDates[i]) {
-                graphDataY.map(y => {
-                    if (g.sensorID === y.sensorID && g.time === y.time) {
-                        g.field = "total"
-                        g.displacement = calculateTotal(g.displacement, y.displacement);
-                    }
-                })
-                tempArray.push(g)
-            }
-        })
-        data[i] = tempArray
-        data[i].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
-    }
-    return data;*/
 
     let graphData: InclinometerData[] = []
 
@@ -1619,8 +1588,6 @@ const ChartDataPrepDetailsTotal = (graphDataX: InclinometerData[], graphDataY: I
                 graphData.push(g)
             }
         })
-        //data[i] = tempArray
-       // data[i].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
     }
 
     let data: InclinometerData[][] = [];
@@ -1640,23 +1607,11 @@ const ChartDataPrepDetailsTotal = (graphDataX: InclinometerData[], graphDataY: I
             data[i].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
         }
     }
-    /*const uniqueDates = getUniqueDates(graphData);
-    const numberOfDates = uniqueDates.length;
 
-    for (let i = 0; i < numberOfDates; i++) {
-        let tempArray: InclinometerData[] = []
-        graphData.map(g => {
-            if (g.time === uniqueDates[i]) {
-                tempArray.push(g)
-            }
-        })
-        data[i] = tempArray
-        data[i].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
-    }
-*/
     return data;
 }
 
+/* Data preparation for displacement in orthogonal diretion A over displacement in orthogonal diretion B charts */
 const ChartClockDataPrep = (graphDataA: InclinometerData[], graphDataB: InclinometerData[]): ABData[][] => {
     let data: ABData[][] = [];
 
@@ -1687,6 +1642,7 @@ const ChartClockDataPrep = (graphDataA: InclinometerData[], graphDataB: Inclinom
     return data;
 }
 
+/* Custom label for charts */
 const CustomLabel: React.FC<{
     viewBox: {
         x: number;
@@ -1758,6 +1714,7 @@ const CustomLabel: React.FC<{
     )
 };
 
+/* Custom label for bar chart */
 const CustomLabelBarChart = (props: LabelProps, label: string) => {
     const {
         x,
@@ -1783,11 +1740,19 @@ const CustomLabelBarChart = (props: LabelProps, label: string) => {
     );
 };
 
+/* Testing of chart clicking functionalities */
 const handleClickChart = (payload: React.MouseEvent<SVGCircleElement, MouseEvent>) => {
     let pl = payload as unknown as PointData
     desiredDepth = pl.payload.depth;
 }
 
+/*
+ *
+ * CHART GENERATION
+ *
+ */
+
+/* Chart generation for orthogonal directions displacements over depth */
 const Chart: React.FC<ChartPropsInc> = ({
                                             graphData,
                                             loadingData,
@@ -1870,8 +1835,12 @@ const Chart: React.FC<ChartPropsInc> = ({
     }
 
     return (
+        /* V1
         <div
-            className="wrapper">
+            className="wrapper">*/
+        /* TV */
+        <div
+            className="wrapperAB">
             <ResponsiveContainer
                 width="100%"
                 height={640}>
@@ -1893,7 +1862,9 @@ const Chart: React.FC<ChartPropsInc> = ({
                             margin={{
                                 top: 25,
                                 right: 10,
-                                left: 30,
+                                /* V1 left: 30,*/
+                                /*TV*/
+                                left: 26,
                                 bottom: 55
                             }}>
                             <CartesianGrid
@@ -1936,7 +1907,11 @@ const Chart: React.FC<ChartPropsInc> = ({
                                     align="right"
                                     verticalAlign="top"
                                     layout="vertical"
+                                    /* V1
                                     margin={{right: 50}}
+                                    */
+                                    /* TV */
+                                    margin={{right: 20}}
                                     wrapperStyle={{
                                         position: 'absolute',
                                         right: -35,
@@ -1998,6 +1973,7 @@ const Chart: React.FC<ChartPropsInc> = ({
     );
 };
 
+/* Chart generation for total displacements over depth */
 const ChartTotal: React.FC<ChartPropsTotal> = ({
                                                    graphDataX,
                                                    graphDataY,
@@ -2099,6 +2075,7 @@ const ChartTotal: React.FC<ChartPropsTotal> = ({
     );
 };
 
+/* Chart generation for temperature over depth */
 const ChartTemp: React.FC<ChartProps> = ({
                                              graphData,
                                              loadingData
@@ -2169,14 +2146,13 @@ const ChartTemp: React.FC<ChartProps> = ({
     );
 };
 
+/* Chart generation for orthogonal direction A displacements over orthogonal direction B displacements */
 const ChartClock: React.FC<ChartPropsClock> = ({
                                                    graphDataA,
                                                    graphDataB,
                                                    loadingData
                                                }) => {
     let data: ABData[][] = ChartClockDataPrep(graphDataA, graphDataB);
-
-    /*<Tooltip content={<CustomTooltip/>}/>*/
     let graphTypeUnit: string = "mm"
     let typeOfResult: string = "Cumulative displacements"
 
@@ -2262,6 +2238,7 @@ const ChartClock: React.FC<ChartPropsClock> = ({
     );
 };
 
+/* Chart generation for orthogonal directions displacements over dates */
 const ChartDetails: React.FC<ChartPropsDetails> = ({
                                                        graphData,
                                                        initialMaxDepth,
@@ -2300,8 +2277,7 @@ const ChartDetails: React.FC<ChartPropsDetails> = ({
 
         discardHMS = data[0][0].time.split(" ")[1] === "00:00:00"
     }
-//domain={[minD, maxD]}
-//{data.map((date, i) => {}(`${date[i].time.split(" ")[0]}` ))}
+
     return (
         <div
             className="wrapper">
@@ -2380,6 +2356,7 @@ const ChartDetails: React.FC<ChartPropsDetails> = ({
     );
 };
 
+/* Chart generation for total displacements over dates */
 const ChartDetailsTotal: React.FC<ChartPropsDetailsTotal> = ({
                                                        graphDataX,
                                                        graphDataY,
@@ -2416,8 +2393,7 @@ const ChartDetailsTotal: React.FC<ChartPropsDetailsTotal> = ({
 
         discardHMS = data[0][0].time.split(" ")[1] === "00:00:00"
     }
-//domain={[minD, maxD]}
-//{data.map((date, i) => {}(`${date[i].time.split(" ")[0]}` ))}
+
     return (
         <div
             className="wrapper">
@@ -2487,6 +2463,7 @@ const ChartDetailsTotal: React.FC<ChartPropsDetailsTotal> = ({
     );
 };
 
+/* Chart generation for soil layers */
 const ChartSoil: React.FC<ChartSoil> = ({
                                             graphData,
                                             loadingData,
@@ -2506,7 +2483,10 @@ const ChartSoil: React.FC<ChartSoil> = ({
         <div
             className="wrapper">
             <ResponsiveContainer
-                width={(totalChart && !tempChart) ? "25%" :"40%"}
+                /* V1
+                width={(totalChart && !tempChart) ? "25%" :"40%"} */
+                /* TV */
+                width={(totalChart && !tempChart) ? 100 : 100}//"25%" :"40%"}
                 height={640}>
                 {(graphData.length === 0 || loadingData) ? (
                         <div
@@ -2587,33 +2567,7 @@ const ChartSoil: React.FC<ChartSoil> = ({
     );
 };
 
-/*{data.map((d, i) => (
-))}
-
-const ChartSoil: React.FC<ChartSoil> = ({graphData}) => {
-    //let data: InclinometerData[][] = ChartDataPrep(graphData);
-    const uniqueColors = Array.from(new Set(graphData.map(soil => soil.color)));
-
-    return (
-        <div className="wrapper" >
-            {graphData.length > 0 && (
-                <ResponsiveContainer width="30%" height={300}>
-                    <BarChart data={graphData} stackOffset="sign" margin={{ top: 25, right: 20, left: 20, bottom: 20 }}>
-                        <XAxis dataKey="depth"/>
-                        <YAxis  />
-                        <Tooltip />
-                        <Legend />
-                        {graphData.map((soil, i) => (
-                            <Bar dataKey="depth"  key={`${soil.id}`} stackId="stack" fill={soil.color}/>
-                        ))}
-                    </BarChart>
-                </ResponsiveContainer>
-            )}
-        </div>
-    );
-};*/
-
-
+/* Chart generation for inclinometer comparison in profiles */
 const ChartProfileA: React.FC<ChartPropsProfileInc> = ({
                                             graphData,
                                             loadingData,
@@ -2856,98 +2810,11 @@ const ChartProfileA: React.FC<ChartPropsProfileInc> = ({
     );
 };
 
-/*{leftChart &&
-                                <ReferenceLine
-                                    //x={0}
-                                    stroke="#000000"
-                                    segment={[{
-                                        x: -maxData + 5.5,
-                                        y: maxDepthOverall - 10
-                                    }, {
-                                        x: -maxData + 5.5,
-                                        y: maxDepthOverall - 0.5
-                                    }]}
-                                >
-                                    <Label
-                                        value={`Elevation (m)`}
-                                        position="left"
-                                        angle={-90}
-                                        dy={-30}
-                                        dx={-10}
-                                    />
-                                </ReferenceLine>
-                            }
-                            {leftChart &&
-                                <ReferenceLine
-                                    //x={0}
-                                    stroke="#000000"
-                                    segment={[{
-                                        x: -maxData +  5.5,
-                                        y: maxDepthOverall - 10
-                                    }, {
-                                        x: -maxData + 11,
-                                        y: maxDepthOverall - 9
-                                    }]}
-                                >
-                                </ReferenceLine>
-                            }
-                            {leftChart &&
-                                <ReferenceLine
-                                    //x={0}
-                                    stroke="#000000"
-                                    segment={[{
-                                        x: -maxData + 5.5,
-                                        y: maxDepthOverall - 10
-                                    }, {
-                                        x: -maxData,
-                                        y: maxDepthOverall - 9
-                                    }]}
-                                >
-                                </ReferenceLine>
-                            }
-                            {leftChart &&
-                                <ReferenceLine
-                                    //x={0}
-                                    stroke="#000000"
-                                    segment={[{
-                                        x: -maxData + 5.5,
-                                        y: maxDepthOverall-0.5,
-                                    }, {
-                                        x: (numberOfTotalInc >= 4) ? -maxData+140 : ((numberOfTotalInc === 3 ) ? -maxData+110 : -maxData+90),
-                                        y: maxDepthOverall-0.5
-                                    }]}
-                                >
-                                    <Label
-                                        value={graphType === 'A' ? `A (mm)` : `B (mm)` }
-                                        position="bottom"
-                                        dy={0}
-                                        dx={0}
-                                    />
-                                </ReferenceLine>}
-                            {leftChart &&
-                                <ReferenceLine
-                                    //x={0}
-                                    stroke="#000000"
-                                    segment={[{
-                                        x: (numberOfTotalInc >= 4) ? -maxData+140 : ((numberOfTotalInc === 3 ) ? -maxData+110 : -maxData+90),
-                                        y: maxDepthOverall-0.5
-                                    }, {
-                                        x: (numberOfTotalInc >= 4) ? -maxData+130 : ((numberOfTotalInc === 3 ) ? -maxData+100 : -maxData+80),
-                                        y: maxDepthOverall-1
-                                    }]}
-                                />}
-                            {leftChart &&
-                                <ReferenceLine
-                                    //x={0}
-                                    stroke="#000000"
-                                    segment={[{
-                                        x: (numberOfTotalInc >= 4) ? -maxData+140 : ((numberOfTotalInc === 3 ) ? -maxData+110 : -maxData+90),
-                                        y: maxDepthOverall-0.5
-                                    }, {
-                                        x: (numberOfTotalInc >= 4) ? -maxData+130 : ((numberOfTotalInc === 3 ) ? -maxData+100 : -maxData+80),
-                                        y: maxDepthOverall
-                                    }]}
-                                />}*/
+/*
+ *
+ * AUXILIAR CALCULATIONS FOR CHART GENERATION
+ *
+ */
 
 const calculateTopValueSlider = (numSensors: number) => {
     return numSensors / 2 - 0.5;
@@ -2963,7 +2830,6 @@ const isDateChecked = (date: string, dates: string[]) => {
     })
     return found
 }
-
 
 const areAllDatesChecked = (numberOfDates: number, checkedDates: string[]) => {
     let found: boolean = false;
@@ -3110,56 +2976,6 @@ const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateDa
         }
     }
 
-    /*for (let i = 0; i < numberOfDates; i++) {//3
-        let tempArray: InclinometerData[] = []
-        array.map(g => {
-            if (!checkIfDateAlreadyAdded(g.time, data)) { // uniqueDates[i]
-                tempArray.push(g)
-            }
-        })
-        data[i] = tempArray;
-        data[i].sort((a, b) => Number(a.sensorID) - Number(b.sensorID));
-    }*/
-
-    //data[0] = tempArray//data[i] = tempArray
-    //data[1] = tempArray2
-    //data[2] = tempArray3
-    //data[0].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
-    //data[1].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
-    //data[2].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
-
-    /* const auxDate: String = "2009-09-22 00:00:00"
-    const auxDate2: String = "1984-09-11 00:00:00"
-    const auxDate3: String = "1986-10-01 00:00:00"
-
-    let data: InclinometerData[][] = [];
-    let returnData: InclinometerData[] = [];
-
-    //const uniqueDates = getUniqueDates(array)
-    //const numberOfDates = uniqueDates.length;
-
-    //for (let i = 0; i < 2; i++) {//numberOfDates
-        let tempArray: InclinometerData[] = []
-        let tempArray2: InclinometerData[] = []
-        let tempArray3: InclinometerData[] = []
-        array.map(g => {
-            if(g.field === "aX"){
-            if (g.time === auxDate) { // uniqueDates[i]
-                tempArray.push(g)
-            }else if(g.time === auxDate2){
-                tempArray2.push(g)
-            }else if(g.time === auxDate3){
-                tempArray3.push(g)
-            }}
-        })
-    data[0] = tempArray//data[i] = tempArray
-    data[1] = tempArray2
-    data[2] = tempArray3
-    data[0].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
-    data[1].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
-    data[2].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
-*/
-
     for (let i = 0; i < numberOfDates; i++) {//3numberOfDates
         let cumulative: number = 0;
         for (const item of data[i]) {
@@ -3255,37 +3071,7 @@ const getDataArrayX = (selectedInc: number, array: InclinometerData[], refDateDa
 
 const getDataArrayY = (selectedInc: number, array: InclinometerData[], refDateData: InclinometerData[], selectedResult: string) => {
     const startTime = performance.now();
-    /*const auxDate: String = "2009-09-22 00:00:00"
-    const auxDate2: String = "1984-09-11 00:00:00"
-    const auxDate3: String = "1986-10-01 00:00:00"
 
-    let data: InclinometerData[][] = [];
-    let returnData: InclinometerData[] = [];
-
-    //const uniqueDates = getUniqueDates(array)
-    //const numberOfDates = uniqueDates.length;
-
-    //for (let i = 0; i < 2; i++) {//numberOfDates
-    let tempArray: InclinometerData[] = []
-    let tempArray2: InclinometerData[] = []
-    let tempArray3: InclinometerData[] = []
-    array.map(g => {
-        if (g.time === auxDate) { // uniqueDates[i]
-            tempArray.push(g)
-        }else if(g.time === auxDate2){
-            tempArray2.push(g)
-        }else if(g.time === auxDate3){
-            tempArray3.push(g)
-        }
-    })
-    data[0] = tempArray//data[i] = tempArray
-    data[1] = tempArray2
-    data[2] = tempArray3
-    data[0].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
-    data[1].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
-    data[2].sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
-    //}
-*/
     let data: InclinometerData[][] = [];
     let returnData: InclinometerData[] = [];
 
@@ -3464,30 +3250,6 @@ const getFiveMostRecentClock = (data: ABData[][]) => {
     return newData.reverse();
 }
 
-/*
-const getFiveMostRecent = (data: InclinometerData[]) => {
-
-    console.log(data)
-    let newData: InclinometerData[] = [];
-
-    let revData = data.reverse();
-    let lastDate = revData[0].time;
-    let counter = 0;
-
-    for(let i = 0; i < revData.length; i++){
-        if(revData[i].time === lastDate && counter < 5){
-            newData.push(revData[i])
-        }else if(counter < 5){
-            lastDate = revData[i].time;
-            newData.push(revData[i])
-            counter++;
-        }
-    }
-
-    console.log(newData.reverse())
-    return newData.reverse();
-}*/
-
 const filterTestData = (data: InclinometerData[]): InclinometerData[] => {
     let filteredData: InclinometerData[] = [];
     let prevTimestampX: string | null = null;
@@ -3546,6 +3308,11 @@ const filterTestData = (data: InclinometerData[]): InclinometerData[] => {
     return filteredData;
 }
 
+/*
+ *
+ * EXPORT TESTING FUNCTIONS - WORK IN PROGRESS
+ *
+ */
 const exportSVG = (svg: SVGElement, graphName: string) => {
     const svgString = new XMLSerializer().serializeToString(svg);
     const blob = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
@@ -3720,7 +3487,16 @@ const PopupCSV: React.FC<PopupProps> = ({ open, handleClose }) => {
 
 
 /*
+ *
  * PROFILE SECTION
+ *
+ */
+
+/*
+ *
+ * PROFILES DATA TABLE
+ * Main functions and auxiliar methods for the table generation
+ *
  */
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
@@ -3879,7 +3655,6 @@ const getTableValues = (selectedInc: number, arrayX: InclinometerData[], arrayY:
 
     let dataX: InclinometerData[][] = [];
     let dataY: InclinometerData[][] = [];
-    //let dataTotal: InclinometerData[][] = [];
     let returnData: InclinometerData[] = [];
     let returnDataX: InclinometerData[] = [];
     let returnDataY: InclinometerData[] = [];
@@ -3920,7 +3695,6 @@ const getTableValues = (selectedInc: number, arrayX: InclinometerData[], arrayY:
     let tempArrayX: InclinometerData[] = []
 
     for (let i = 0; i < arrayX.length; i++) {
-        //array.map(g => {
         if (arrayX[i].field === "aX") {
             if (arrayX[i].time === uniqueDates[counterX]) {
                 tempArrayX.push(arrayX[i]);
@@ -3942,7 +3716,6 @@ const getTableValues = (selectedInc: number, arrayX: InclinometerData[], arrayY:
                         }
                         return Number(a.sensorID) - Number(b.sensorID);
                     });
-                    //.sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
                     tempArrayX = [];
                     tempArrayX.push(arrayX[i])
                     counterX++;
@@ -3964,7 +3737,6 @@ const getTableValues = (selectedInc: number, arrayX: InclinometerData[], arrayY:
     let tempArrayY: InclinometerData[] = []
 
     for (let i = 0; i < arrayY.length; i++) {
-        //array.map(g => {
         if (arrayY[i].field === "aY") {
             if (arrayY[i].time === uniqueDates[counterY]) {
                 tempArrayY.push(arrayY[i]);
@@ -3986,7 +3758,6 @@ const getTableValues = (selectedInc: number, arrayX: InclinometerData[], arrayY:
                         }
                         return Number(a.sensorID) - Number(b.sensorID);
                     });
-                    //.sort((a, b) => Number(a.sensorID) - Number(b.sensorID))
                     tempArrayY = [];
                     tempArrayY.push(arrayY[i])
                     counterY++;
@@ -4199,47 +3970,6 @@ const getTableValues = (selectedInc: number, arrayX: InclinometerData[], arrayY:
         }
     }
 
-    // if max location selected
-    /*let currentMaxDisplacementT : number = 0;
-    let maxDisplacementItemT : InclinometerData = {
-        inc: '',
-        sensorID: '',
-        field: '',
-        measurement: '',
-        time: '',
-        depth: 0,
-        value: 0,
-        cumulative: 0,
-        displacement: 0,
-        typeOfResult: selectedResult
-    };
-    let currentMaxDisplacementTX : number = 0;
-    let maxDisplacementItemTX : InclinometerData = {
-        inc: '',
-        sensorID: '',
-        field: '',
-        measurement: '',
-        time: '',
-        depth: 0,
-        value: 0,
-        cumulative: 0,
-        displacement: 0,
-        typeOfResult: selectedResult
-    };
-    let currentMaxDisplacementTY : number = 0;
-    let maxDisplacementItemTY : InclinometerData = {
-        inc: '',
-        sensorID: '',
-        field: '',
-        measurement: '',
-        time: '',
-        depth: 0,
-        value: 0,
-        cumulative: 0,
-        displacement: 0,
-        typeOfResult: selectedResult
-    };*/
-
     for (let i = 0; i < numberOfDates; i++) {
         let tempData = returnData;
         let found = false;
@@ -4304,8 +4034,6 @@ const getTableValues = (selectedInc: number, arrayX: InclinometerData[], arrayY:
             if (g.time === uniqueDates[i]) {
                 tempData.map(y => {
                     if (g.sensorID === y.sensorID && g.time === y.time && g.field !== y.field && !found) {
-                        //g.field = "total"
-                        //g.displacement = calculateTotal(g.displacement, y.displacement);
                         const updatedItem: InclinometerData = {
                             inc: g.inc,
                             sensorID: g.sensorID,
@@ -4318,57 +4046,11 @@ const getTableValues = (selectedInc: number, arrayX: InclinometerData[], arrayY:
                             displacement: calculateTotal(g.displacement, y.displacement),
                             typeOfResult: selectedResult
                         };
-                        //returnData.push(updatedItem);
-                        //returnDataTotal.push(updatedItem);
                         found = true;
                         maxDisplacementItemT = updatedItem;
                         currentMaxDisplacementT = updatedItem.displacement
 
                     }
-                    /*if(selectedLocation === 'Max'){
-                    if (returnDataXMax[i].sensorID === y.sensorID && returnDataXMax[i].time === y.time && returnDataXMax[i].field !== y.field && !foundX) {
-                        //g.field = "total"
-                        //g.displacement = calculateTotal(g.displacement, y.displacement);
-                        const updatedItem: InclinometerData = {
-                            inc: g.inc,
-                            sensorID: g.sensorID,
-                            field: "total",
-                            measurement: g.measurement,
-                            time: g.time,
-                            depth: getDepth(dataX[i], Number(g.inc), g.depth),
-                            value: calculateAngle(g.value),
-                            cumulative: 0,
-                            displacement: calculateTotal(returnDataXMax[i].displacement, y.displacement),
-                            typeOfResult: selectedResult
-                        };
-                        //returnDataMax.push(updatedItem);
-                        //returnDataXMax.push(updatedItem);
-                        foundX = true;
-                        maxDisplacementItemTX = updatedItem;
-                        currentMaxDisplacementTX = updatedItem.displacement
-                    }
-                    if (returnDataYMax[i].sensorID === y.sensorID && returnDataYMax[i].time === y.time && returnDataYMax[i].field !== y.field && !foundY) {
-                        //g.field = "total"
-                        //g.displacement = calculateTotal(g.displacement, y.displacement);
-                        const updatedItem: InclinometerData = {
-                            inc: g.inc,
-                            sensorID: g.sensorID,
-                            field: "total",
-                            measurement: g.measurement,
-                            time: g.time,
-                            depth: getDepth(dataY[i], Number(g.inc), g.depth),
-                            value: calculateAngle(g.value),
-                            cumulative: 0,
-                            displacement: calculateTotal(returnDataYMax[i].displacement, y.displacement),
-                            typeOfResult: selectedResult
-                        };
-                        //returnDataMax.push(updatedItem);
-                        //returnDataYMax.push(updatedItem);
-                        foundY = true;
-                        maxDisplacementItemTY = updatedItem;
-                        currentMaxDisplacementTY = updatedItem.displacement
-                    }
-                    }*/
                 })
             }
         })
@@ -4521,10 +4203,15 @@ const makeCalcAgain = (maxDisplacementItem: InclinometerData, orthoNeeded: strin
     return returnData;
 }
 
-
+/*
+ *
+ * MAIN TYPESCRIPT FUNCTION
+ *
+ */
 function ResultsVisualization() {
 
     const sessionToken: string = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJqb2FvQGdtYWlsLmNvbSIsImlhdCI6MTcyNzM3MzU2MCwiZXhwIjoxNzMwMDAxNjU2fQ.OFdGB8u3r8kLx-KZxqJc7R6i06D2ytAue8Hp0_kZEP4-21b9WhPo1_Xrq-svMgoRZoRYKBi8-wYxohtFCXN2BA";
+    // Relational database integration
     const dispatch = useAppDispatch()
     const dbMeasurementsList = useMeasurementsSelector(state => state.measurements)
     const dbMPGroups = useMPSelector(state => state.mpGroups)
@@ -4569,6 +4256,7 @@ function ResultsVisualization() {
         }
     }, [dbMeasurementsList]);
 
+    // Variable initialization for chart related data
     const [arrayInitialized, setArrayInitialized] = useState(false);
     const [dataArrayX, setDataArrayX] = useState<InclinometerData[]>([]);
     const [dataArrayY, setDataArrayY] = useState<InclinometerData[]>([]);
@@ -4576,7 +4264,6 @@ function ResultsVisualization() {
     const [filteredDataArrayX, setFilteredDataArrayX] = useState<InclinometerData[]>([]);
     const [filteredDataArrayY, setFilteredDataArrayY] = useState<InclinometerData[]>([]);
     const [filteredDataArrayTemp, setFilteredDataArrayTemp] = useState<InclinometerData[]>([]);
-    //const [colorArray, setColorArray] = useState<string[]>([]);
     const [earliestRefDate, setEarliestRefDate] = useState<string>("");
     const [refEarliestDateDataX, setEarliestRefDateDataX] = useState<InclinometerData[]>([]);
     const [refEarliestDateDataY, setEarliestRefDateDataY] = useState<InclinometerData[]>([]);
@@ -4585,7 +4272,6 @@ function ResultsVisualization() {
     const [refDateDataY, setRefDateDataY] = useState<InclinometerData[]>([]);
     const [depthArray, setDepthArray] = useState<number[]>([]);
     const [defaultDatesGraph, setDefaultDatesGraph] = useState(true);
-
     const [toggleTotalChart, setToggleTotalChart] = useState(false);
     const [toggleTempChart, setToggleTempChart] = useState(false);
     const [toggleSelectDates, setToggleSelectDates] = useState(false);
@@ -4597,14 +4283,17 @@ function ResultsVisualization() {
     const [selectedDesiredDepth, setSelectedDesiredDepth] = useState(desiredDepthTypes[1])
     const [selectedElevation, setSelectedElevation] = useState(elevation[0])
 
+    // Variable initialization for the slider element
     const [topValueSlider, setTopValueSlider] = useState<number>(32)
     const [lowerValueSlider, setLowerValueSlider] = useState<number>(0)
     const [stepValueSlider, setStepValueSlider] = useState<number>(5)
     const [selectedValuesSlider, setSelectedValuesSlider] = useState<number[]>([0, 32])
 
+    // Variable initialization for the reference change element
     const [lastToggleRef, setLastToggleRef] = useState<number>(0);
     const [toggleIntervalRef, setToggleIntervalRef] = useState(false);
 
+    // Variable initialization for testing measurements
     const [selectedMeasurement, setSelectedMeasurement] = useState<string>("Barragem do Azibo")
 
     const [loadingData, setLoadingData] = useState(true);
@@ -4638,20 +4327,13 @@ function ResultsVisualization() {
             setSelectedLastDesiredDepth((getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer)) / 2) - 0.5);
             setOriginalFirstDesiredDepth(0);
             setOriginalLastDesiredDepth((getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer)) / 2) - 0.5);
-            //setSelectedAXChartData(getDataArrayX(1, dataArrayX, refDateDataX, selectedResults.name));
-            //setSelectedAYChartData(getDataArrayY(1, dataArrayY, refDateDataY, selectedResults.name));
 
-            //let initialDataX = getFiveMostRecent(getDataArrayX(1, dataArrayX, refDateDataX, selectedResults.name))
-            //let initialDataY = getFiveMostRecent(getDataArrayY(1, dataArrayY, refDateDataY, selectedResults.name))
-            //setFilteredDataArrayX(initialDataX)
-            //setFilteredDataArrayY(initialDataY)
-            //setSelectedAXChartData(getFiveMostRecent(getDataArrayX(1, dataArrayX, refDateDataX, selectedResults.name)));
-            //setSelectedAYChartData(getFiveMostRecent(getDataArrayY(1, dataArrayY, refDateDataY, selectedResults.name)));
             setArrayInitialized(true);
             handleStepSlider();
         }
     }, [dataArrayX, dataArrayY, arrayInitialized]);
 
+    // Request for Azibo's dam data
     async function fetchData() {
         /*try {
             const response1 = await getDataPerformanceTests3();
@@ -4674,20 +4356,6 @@ function ResultsVisualization() {
                 typeOfResult: results[0].name
             }));
 
-            /*let auxRefDate = getRefDate(mappedData);
-            setRefDate(auxRefDate);
-            setRefDateDataX(getRefDateData(auxRefDate, mappedData, "aX"));
-            setRefDateDataY(getRefDateData(auxRefDate, mappedData, "aY"));
-            setEarliestRefDate(auxRefDate);
-            setEarliestRefDateDataX(getRefDateData(auxRefDate, mappedData, "aX"));
-            setEarliestRefDateDataY(getRefDateData(auxRefDate, mappedData, "aY"));
-
-            setDataArrayX(mappedData);
-            setFilteredDataArrayX(mappedData);
-            setDataArrayY(mappedData);
-            setFilteredDataArrayY(mappedData);
-            setDataArrayTemp(mappedData);
-            setFilteredDataArrayTemp(mappedData);*/
             defineInitialValues(mappedData);
 
             //testing
@@ -4702,6 +4370,7 @@ function ResultsVisualization() {
 
     }
 
+    // Definition of initial values displayed on charts
     const defineInitialValues = (mappedData: InclinometerData[]) => {
         if (selectedMeasurement === "Lab Test") {
             let auxRefDate = getRefDate(mappedData);
@@ -4773,6 +4442,7 @@ function ResultsVisualization() {
         setDepthArray(getUniqueDepth(1, filteredDataArrayX).sort((a, b) => Number(a) - Number(b)));
     }, [filteredDataArrayX]);
 
+    // Request for the laboratory testing data
     async function fetchTestData() {
         try {
             const response = await getTestData() as InfluxDataAuxTest[];
@@ -4796,29 +4466,28 @@ function ResultsVisualization() {
         }
     }
 
-
+    // Variable definition for different aspects of the gathered data
     const numberOfMeasurements: string[] = ["Barragem do Azibo", "Lab Test"]
     const numberOfInc: string[] = getUniqueInclinometers(filteredDataArrayX).sort((a, b) => Number(a) - Number(b))
     const numberOfDates: string[] = getUniqueDates(dataArrayX)
 
+    // Variable initialization for the filter options
     const [selectedInclinometer, setSelectedInclinometer] = useState<Number>(1);
     const [selectedDepth, setSelectedDepth] = useState<number>(0.5);
     const [maxDepthInc, setMaxDepthInc] = useState<number>(32);
     const [maxDepthGraph, setMaxDepthGraph] = useState<number>(32);
     const [minDepthGraph, setMinDepthGraph] = useState<number>(0);
-
     const [selectedFirstDesiredDepth, setSelectedFirstDesiredDepth] = useState<number>(0);
     const [selectedLastDesiredDepth, setSelectedLastDesiredDepth] = useState<number>(31.5);
     const [originalFirstDesiredDepth, setOriginalFirstDesiredDepth] = useState<number>(0);
     const [originalLastDesiredDepth, setOriginalLastDesiredDepth] = useState<number>(31.5);
 
-    //const [selectedTimestamp, setSelectedTimestamp] = useState<Date>(new Date("2005-05-20 00:00:00"));
-
+    // Variable initialization for chart data
     const [selectedAXChartData, setSelectedAXChartData] = useState<InclinometerData[]>([]);
     const [selectedAYChartData, setSelectedAYChartData] = useState<InclinometerData[]>([]);
     const [selectedTotalChartData, setSelectedTotalChartData] = useState<InclinometerData[]>([]);
 
-
+    // Variable initialization for dates filtering options
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [filteredDates, setFilteredDates] = useState<string[]>([]);
     const [checkedDates, setCheckedDates] = useState<string[]>([])
@@ -4863,6 +4532,7 @@ function ResultsVisualization() {
         setDefaultDatesGraph(true);
     }, [selectedMeasurement]);
 
+    // Definition of the default dates for the displayed charts
     const defaultCheckedDates = () => {
         let defaultDataX: InclinometerData[] = [];
         let defaultDataY: InclinometerData[] = [];
@@ -4899,6 +4569,7 @@ function ResultsVisualization() {
         setDefaultDatesGraph(false);
     }
 
+    // Definition of the default dates for profile charts
     const defaultCheckedDatesProfile = () : string[] => {
         let defaultDataX: InclinometerData[] = [];
         let defaultDataY: InclinometerData[] = [];
@@ -4995,24 +4666,23 @@ function ResultsVisualization() {
         setLoadingData(false)
     }, [checkedDates, refDate, filteredDataArrayX]);
 
+    // Handle selection of data in orthogonal direction A
     const handleSelectedAXChartData = (inc: number, selectedType: string) => {
         setSelectedAXChartData(getDataArrayX(inc, filteredDataArrayX, refDateDataX, selectedType));
-        //setColorArray(generateColorArray(dataArray));
     };
 
+    // Handle selection of data in orthogonal direction B
     const handleSelectedAYChartData = (inc: number, selectedType: string) => {
         setSelectedAYChartData(getDataArrayY(inc, filteredDataArrayY, refDateDataY, selectedType));
     };
 
-    const handleSelectedTotalChartData = (inc: number) => {
-        //setSelectedTotalChartData();
-    };
-
+    // Handle selection of a measurement
     const handleSelectedMeasurement = (m: string) => {
         setSelectedMeasurement(m);
         handleStepSlider();
     };
 
+    // Handle selection of an inclinometer
     const handleSelectedInclinometer = (inc: number) => {
         setSelectedInclinometer(inc);
         handleDepthArray(inc);
@@ -5034,6 +4704,7 @@ function ResultsVisualization() {
         handleDepthReset(inc);
     };
 
+    // Handle the filtering of available depths
     const handleDepthArray = (inc: number) => {
         setDepthArray(getUniqueDepth(inc, filteredDataArrayX).sort((a, b) => Number(a) - Number(b)));
     };
@@ -5053,21 +4724,7 @@ function ResultsVisualization() {
 
     const minDistance = 1;
     const handleSliderChange = (event: Event, value: number | number[], activeThumb: number) => {//(range: number[]) => {
-
-        //console.log(value as number[])
         let v = value as number[]
-
-        /*if (activeThumb === 0) {
-            setMinDepthGraph(Math.min(v[0], maxDepthGraph - minDistance))
-            //setMaxDepthGraph(maxDepthGraph)
-            setSelectedValuesSlider([Math.min(v[0], maxDepthGraph - minDistance), maxDepthGraph])
-            //setValue1([Math.min(newValue[0], value1[1] - minDistance), value1[1]]);
-        } else {
-            //setMinDepthGraph(minDepthGraph)
-            setMaxDepthGraph(Math.max(v[1], minDepthGraph + minDistance))
-            setSelectedValuesSlider([minDepthGraph, Math.max(v[1], minDepthGraph + minDistance)])
-            //setValue1([value1[0], Math.max(newValue[1], value1[0] + minDistance)]);
-        }*/
 
         setMinDepthGraph(v[0])
         setMaxDepthGraph(v[1])
@@ -5075,22 +4732,6 @@ function ResultsVisualization() {
         setSelectedFirstDesiredDepth(maxDepthInc - v[1]);
         setSelectedLastDesiredDepth(maxDepthInc - v[0]);
     }
-
-    /*useEffect(() => {
-        setSelectedValuesSlider(selectedValuesSlider)
-    }, [lowerValueSlider, maxDepthGraph]);*/
-
-    useEffect(() => {
-        //setMinDepthGraph(minDepthGraph)
-        //setLowerValueSlider(lowerValueSlider)
-        console.log("min " + minDepthGraph + " | " + lowerValueSlider)
-    }, [minDepthGraph, lowerValueSlider]);
-
-    useEffect(() => {
-        //setMaxDepthGraph(maxDepthGraph)
-        //setTopValueSlider(topValueSlider)
-        console.log("max " + maxDepthGraph + " | " + topValueSlider)
-    }, [maxDepthGraph, topValueSlider]);
 
     const handleDatesIntervalChange = (initialDate: string, lastDate: string) => {
         setFilteredDataArrayX(getIntervalDates(dataArrayX, initialDate, lastDate));
@@ -5194,13 +4835,6 @@ function ResultsVisualization() {
     };
 
     const handleDesiredDepthIntervalReset = () => {
-        /*setMinDepthGraph(originalFirstDesiredDepth)
-        setLowerValueSlider(originalFirstDesiredDepth)
-        setMaxDepthGraph(originalLastDesiredDepth)
-        setTopValueSlider(originalLastDesiredDepth)
-        setSelectedFirstDesiredDepth(originalFirstDesiredDepth)
-        setSelectedLastDesiredDepth(originalLastDesiredDepth)
-        setSelectedValuesSlider([0, (getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer))/2)-0.5])*/
         let maxDepth = (getNumberOfSensors(filteredDataArrayX, selectedInclinometer.valueOf()) / 2) - 0.5;
         console.log(maxDepth)
         setMinDepthGraph(0)
@@ -5213,13 +4847,6 @@ function ResultsVisualization() {
     };
 
     const handleDepthReset = (inc: number) => {
-        /*setMinDepthGraph(originalFirstDesiredDepth)
-        setLowerValueSlider(originalFirstDesiredDepth)
-        setMaxDepthGraph(originalLastDesiredDepth)
-        setTopValueSlider(originalLastDesiredDepth)
-        setSelectedFirstDesiredDepth(originalFirstDesiredDepth)
-        setSelectedLastDesiredDepth(originalLastDesiredDepth)
-        setSelectedValuesSlider([0, (getNumberOfSensors(filteredDataArrayX, Number(selectedInclinometer))/2)-0.5])*/
         let maxDepth = (getNumberOfSensors(filteredDataArrayX, inc) / 2) - 0.5;
         console.log(maxDepth)
         setMinDepthGraph(0)
@@ -5242,21 +4869,13 @@ function ResultsVisualization() {
 
         handleSelectedAXChartData(Number(selectedInclinometer), selectedResults.name);
         handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
-        //handleTemp
     };
 
     const handleResetRefDate = () => {
         handleRefDate(earliestRefDate)
     };
 
-    /*const generateColorArray = (dataArray: InclinometerData[]) => {
-        const uniqueDates = getUniqueDates(dataArray)
-        return uniqueDates.map(() => generateRandomHexColor());
-    };*/
-
-
-    // temperature chart data
-
+    // Variable initialization for temperature chart data
     const auxDataTemp: InclinometerData[] = [];
     const auxDate: String = "2009-09-22 00:00:00"
     const auxDate2: String = "1984-09-11 00:00:00"
@@ -5300,13 +4919,6 @@ function ResultsVisualization() {
         } else {
             let uniqueD = getUniqueDates(filteredDataArrayX)
             setCheckedDates(uniqueD)
-            /*console.log(checkedDates)
-            if(defaultDatesGraph){
-                let initialDatesChecked = getInitialDatesChecked(filteredDataArrayX)
-                setCheckedDates(initialDatesChecked)
-            }else{
-
-            }*/
             setToggleSelectDates(true)
         }
     };
@@ -5344,7 +4956,7 @@ function ResultsVisualization() {
         handleSelectedAYChartData(Number(selectedInclinometer), selectedResults.name);
     }
 
-
+    // Variable initialization for export methods
     const chartClock = useRef<HTMLDivElement>(null);
     const chartAXRef = useRef<HTMLDivElement>(null);
     const chartAYRef = useRef<HTMLDivElement>(null);
@@ -5404,9 +5016,13 @@ function ResultsVisualization() {
     }
 
     /*
+     *
      * PROFILES SECTION
+     * Functions and specific methods for profile visualization
+     *
      */
 
+    // Initial data adjustment
     useEffect(() => {
         if(selectedVisualization === visualization[1]){
             handleToogleReference(0)
@@ -5476,6 +5092,7 @@ function ResultsVisualization() {
         setSelectedResultsProfiles(selectedType)
     }
 
+    // Variable initialization for profile data
     const [profileInitialized, setProfileInitialized] = useState(false);
     const [listOfProfiles, setListOfProfiles] = useState<Profile[]>([]);
     const [selectedProfile, setSelectedProfile] = useState<Profile>(createProfile(1, '', '', '', '', 'Plan', '', [],1));
@@ -5485,7 +5102,6 @@ function ResultsVisualization() {
     const [arrowsAPointValues, setArrowsAPointValues] = useState<InclinometerData[][]>([]);
     const [arrowsBPointValues, setArrowsBPointValues] = useState<InclinometerData[][]>([]);
     const [arrowsTotalPointValues, setArrowsTotalPointValues] = useState<InclinometerData[][]>([]);
-
     const [profileIncChart, setProfileIncChart] = useState<number[]>([1,3,6,9]);
     const [depthProfilesArray, setDepthProfilesArray] = useState<number[]>([31.5,39.5,51,34.5]);
     const [maxProfileDepth, setMaxProfileDepth] = useState<number>(51);
@@ -5494,13 +5110,12 @@ function ResultsVisualization() {
     const [selectedProfileArrayChartDataX, setSelectedProfileArrayChartDataX] = useState<InclinometerData[][]>([]);
     const [selectedProfileArrayChartDataY, setSelectedProfileArrayChartDataY] = useState<InclinometerData[][]>([]);
 
+    // Variable initialization for Konva integration and image viewing
     const stageRef = useRef<Konva.Stage | null>(null);
     const arrowLayerRef = useRef<Konva.Layer | null>(null);
     const profileLineLayerRef = useRef<Konva.Layer | null>(null);
-
     const stageCrossSectionRef = useRef<Konva.Stage | null>(null);
     const crossSectionLayerRef = useRef<Konva.Layer | null>(null);
-
     const [emptyPhoto, setEmptyPhoto] = React.useState(true);
     const [selectedProfileAttachedImageName, setSelectedDetailedProfileAttachedImageName] = React.useState<string>('');
     const [selectedProfileID, setSelectedProfileID] = React.useState<number>(0);
@@ -5609,7 +5224,6 @@ function ResultsVisualization() {
     }, [dbMPs]);
 
     useEffect(() => {
-        //if(selectedDetailedProfileID === 0 || selectedDetailedProfileID === 2){
         dispatch(getMarkers(selectedProfileID+1,sessionToken)).then(markers => {
 
             if(markers !== undefined){
@@ -5636,9 +5250,7 @@ function ResultsVisualization() {
                     tempMarkersPerProfile[selectedProfileID] = createPointMarkerPerProfile(selectedProfileID+1, tempMarkers) ;
 
                     setMarkersPerProfile(tempMarkersPerProfile);
-                    //setMarkers(tempMarkers);
-                    /*}else if(selectedDetailedProfile === "Profile1: P5"){
-        */
+
                 }
             }
         });
@@ -5725,9 +5337,7 @@ function ResultsVisualization() {
                     tempMarkersPerProfile[selectedProfileID] = createPointMarkerPerProfile(selectedProfileID+1, tempMarkers) ;
 
                     setMarkersPerProfile(tempMarkersPerProfile);
-                    //setMarkers(tempMarkers);
-                    /*}else if(selectedDetailedProfile === "Profile1: P5"){
-        */
+
                 }
             }
         });
@@ -5953,32 +5563,6 @@ function ResultsVisualization() {
                     }
                 }
 
-                /*let posCounter = 0;
-                for(let i = 0; i < 9; i++){
-                    let shape = new Konva.Circle({
-                        x: profilePosArray[posCounter],
-                        y: profilePosArray[posCounter+1],
-                        fill: 'red',
-                        radius: 5,
-                    });
-                    group.add(shape);
-                    posCounter += 2;
-                }*/
-                /*stage.on('click', function () {
-                    let pos = group.getRelativePointerPosition();
-                    if(pos !== null){
-                        let shape = new Konva.Circle({
-                            x: pos.x,
-                            y: pos.y,
-                            fill: 'red',
-                            radius: 5,
-                        });
-                        console.log(pos.x + " | " + pos.y)
-                        group.add(shape);
-                    }
-                });*/
-
-
             },1);
         }else if(selectedVisualization.name === visualization[0].name || emptyPhoto){// && profileInitialized){
             //setProfileInitialized(false)
@@ -5992,18 +5576,17 @@ function ResultsVisualization() {
         }
     }, [selectedVisualization, selectedProfile, emptyPhoto]);
 
-
+    // Variable initialization for profile table data
     const [order, setOrder] = React.useState<Order>('asc');
     const [orderBy, setOrderBy] = React.useState<keyof TableData>('inc');
-    //const [selected, setSelected] = React.useState<readonly number[]>([]);
     const [page, setPage] = React.useState(0);
     const [dense, setDense] = React.useState(false);
     const [rowsPerPage, setRowsPerPage] = React.useState(5);
-
     const [rows, setRows] = useState<TableData[]>([]);
     const [rowsA, setRowsA] = useState<TableData[]>([]);
     const [rowsB, setRowsB] = useState<TableData[]>([]);
 
+    // Handle table data
     const updateTableData = () => {
         let newTableRows = [];
         let newTableRowsA = [];
@@ -6019,7 +5602,6 @@ function ResultsVisualization() {
         let arrowsAPointValuesAux: InclinometerData[][] = [];
         let arrowsBPointValuesAux: InclinometerData[][] = [];
 
-        //if(selectedProfile.name === "All"){
             for (let i = 0; i < numberOfInc.length; i++){
                 let generatedData;
                 if(selectedLocation.name === locations[0].name) {
@@ -6050,7 +5632,6 @@ function ResultsVisualization() {
                         }
                     }
                 }else{
-                    //let maxDisplacement = 0;
                     let maxSensor = getNumberOfSensors(filteredDataArrayX, Number(numberOfInc[i]))
                     for(let j = 0; j < uniqueDates.length; j++){
                         let tempData = generatedData[0].filter(item => item.time === uniqueDates[j])
@@ -6071,8 +5652,6 @@ function ResultsVisualization() {
             setRowsB(newTableRowsB);
             setArrowsAPointValues(arrowsAPointValuesAux);
             setArrowsBPointValues(arrowsBPointValuesAux);
-            //setArrowsTotalPointValues(arrowsTotalPointValuesAux);
-
 
             if(pointsPerProfile.length > 0 && pointsPerProfile[0].points.length > 0 && pointsPerProfile[0].points.length < 9){
                 let tempP = pointsPerProfile[0].points;
@@ -6099,73 +5678,24 @@ function ResultsVisualization() {
             }else{
                 setArrowsTotalPointValues(arrowsTotalPointValuesAux);
             }
-        /*}else {
-            for (let i = 0; i < profileIncChart.length; i++){
-                let generatedData = getTableValues(Number(profileIncChart[i]), filteredDataArrayX, filteredDataArrayY, refDateDataX, refDateDataY, selectedResultsProfiles.name, 'Surface');
-
-                let mostRecentDate = ""
-                if(generatedData[1].length !== 0){
-                    mostRecentDate = getMostRecentDate(generatedData[1]);
-                }
-                arrowsAPointValuesAux.push(generatedData[1].filter(item => item.time === mostRecentDate))
-                arrowsBPointValuesAux.push(generatedData[2].filter(item => item.time === mostRecentDate))
-                arrowsTotalPointValuesAux.push(generatedData[3].filter(item => item.time === mostRecentDate))
-
-                for(let j = 0; j < uniqueDates.length; j++){
-                    let tempData = generatedData[0].filter(item => item.time === uniqueDates[j])
-                    //console.log(tempData)
-                    if(tempData.length > 0){
-                        let newData = createTableData(counter, Number(profileIncChart[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, 'Surface', Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
-                        let newDataA = createTableData(counter, Number(profileIncChart[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, 'Surface', Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
-                        let newDataB = createTableData(counter, Number(profileIncChart[i]), tempData[0].displacement, tempData[1].displacement, tempData[2].displacement, 90, 'Surface', Math.floor(Math.random() * (432 - 398) + 398), uniqueDates[j])
-                        counter++;
-                        newTableRows.push(newData)
-                        newTableRowsA.push(newDataA)
-                        newTableRowsB.push(newDataB)
-                    }
-                }
-            }
-            setRows(newTableRows);
-            setRowsA(newTableRowsA);
-            setRowsB(newTableRowsB);
-            setArrowsAPointValues(arrowsAPointValuesAux);
-            setArrowsBPointValues(arrowsBPointValuesAux);
-            setArrowsTotalPointValues(arrowsTotalPointValuesAux);
-        }*/
     }
 
-    /*useEffect(() => {
-        updateTableData();
-    }, [checkedDates]);
-    */
     useEffect(() => {
         updateTableData();
 
         if(listOfProfiles.length !== 0){
         let profileInc: number[] = [];
         if(selectedProfile.name === listOfProfiles[1].name){
-            /*setProfileIncChart([1,3,6,9])
-            setDepthProfilesArray([31.5,39.5,51,34.5])
-            setMaxProfileDepth(51)
-            profileInc = [1,3,6,9];*/
             setProfileIncChart([1,2])
             setDepthProfilesArray([31.5,14.5])
             setMaxProfileDepth(31.5)
             profileInc = [1,2];
         }else if(selectedProfile.name === listOfProfiles[2].name){
-            /*setProfileIncChart([2,4,10])
-            setDepthProfilesArray([14.5,26,20])
-            setMaxProfileDepth(26)
-            profileInc = [2,4,10];*/
             setProfileIncChart([3,4,5])
             setDepthProfilesArray([39.5,26,16.5])
             setMaxProfileDepth(39.5)
             profileInc = [3,4,5];
         }else if(selectedProfile.name === listOfProfiles[3].name){
-            /*setProfileIncChart([5,8])
-            setDepthProfilesArray([16.5,20.5])
-            setMaxProfileDepth(20.5)
-            profileInc = [5,8];*/
             setProfileIncChart([6,8])
             setDepthProfilesArray([51,20.5])
             setMaxProfileDepth(51)
@@ -6176,7 +5706,6 @@ function ResultsVisualization() {
             setMaxProfileDepth(34.5)
             profileInc = [9,10];
         }
-
 
         if(selectedProfile.type !== "Plan" && selectedOrthoDirection.name === "A"){
             let tempArray: InclinometerData[][] = [];
@@ -6201,28 +5730,16 @@ function ResultsVisualization() {
         if(listOfProfiles.length !== 0) {
             let profileLine: number[] = [];
             if (selectedProfile.name === listOfProfiles[1].name) {
-                /*setProfileIncChart([1,3,6,9])
-                setDepthProfilesArray([31.5,39.5,51,34.5])
-                setMaxProfileDepth(51)
-                profileInc = [1,3,6,9];*/
                 setProfileIncChart([1, 2])
                 setDepthProfilesArray([31.5, 14.5])
                 setMaxProfileDepth(31.5)
                 profileLine = [1, 2];
             } else if (selectedProfile.name === listOfProfiles[2].name) {
-                /*setProfileIncChart([2,4,10])
-                setDepthProfilesArray([14.5,26,20])
-                setMaxProfileDepth(26)
-                profileInc = [2,4,10];*/
                 setProfileIncChart([3, 4, 5])
                 setDepthProfilesArray([39.5, 26, 16.5])
                 setMaxProfileDepth(39.5)
                 profileLine = [3, 4, 5];
             } else if (selectedProfile.name === listOfProfiles[3].name) {
-                /*setProfileIncChart([5,8])
-                setDepthProfilesArray([16.5,20.5])
-                setMaxProfileDepth(20.5)
-                profileInc = [5,8];*/
                 setProfileIncChart([6, 8])
                 setDepthProfilesArray([51, 20.5])
                 setMaxProfileDepth(51)
@@ -6233,8 +5750,7 @@ function ResultsVisualization() {
                 setMaxProfileDepth(34.5)
                 profileLine = [9, 10];
             }
-            setProfileLine(profileLine)
-            //handleToogleProfileLine(profileLine);
+            setProfileLine(profileLine);
         }
     }, [selectedProfile, listOfProfiles, emptyPhoto]);
 
@@ -6332,11 +5848,7 @@ function ResultsVisualization() {
         [rowsB, order, orderBy, page, rowsPerPage],
     );
 
-    useEffect(() => {
-
-    }, [rows]);
-
-
+    // Handle Konva integration for displacement arrows
     const handleToogleArrows = () => {
         if (toggleArrows) {
             setToggleArrows(false)
@@ -6442,166 +5954,11 @@ function ResultsVisualization() {
                         //posCounter += 2;
                     }
                 }
-            /*}else if(selectedProfile.name !== "All" && selectedOrthoDirection.name === "A"){
-                if (stageRef.current) {
-                    let stage = stageRef.current;
-                    let layer = new Konva.Layer({
-                        scaleX: 1,
-                        scaleY: 1,
-                        rotation: 5,
-                    });
-                    stage.add(layer);
-                    arrowLayerRef.current = layer;
-
-                    let group = new Konva.Group({
-                        x: 30,
-                        rotation: 10,
-                        scaleX: 1,
-                    });
-                    layer.add(group);
-
-                    let maxDepth = 0.1;
-                    let maxDisplacement = 0.1;
-                    let arrowData = arrowsAPointValues;
-                    console.log(arrowData)
-                    for(let i = 0; i < profileIncChart.length; i++){
-                        if(depthProfilesArray[i] > maxDepth){
-                            maxDepth = depthProfilesArray[i]
-                        }
-                        if(arrowData[i] && arrowData[i][0]){
-                        if(Math.abs(arrowData[i][0].displacement) > maxDisplacement){
-                            maxDisplacement = Math.abs(arrowData[i][0].displacement)
-                        }}
-                    }
-
-                    let counter = 0;
-                    let counterArray: number[] = []
-                    for(let i = 0; i < numberOfInc.length; i++){
-                        for(let j = 0; j < profileIncChart.length; j++){
-                            if(Number(numberOfInc[i]) === profileIncChart[j]){
-                                counterArray.push(counter)
-                            }
-                        }
-                        counter += 2;
-                    }
-
-                    const refPointX1 = 293.9759051572062;
-                    const refPointY1 = 137.467221651754;
-                    const refPointX2 = 320.0369757491928;
-                    const refPointY2 = 172.48439409197888;
-                    let posCounter = 0;
-                    let nextInc = 0;
-
-                    for(let i = 0; i < numberOfInc.length; i++) {
-                        if(Number(numberOfInc[i]) === profileIncChart[nextInc]){
-
-                            let posValue = counterArray[posCounter]
-                            let refPointIncX1 = profilePosArray[posValue]
-                            let refPointIncY1 = profilePosArray[posValue+1]
-                            //console.log(" displ " + arrowData[nextInc][0].displacement + " | " +maxDisplacement + " | " + depthProfilesArray[nextInc] + " | " + maxDepth)
-                            let newX = refPointIncX1
-                            if(arrowData[nextInc] && arrowData[nextInc][0]) {
-                                let newX = refPointIncX1 + Number((((refPointX2 - refPointX1) * arrowData[nextInc][0].displacement) / maxDisplacement).toFixed(14))
-                            }
-                            let newY = refPointIncY1 + Number((((refPointY2 - refPointY1) * (depthProfilesArray[nextInc])) / maxDepth).toFixed(14))
-
-                            console.log(newX + " A| " + newY)
-                            let arrow = new Konva.Arrow({
-                                points: [refPointIncX1, refPointIncY1, newX, newY],
-                                pointerLength: 5,
-                                pointerWidth: 10,
-                                fill: 'black',
-                                stroke: 'black',
-                                strokeWidth: 3
-                            })
-                            group.add(arrow)
-                            posCounter++;
-                            nextInc++;
-                        }
-                    }
-                }
-            }else if(selectedProfile.name !== "All" && selectedOrthoDirection.name === "B"){
-                if (stageRef.current) {
-                    let stage = stageRef.current;
-                    let layer = new Konva.Layer({
-                        scaleX: 1,
-                        scaleY: 1,
-                        rotation: 5,
-                    });
-                    stage.add(layer);
-                    arrowLayerRef.current = layer;
-
-                    let group = new Konva.Group({
-                        x: 30,
-                        rotation: 10,
-                        scaleX: 1,
-                    });
-                    layer.add(group);
-
-                    let maxDepth = 0.1;
-                    let maxDisplacement = 0.1;
-                    let arrowData = arrowsBPointValues;
-                    console.log("B: " + arrowData)
-                    for(let i = 0; i < profileIncChart.length; i++){
-                        if(depthProfilesArray[i] > maxDepth){
-                            maxDepth = depthProfilesArray[i]
-                        }
-                        if(arrowData[i] && arrowData[i][0]){
-                        if (Math.abs(arrowData[i][0].displacement) > maxDisplacement) {
-                                maxDisplacement = Math.abs(arrowData[i][0].displacement)
-                        }}
-                    }
-
-                    let counter = 0;
-                    let counterArray: number[] = []
-                    for(let i = 0; i < numberOfInc.length; i++){
-                        for(let j = 0; j < profileIncChart.length; j++){
-                            if(Number(numberOfInc[i]) === profileIncChart[j]){
-                                counterArray.push(counter)
-                            }
-                        }
-                        counter += 2;
-                    }
-
-                    const refPointX1 = 293.9759051572062;
-                    const refPointY1 = 137.467221651754;
-                    const refPointX2 = 320.0369757491928;
-                    const refPointY2 = 172.48439409197888;
-                    let posCounter = 0;
-                    let nextInc = 0;
-
-                    for(let i = 0; i < numberOfInc.length; i++) {
-                        if(Number(numberOfInc[i]) === profileIncChart[nextInc]){
-
-                            let posValue = counterArray[posCounter]
-                            let refPointIncX1 = profilePosArray[posValue]
-                            let refPointIncY1 = profilePosArray[posValue+1]
-                            let newX = refPointIncX1;
-                            if(arrowData[nextInc] && arrowData[nextInc][0]) {
-                                newX = refPointIncX1 + Number((((refPointX2 - refPointX1) * arrowData[nextInc][0].displacement) / maxDisplacement).toFixed(14))
-                            }
-                            let newY = refPointIncY1 + Number((((refPointY2 - refPointY1) * (depthProfilesArray[nextInc])) / maxDepth).toFixed(14))
-                            console.log(newX + " B| " + newY)
-                            let arrow = new Konva.Arrow({
-                                points: [refPointIncX1, refPointIncY1, newX, newY],
-                                pointerLength: 5,
-                                pointerWidth: 10,
-                                fill: 'black',
-                                stroke: 'black',
-                                strokeWidth: 3
-                            })
-                            group.add(arrow)
-                            posCounter++;
-                            nextInc++;
-                        }
-                    }
-                }
-            }*/
         }
     };
 
+    // Handle Konva integration for profile plans
     useEffect(() => {
-    //const handleToogleProfileLine = (profileLine: number[]) => {
         if (selectedProfile.type !== "Plan" && !planCheckActiveOwn && !emptyPhoto) {
             const stage = new Konva.Stage({
                 container: 'konvaContainer',
@@ -6610,8 +5967,6 @@ function ResultsVisualization() {
             });
             stageRef.current = stage;
 
-            //if (stageRef.current) {
-                //let stage = stageRef.current;
                 if(profileLineLayerRef.current !== null){
                     const oldLayer = profileLineLayerRef.current;
                     oldLayer.destroy();
@@ -6720,8 +6075,7 @@ function ResultsVisualization() {
     //};
     }, [profileLine]);
 
-
-
+    // Handle Konva integration for profile cross-sections
     useEffect(() => {
         if(selectedVisualization.name === visualization[1].name && selectedProfile.type !== "Plan"  && crossSectionCheckboxs[selectedProfileID].check && crossSectionCheckActive){
             setTimeout(function() {
@@ -6837,18 +6191,6 @@ function ResultsVisualization() {
                     }
                 }
 
-                /*let posCounter = 0;
-                for(let i = 0; i < 9; i++){
-                    let shape = new Konva.Circle({
-                        x: profilePosArray[posCounter],
-                        y: profilePosArray[posCounter+1],
-                        fill: 'red',
-                        radius: 5,
-                    });
-                    group.add(shape);
-                    posCounter += 2;
-                }*/
-
             },1);
         }else if(selectedVisualization.name === visualization[0].name || selectedProfile.type !== "Cross Section" || !crossSectionCheckboxs[selectedProfileID].check || !crossSectionCheckActive){// && profileInitialized){
             //setProfileInitialized(false)
@@ -6858,7 +6200,6 @@ function ResultsVisualization() {
             }
         }
     }, [selectedVisualization, selectedProfile, crossSectionCheckActive]);
-
 
     const [goBackButton, setGoBackButton] = useState(false)
 
@@ -6883,6 +6224,7 @@ function ResultsVisualization() {
 
     const [selectedExport, setSelectedExport] = useState(exportSelect[0])
 
+    // Variable initialization for the azimuth
     const [rotationNorth, setRotationNorth] = useState<number>(0)
     const [rotationAB, setRotationAB] = useState<number>(225);
 
@@ -6890,6 +6232,7 @@ function ResultsVisualization() {
         setRotationNorth(angle);
     };
 
+    // Floating Action Buttons - Scroll functions
     const [showUpButton, setShowUpButton] = useState(false);
     const [showDownButton, setShowDownButton] = useState(true);
 
@@ -6915,6 +6258,7 @@ function ResultsVisualization() {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
+    /* Main elements */
     return (
         <div
             className="main-wrapper">
@@ -8167,8 +7511,16 @@ function ResultsVisualization() {
                                     Charts</Listbox.Label>
                             </Listbox>
                         </div>
+                        {/*> V1
                         <div
-                            className="charts-container">
+                            className="charts-container">*/}
+                        {/* TV */}
+                        <div
+                            className="charts-container"
+                            style={{
+                                paddingLeft: (toggleTotalChart && toggleTempChart) ? '6%' : 0,
+                                paddingRight: (toggleTotalChart && !toggleTempChart) ? '15%' : 0
+                            }}>
                             <div
                                 className="filter-container-slider">
                                 <div
@@ -8206,6 +7558,7 @@ function ResultsVisualization() {
                                 </div>
                             </div>
                             {!toggleTotalChart ? (
+                                /* V1
                                 <>
                                     <div
                                         className="chart-wrapper left-graph"
@@ -8225,11 +7578,46 @@ function ResultsVisualization() {
                                             refDate={refDate}
                                         />
                                     </div>
+                                </>*/
+                                /* TV */
+                                <>
+                                    <div
+                                        className="chart-wrapper-A left-graph"
+                                        ref={chartAXRef}>
+                                        <Chart
+                                            graphData={selectedAXChartData}
+                                            loadingData={loadingData}
+                                            refDate={refDate}
+                                        />
+                                    </div>
+                                    <div
+                                        className="chart-wrapper-B right-graph"
+                                        ref={chartAYRef}>
+                                        <Chart
+                                            graphData={selectedAYChartData}
+                                            loadingData={loadingData}
+                                            refDate={refDate}
+                                        />
+                                    </div>
                                 </>
                             ) : (
+                                /* V1
                                 <>
                                     <div
                                         className="chart-wrapper"
+                                        ref={chartTotalRef}>
+
+                                        <ChartTotal
+                                            graphDataX={selectedAXChartData}
+                                            graphDataY={selectedAYChartData}
+                                            loadingData={loadingData}/>
+                                    </div>
+                                </>*/
+                                /* TV */
+                                <>
+                                    <div
+                                        className="chart-wrapper"
+                                        style={{width: !toggleTempChart ? '600px' : '450px'}}
                                         ref={chartTotalRef}>
 
                                         <ChartTotal
@@ -8244,6 +7632,7 @@ function ResultsVisualization() {
 
                                 </>
                             ) : (
+                                /* V1
                                 <>
                                     <div
                                         className="chart-wrapper"
@@ -8252,10 +7641,32 @@ function ResultsVisualization() {
                                             graphData={auxDataTemp}
                                             loadingData={loadingData}/>
                                     </div>
+                                </>*/
+                                /* TV */
+                                <>
+                                    <div
+                                        className="chart-wrapper chart-temp"
+                                        ref={chartTempRef}>
+                                        <ChartTemp
+                                            graphData={auxDataTemp}
+                                            loadingData={loadingData}/>
+                                    </div>
                                 </>
                             )}
-                            <div
+                            {/* V1
+                                 <div
                                 className="chart-wrapper"
+                                ref={chartSoil}>
+                                <ChartSoil
+                                    graphData={soilData}
+                                    loadingData={loadingData}
+                                    totalChart={toggleTotalChart}
+                                    tempChart={toggleTempChart}/>
+                            </div>
+                                 */}
+                            {/* TV */}
+                            <div
+                                className="chart-wrapper-soil"
                                 ref={chartSoil}>
                                 <ChartSoil
                                     graphData={soilData}

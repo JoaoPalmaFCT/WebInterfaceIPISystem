@@ -33,7 +33,8 @@ import {
     FormControlLabel,
     CardContent,
     Card,
-    CardHeader
+    CardHeader,
+    Fab
 } from "@mui/material";
 import React, {
     Fragment,
@@ -53,7 +54,9 @@ import {
     NavigateBefore,
     NavigateNext,
     Place,
-    InsertDriveFile
+    InsertDriveFile,
+    KeyboardArrowUp,
+    KeyboardArrowDown
 } from "@mui/icons-material";
 import { styled } from '@mui/material/styles';
 import {
@@ -3477,9 +3480,65 @@ function MonitoringProfiles() {
     };
     const handleCloseFilePopUp = () => setFilePopUp(false);
 
+    const [showUpButton, setShowUpButton] = useState(false);
+    const [showDownButton, setShowDownButton] = useState(true);
+
+    const handleScroll = () => {
+        const scrollTop = window.scrollY || document.documentElement.scrollTop;
+        const scrollHeight = document.documentElement.scrollHeight;
+        const clientHeight = document.documentElement.clientHeight;
+
+        setShowUpButton(scrollTop > 0);
+        setShowDownButton(scrollTop + clientHeight < scrollHeight);
+    };
+
+    const scrollToTop = () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const scrollToBottom = () => {
+        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+    };
+
+    useEffect(() => {
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
     return (
         <div
             className="main-wrapper full-screen">
+            <div
+                className="fab-container">
+                {showUpButton && (
+                    <Fab
+                        color="primary"
+                        aria-label="scroll up"
+                        onClick={scrollToTop}
+                        className="fab"
+                        sx={{
+                            backgroundColor: '#10b981',
+                            '&:hover': {backgroundColor: '#047857'}
+                        }}
+                    >
+                        <KeyboardArrowUp/>
+                    </Fab>
+                )}
+                {showDownButton && (
+                    <Fab
+                        color="primary"
+                        aria-label="scroll down"
+                        onClick={scrollToBottom}
+                        className="fab"
+                        sx={{
+                            backgroundColor: '#10b981',
+                            '&:hover': {backgroundColor: '#047857'}
+                        }}
+                    >
+                        <KeyboardArrowDown/>
+                    </Fab>
+                )}
+            </div>
             {alertSuccessVisible && (
                 <Slide
                     direction="left"
@@ -3657,7 +3716,39 @@ function MonitoringProfiles() {
                             sx={{alignItems: 'center'}}>
                             <AlertTitle
                                 sx={{textAlign: 'left'}}>Error</AlertTitle>
-                            The system does not support the type of file that you tried to upload. Please check if the file type is one of the supported types: .png | .svg | .jpg | .jpeg
+                            The
+                            system
+                            does
+                            not
+                            support
+                            the
+                            type
+                            of
+                            file
+                            that
+                            you
+                            tried
+                            to
+                            upload.
+                            Please
+                            check
+                            if
+                            the
+                            file
+                            type
+                            is
+                            one
+                            of
+                            the
+                            supported
+                            types:
+                            .png
+                            |
+                            .svg
+                            |
+                            .jpg
+                            |
+                            .jpeg
                         </Alert>
                     </Box>
                 </Slide>
@@ -3680,7 +3771,13 @@ function MonitoringProfiles() {
                             sx={{alignItems: 'center'}}>
                             <AlertTitle
                                 sx={{textAlign: 'left'}}>Warning</AlertTitle>
-                            There is only one monitoring profile selected.
+                            There
+                            is
+                            only
+                            one
+                            monitoring
+                            profile
+                            selected.
                         </Alert>
                     </Box>
                 </Slide>
@@ -3713,1021 +3810,518 @@ function MonitoringProfiles() {
                 </Slide>
             )}
             {!detailedView ? (
-            <>
-                <div
-                    className="new-button">
+                <>
                     <div
-                        className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
-                        <button
-                            type="button"
-                            className="py-2 px-4  bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                            onClick={handleOpenNew}>
-                            New
-                        </button>
-                    </div>
-                    <Modal
-                        open={openNew}
-                        onClose={handleCloseNew}
-                        aria-labelledby="modal-title"
-                        aria-describedby="modal-description"
-                    >
-                        <Box
-                            sx={{
-                                position: 'absolute' as 'absolute',
-                                top: '50%',
-                                left: '50%',
-                                transform: 'translate(-50%, -50%)',
-                                width: 400,
-                                bgcolor: 'background.paper',
-                                border: '2px solid #000',
-                                boxShadow: 24,
-                                p: 4,
-                                borderRadius: 2,
-                                '& .close-button': {
-                                    position: 'absolute',
-                                    top: 8,
-                                    right: 8,
-                                },
-                            }}>
-                            <IconButton
-                                className="close-button"
-                                aria-label="close"
-                                onClick={handleCloseNew}>
-                                <Clear/>
-                            </IconButton>
-                            <div
-                                className='pt-1 pl-10 pb-5'>
-                                <Listbox>
-                                    <Listbox.Label
-                                        className="pr-1 text-2xl font-medium leading-6 text-gray-900 text-left">Add
-                                        monitoring
-                                        profile</Listbox.Label>
-                                </Listbox>
-                            </div>
-                            {!missingFieldGroupName ? (
-                                <>
-                                    <TextField
-                                        required
-                                        id="outlined-required"
-                                        label="Group Name"
-                                        onChange={(e) => handleGroupName(e.target.value)}
-                                        sx={{
-                                            mt: 2,
-                                            mb: 2,
-                                            ml: 2,
-                                            width: 300
-                                        }}
-                                    />
-                                </>
-                            ) : (
-                                <>
-                                    <TextField
-                                        error
-                                        id="outlined-error-text"
-                                        label="Group Name *"
-                                        sx={{
-                                            mt: 2,
-                                            ml: 2,
-                                            width: 300
-                                        }}
-                                    />
-                                    <Box
-                                        sx={{
-                                            color: 'red',
-                                            mt: 1,
-                                            ml: 2
-                                        }}>
-                                        Missing
-                                        group
-                                        name.
-                                    </Box>
-                                </>
-                            )}
-                            {!missingFieldMeasurements ? (
-                                <>
-                                    <FormControl
-                                        sx={{
-                                            mt: 2,
-                                            mb: 2,
-                                            ml: 2,
-                                            width: 300
-                                        }}>
-                                        <InputLabel
-                                            id="multiple-chip-label">Measurements
-                                            *</InputLabel>
-                                        <Select
-                                            labelId="multiple-chip-label"
-                                            id="multiple-chip"
-                                            multiple
-                                            value={selectedMeasurements}
-                                            onChange={handleChange}
-                                            input={
-                                                <OutlinedInput
-                                                    id="select-multiple-chip"
-                                                    label="Measurements *"/>}
-                                            renderValue={(selected) => (
-                                                <Box
-                                                    sx={{
-                                                        display: 'flex',
-                                                        flexWrap: 'wrap',
-                                                        gap: 0.5
-                                                    }}>
-                                                    {selected.map((value) => (
-                                                        <Chip
-                                                            key={value}
-                                                            label={value}/>
-                                                    ))}
-                                                </Box>
-                                            )}
-                                            MenuProps={MenuProps}
-                                        >
-                                            {testMeasurements.map((m) => (
-                                                <MenuItem
-                                                    key={m}
-                                                    value={m}
-                                                    style={getStyles(m, selectedMeasurements, theme)}
-                                                >
-                                                    {m}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </>
-                            ) : (
-                                <>
-                                    <FormControl
-                                        error
-                                        sx={{
-                                            mt: 2,
-                                            mb: 2,
-                                            ml: 2,
-                                            width: 300
-                                        }}>
-                                        <InputLabel
-                                            id="multiple-chip-label">Measurements
-                                            *</InputLabel>
-                                        <Select
-                                            labelId="multiple-chip-label"
-                                            id="multiple-chip"
-                                            multiple
-                                            value={selectedMeasurements}
-                                            onChange={handleChange}
-                                            input={
-                                                <OutlinedInput
-                                                    id="select-multiple-chip"
-                                                    label="Measurements *"/>}
-                                            renderValue={(selected) => (
-                                                <Box
-                                                    sx={{
-                                                        display: 'flex',
-                                                        flexWrap: 'wrap',
-                                                        gap: 0.5
-                                                    }}>
-                                                    {selected.map((value) => (
-                                                        <Chip
-                                                            key={value}
-                                                            label={value}/>
-                                                    ))}
-                                                </Box>
-                                            )}
-                                            MenuProps={MenuProps}
-                                        >
-                                            {testMeasurements.map((m) => (
-                                                <MenuItem
-                                                    key={m}
-                                                    value={m}
-                                                    style={getStyles(m, selectedMeasurements, theme)}
-                                                >
-                                                    {m}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
+                        className="new-button">
+                        <div
+                            className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
+                            <button
+                                type="button"
+                                className="py-2 px-4  bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                onClick={handleOpenNew}>
+                                New
+                            </button>
+                        </div>
+                        <Modal
+                            open={openNew}
+                            onClose={handleCloseNew}
+                            aria-labelledby="modal-title"
+                            aria-describedby="modal-description"
+                        >
+                            <Box
+                                sx={{
+                                    position: 'absolute' as 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: 400,
+                                    bgcolor: 'background.paper',
+                                    border: '2px solid #000',
+                                    boxShadow: 24,
+                                    p: 4,
+                                    borderRadius: 2,
+                                    '& .close-button': {
+                                        position: 'absolute',
+                                        top: 8,
+                                        right: 8,
+                                    },
+                                }}>
+                                <IconButton
+                                    className="close-button"
+                                    aria-label="close"
+                                    onClick={handleCloseNew}>
+                                    <Clear/>
+                                </IconButton>
+                                <div
+                                    className='pt-1 pl-10 pb-5'>
+                                    <Listbox>
+                                        <Listbox.Label
+                                            className="pr-1 text-2xl font-medium leading-6 text-gray-900 text-left">Add
+                                            monitoring
+                                            profile</Listbox.Label>
+                                    </Listbox>
+                                </div>
+                                {!missingFieldGroupName ? (
+                                    <>
+                                        <TextField
+                                            required
+                                            id="outlined-required"
+                                            label="Group Name"
+                                            onChange={(e) => handleGroupName(e.target.value)}
+                                            sx={{
+                                                mt: 2,
+                                                mb: 2,
+                                                ml: 2,
+                                                width: 300
+                                            }}
+                                        />
+                                    </>
+                                ) : (
+                                    <>
+                                        <TextField
+                                            error
+                                            id="outlined-error-text"
+                                            label="Group Name *"
+                                            sx={{
+                                                mt: 2,
+                                                ml: 2,
+                                                width: 300
+                                            }}
+                                        />
                                         <Box
                                             sx={{
                                                 color: 'red',
-                                                mt: 1
+                                                mt: 1,
+                                                ml: 2
                                             }}>
                                             Missing
-                                            measurement(s).
+                                            group
+                                            name.
                                         </Box>
-                                    </FormControl>
-                                </>
-                            )}
-                            <TextField
-                                disabled
-                                id="outlined-disabled"
-                                label={selectedInclinometers === 0 ? 'Inclinometers' : selectedInclinometers.toString()}
-                                sx={{
-                                    mt: 2,
-                                    mb: 2,
-                                    ml: 2,
-                                    width: selectedInclinometers === 0 ? 130 : ((selectedInclinometers < 100) ? 50 : 60)
-                                }}
-                            />
-                            {errorMessage && (
-                                <Box
+                                    </>
+                                )}
+                                {!missingFieldMeasurements ? (
+                                    <>
+                                        <FormControl
+                                            sx={{
+                                                mt: 2,
+                                                mb: 2,
+                                                ml: 2,
+                                                width: 300
+                                            }}>
+                                            <InputLabel
+                                                id="multiple-chip-label">Measurements
+                                                *</InputLabel>
+                                            <Select
+                                                labelId="multiple-chip-label"
+                                                id="multiple-chip"
+                                                multiple
+                                                value={selectedMeasurements}
+                                                onChange={handleChange}
+                                                input={
+                                                    <OutlinedInput
+                                                        id="select-multiple-chip"
+                                                        label="Measurements *"/>}
+                                                renderValue={(selected) => (
+                                                    <Box
+                                                        sx={{
+                                                            display: 'flex',
+                                                            flexWrap: 'wrap',
+                                                            gap: 0.5
+                                                        }}>
+                                                        {selected.map((value) => (
+                                                            <Chip
+                                                                key={value}
+                                                                label={value}/>
+                                                        ))}
+                                                    </Box>
+                                                )}
+                                                MenuProps={MenuProps}
+                                            >
+                                                {testMeasurements.map((m) => (
+                                                    <MenuItem
+                                                        key={m}
+                                                        value={m}
+                                                        style={getStyles(m, selectedMeasurements, theme)}
+                                                    >
+                                                        {m}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    </>
+                                ) : (
+                                    <>
+                                        <FormControl
+                                            error
+                                            sx={{
+                                                mt: 2,
+                                                mb: 2,
+                                                ml: 2,
+                                                width: 300
+                                            }}>
+                                            <InputLabel
+                                                id="multiple-chip-label">Measurements
+                                                *</InputLabel>
+                                            <Select
+                                                labelId="multiple-chip-label"
+                                                id="multiple-chip"
+                                                multiple
+                                                value={selectedMeasurements}
+                                                onChange={handleChange}
+                                                input={
+                                                    <OutlinedInput
+                                                        id="select-multiple-chip"
+                                                        label="Measurements *"/>}
+                                                renderValue={(selected) => (
+                                                    <Box
+                                                        sx={{
+                                                            display: 'flex',
+                                                            flexWrap: 'wrap',
+                                                            gap: 0.5
+                                                        }}>
+                                                        {selected.map((value) => (
+                                                            <Chip
+                                                                key={value}
+                                                                label={value}/>
+                                                        ))}
+                                                    </Box>
+                                                )}
+                                                MenuProps={MenuProps}
+                                            >
+                                                {testMeasurements.map((m) => (
+                                                    <MenuItem
+                                                        key={m}
+                                                        value={m}
+                                                        style={getStyles(m, selectedMeasurements, theme)}
+                                                    >
+                                                        {m}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                            <Box
+                                                sx={{
+                                                    color: 'red',
+                                                    mt: 1
+                                                }}>
+                                                Missing
+                                                measurement(s).
+                                            </Box>
+                                        </FormControl>
+                                    </>
+                                )}
+                                <TextField
+                                    disabled
+                                    id="outlined-disabled"
+                                    label={selectedInclinometers === 0 ? 'Inclinometers' : selectedInclinometers.toString()}
                                     sx={{
-                                        color: 'red',
                                         mt: 2,
-                                        ml: 2
-                                    }}>
-                                    {errorMessage}
-                                </Box>
-                            )}
-                            <div
-                                className="submit-button">
-                                <button
-                                    type="button"
-                                    className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                                    onClick={handleSubmit}
-                                >
-                                    Submit
-                                </button>
-                            </div>
-                        </Box>
-                    </Modal>
-                    <div
-                        className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
-                        <button
-                            type="button"
-                            className="py-2 px-4  bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                            onClick={handleOpenEdit}>
-                            Edit
-                            existing
-                            profile
-                            group
-                        </button>
-                    </div>
-                    <Modal
-                        open={openEdit}
-                        onClose={handleCloseEdit}
-                        aria-labelledby="modal-title"
-                        aria-describedby="modal-description"
-                    >
-                        <Box
-                            sx={{
-                                position: 'absolute' as 'absolute',
-                                top: '50%',
-                                left: '50%',
-                                transform: 'translate(-50%, -50%)',
-                                width: 460,
-                                bgcolor: 'background.paper',
-                                border: '2px solid #000',
-                                boxShadow: 24,
-                                p: 4,
-                                borderRadius: 2,
-                                '& .close-button': {
-                                    position: 'absolute',
-                                    top: 8,
-                                    right: 8,
-                                },
-                            }}>
-                            <IconButton
-                                className="close-button"
-                                aria-label="close"
-                                onClick={handleCloseEdit}>
-                                <Clear/>
-                            </IconButton>
-                            <div
-                                className='pt-1 pl-7 '>
-                                <Listbox>
-                                    <Listbox.Label
-                                        className="pr-1 text-2xl font-medium leading-6 text-gray-900 text-left">Edit
+                                        mb: 2,
+                                        ml: 2,
+                                        width: selectedInclinometers === 0 ? 130 : ((selectedInclinometers < 100) ? 50 : 60)
+                                    }}
+                                />
+                                {errorMessage && (
+                                    <Box
+                                        sx={{
+                                            color: 'red',
+                                            mt: 2,
+                                            ml: 2
+                                        }}>
+                                        {errorMessage}
+                                    </Box>
+                                )}
+                                <div
+                                    className="submit-button">
+                                    <button
+                                        type="button"
+                                        className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                        onClick={handleSubmit}
+                                    >
+                                        Submit
+                                    </button>
+                                </div>
+                            </Box>
+                        </Modal>
+                        <div
+                            className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
+                            <button
+                                type="button"
+                                className="py-2 px-4  bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                onClick={handleOpenEdit}>
+                                Edit
+                                existing
+                                profile
+                                group
+                            </button>
+                        </div>
+                        <Modal
+                            open={openEdit}
+                            onClose={handleCloseEdit}
+                            aria-labelledby="modal-title"
+                            aria-describedby="modal-description"
+                        >
+                            <Box
+                                sx={{
+                                    position: 'absolute' as 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: 460,
+                                    bgcolor: 'background.paper',
+                                    border: '2px solid #000',
+                                    boxShadow: 24,
+                                    p: 4,
+                                    borderRadius: 2,
+                                    '& .close-button': {
+                                        position: 'absolute',
+                                        top: 8,
+                                        right: 8,
+                                    },
+                                }}>
+                                <IconButton
+                                    className="close-button"
+                                    aria-label="close"
+                                    onClick={handleCloseEdit}>
+                                    <Clear/>
+                                </IconButton>
+                                <div
+                                    className='pt-1 pl-7 '>
+                                    <Listbox>
+                                        <Listbox.Label
+                                            className="pr-1 text-2xl font-medium leading-6 text-gray-900 text-left">Edit
+                                            a
+                                            monitoring
+                                            profile
+                                            group</Listbox.Label>
+                                    </Listbox>
+                                </div>
+                                <div
+                                    className='pl-4 pr-4 pb-5 pt-5'>
+                                    <Box
+                                        sx={{mb: 2}}>
+                                        Select
                                         a
                                         monitoring
                                         profile
-                                        group</Listbox.Label>
-                                </Listbox>
-                            </div>
-                            <div
-                                className='pl-4 pr-4 pb-5 pt-5'>
-                                <Box
-                                    sx={{mb: 2}}>
-                                    Select
-                                    a
-                                    monitoring
-                                    profile
-                                    group:
-                                </Box>
-                                <FormControl
-                                    fullWidth>
-                                    <InputLabel
-                                        id="simple-select-label">Group</InputLabel>
-                                    <Select
-                                        labelId="simple-select-label"
-                                        id="simple-select"
-                                        value={selectedMPEdit.group}
-                                        label="Group"
-                                        onChange={(e) => handleSelectedMPEdit(e.target.value)}
-                                    >
-                                        {monitoringProfiles.map((m) => (
-                                            <MenuItem
-                                                key={m.id}
-                                                value={m.group}>{m.group}</MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-                            </div>
-                            {!missingFieldGroupName ? (
-                                <>
-                                    <TextField
-                                        key={selectedGroupEdit}
-                                        required
-                                        id="outlined-required"
-                                        label="Group Name"
-                                        defaultValue={selectedGroupEdit}
-                                        onChange={(e) => handleGroupNameEdit(e.target.value)}
-                                        sx={{
-                                            mt: 2,
-                                            mb: 2,
-                                            ml: 2,
-                                            width: 360
-                                        }}
-                                        InputProps={{
-                                            disabled: selectedMPEdit.group === '',
-                                        }}
-                                    />
-                                </>
-                            ) : (
-                                <>
-                                    <TextField
-                                        error
-                                        id="outlined-error-text"
-                                        label="Group Name *"
-                                        key={selectedGroupEdit}
-                                        defaultValue={selectedGroupEdit}
-                                        onChange={(e) => handleGroupNameEdit(e.target.value)}
-                                        sx={{
-                                            mt: 2,
-                                            ml: 2,
-                                            width: 360
-                                        }}
-                                    />
-                                    <Box
-                                        sx={{
-                                            color: 'red',
-                                            mt: 1,
-                                            ml: 2
-                                        }}>
-                                        Missing
-                                        group
-                                        name.
+                                        group:
                                     </Box>
-                                </>
-                            )}
-                            {!missingFieldMeasurements ? (
-                                <>
                                     <FormControl
-                                        sx={{
-                                            mt: 2,
-                                            mb: 2,
-                                            ml: 2,
-                                            width: 360
-                                        }}>
+                                        fullWidth>
                                         <InputLabel
-                                            id="multiple-chip-label">Measurements
-                                            *</InputLabel>
+                                            id="simple-select-label">Group</InputLabel>
                                         <Select
-                                            labelId="multiple-chip-label"
-                                            id="multiple-chip"
-                                            multiple
-                                            key={selectedMPEdit.group}
-                                            defaultValue={selectedMeasurementsEdit}
-                                            onChange={handleChangeEdit}
-                                            input={
-                                                <OutlinedInput
-                                                    id="select-multiple-chip"
-                                                    label="Measurements *"/>}
-                                            renderValue={(selected) => (
-                                                <Box
-                                                    sx={{
-                                                        display: 'flex',
-                                                        flexWrap: 'wrap',
-                                                        gap: 0.5
-                                                    }}>
-                                                    {selected.map((value) => (
-                                                        <Chip
-                                                            key={value}
-                                                            label={value}/>
-                                                    ))}
-                                                </Box>
-                                            )}
-                                            MenuProps={MenuProps}
-                                            inputProps={{
-                                                disabled: selectedMPEdit.group === '',
-                                            }}
+                                            labelId="simple-select-label"
+                                            id="simple-select"
+                                            value={selectedMPEdit.group}
+                                            label="Group"
+                                            onChange={(e) => handleSelectedMPEdit(e.target.value)}
                                         >
-                                            {testMeasurements.map((m) => (
+                                            {monitoringProfiles.map((m) => (
                                                 <MenuItem
-                                                    key={m}
-                                                    value={m}
-                                                    style={getStyles(m, selectedMeasurementsEdit, theme)}
-                                                >
-                                                    {m}
-                                                </MenuItem>
+                                                    key={m.id}
+                                                    value={m.group}>{m.group}</MenuItem>
                                             ))}
                                         </Select>
                                     </FormControl>
-                                </>
-                            ) : (
-                                <>
-                                    <FormControl
-                                        error
-                                        sx={{
-                                            mt: 2,
-                                            mb: 2,
-                                            ml: 2,
-                                            width: 360
-                                        }}>
-                                        <InputLabel
-                                            id="multiple-chip-label">Measurements
-                                            *</InputLabel>
-                                        <Select
-                                            labelId="multiple-chip-label"
-                                            id="multiple-chip"
-                                            multiple
-                                            key={selectedMeasurementsEdit.length !== 0 ? selectedMeasurementsEdit[selectedMeasurementsEdit.length] : "id"}
-                                            defaultValue={selectedMeasurementsEdit}
-                                            onChange={handleChangeEdit}
-                                            input={
-                                                <OutlinedInput
-                                                    id="select-multiple-chip"
-                                                    label="Measurements *"/>}
-                                            renderValue={(selected) => (
-                                                <Box
-                                                    sx={{
-                                                        display: 'flex',
-                                                        flexWrap: 'wrap',
-                                                        gap: 0.5
-                                                    }}>
-                                                    {selected.map((value) => (
-                                                        <Chip
-                                                            key={value}
-                                                            label={value}/>
-                                                    ))}
-                                                </Box>
-                                            )}
-                                            MenuProps={MenuProps}
-                                        >
-                                            {testMeasurements.map((m) => (
-                                                <MenuItem
-                                                    key={m}
-                                                    value={m}
-                                                    style={getStyles(m, selectedMeasurementsEdit, theme)}
-                                                >
-                                                    {m}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
+                                </div>
+                                {!missingFieldGroupName ? (
+                                    <>
+                                        <TextField
+                                            key={selectedGroupEdit}
+                                            required
+                                            id="outlined-required"
+                                            label="Group Name"
+                                            defaultValue={selectedGroupEdit}
+                                            onChange={(e) => handleGroupNameEdit(e.target.value)}
+                                            sx={{
+                                                mt: 2,
+                                                mb: 2,
+                                                ml: 2,
+                                                width: 360
+                                            }}
+                                            InputProps={{
+                                                disabled: selectedMPEdit.group === '',
+                                            }}
+                                        />
+                                    </>
+                                ) : (
+                                    <>
+                                        <TextField
+                                            error
+                                            id="outlined-error-text"
+                                            label="Group Name *"
+                                            key={selectedGroupEdit}
+                                            defaultValue={selectedGroupEdit}
+                                            onChange={(e) => handleGroupNameEdit(e.target.value)}
+                                            sx={{
+                                                mt: 2,
+                                                ml: 2,
+                                                width: 360
+                                            }}
+                                        />
                                         <Box
                                             sx={{
                                                 color: 'red',
-                                                mt: 1
+                                                mt: 1,
+                                                ml: 2
                                             }}>
                                             Missing
-                                            measurement(s).
+                                            group
+                                            name.
                                         </Box>
-                                    </FormControl>
-                                </>
-                            )}
-                            <TextField
-                                disabled
-                                id="outlined-disabled"
-                                label={selectedInclinometersEdit === 0 ? 'Inclinometers' : selectedInclinometersEdit.toString()}
-                                sx={{
-                                    mt: 2,
-                                    mb: 2,
-                                    ml: 2,
-                                    width: selectedInclinometersEdit === 0 ? 130 : ((selectedInclinometersEdit < 100) ? 50 : 60)
-                                }}
-                            />
-                            {errorMessage && (
-                                <Box
-                                    sx={{
-                                        color: 'red',
-                                        mt: 2,
-                                        ml: 2
-                                    }}>
-                                    {errorMessage}
-                                </Box>
-                            )}
-                            <div
-                                className="submit-button">
-                                <button
-                                    type="button"
-                                    className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                                    onClick={handleSubmitEdit}
-                                >
-                                    Submit
-                                    changes
-                                </button>
-                            </div>
-                        </Box>
-                    </Modal>
-                </div>
-                <div
-                    className="filter-container-monitProfile">
-                    <Box
-                        sx={{width: '100%'}}>
-                        <Paper
-                            sx={{
-                                width: '100%',
-                                mb: 2
-                            }}>
-                            <EnhancedTableToolbar
-                                numSelected={selected.length}
-                                onDelete={handleDelete}
-                            />
-                            <TableContainer>
-                                <Table
-                                    sx={{minWidth: 750}}
-                                    aria-labelledby="tableTitle"
-                                    size={dense ? 'small' : 'medium'}
-                                >
-                                    <EnhancedTableHead
-                                        numSelected={selected.length}
-                                        order={order}
-                                        orderBy={orderBy}
-                                        onSelectAllClick={handleSelectAllClick}
-                                        onRequestSort={handleRequestSort}
-                                        rowCount={rows.length}
-                                    />
-                                    <TableBody>
-                                        {visibleRows.map((row, index) => {
-                                            const isItemSelected = isSelected(row.id);
-                                            if (isItemSelected && !checkedGroups.includes(row.id)) {
-                                                let tempCheck = checkedGroups;
-                                                tempCheck.push(row.id);
-                                                setCheckedGroups(tempCheck);
-                                            } else if (!isItemSelected && checkedGroups.includes(row.id)) {
-                                                let tempCheck = checkedGroups;
-                                                tempCheck = tempCheck.filter(toRemove => toRemove !== row.id);
-                                                setCheckedGroups(tempCheck);
-                                            }
-
-                                            const labelId = `enhanced-table-checkbox-${index}`;
-
-                                            return (
-                                                <TableRow
-                                                    hover
-                                                    onClick={(event) => handleClick(event, row.id)}
-                                                    role="checkbox"
-                                                    aria-checked={isItemSelected}
-                                                    tabIndex={-1}
-                                                    key={row.id}
-                                                    selected={isItemSelected}
-                                                    sx={{cursor: 'pointer'}}
-                                                >
-                                                    <TableCell
-                                                        padding="checkbox">
-                                                        <Checkbox
-                                                            color="primary"
-                                                            checked={isItemSelected}
-                                                            inputProps={{
-                                                                'aria-labelledby': labelId,
-                                                            }}
-                                                        />
-                                                    </TableCell>
-                                                    <TableCell
-                                                        align="left">{row.group}</TableCell>
-                                                    <TableCell
-                                                        align="center">{row.measurements}</TableCell>
-                                                    <TableCell
-                                                        align="center">{row.inclinometers}</TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
-                                        {emptyRows > 0 && (
-                                            <TableRow
-                                                style={{
-                                                    height: (dense ? 33 : 53) * emptyRows,
+                                    </>
+                                )}
+                                {!missingFieldMeasurements ? (
+                                    <>
+                                        <FormControl
+                                            sx={{
+                                                mt: 2,
+                                                mb: 2,
+                                                ml: 2,
+                                                width: 360
+                                            }}>
+                                            <InputLabel
+                                                id="multiple-chip-label">Measurements
+                                                *</InputLabel>
+                                            <Select
+                                                labelId="multiple-chip-label"
+                                                id="multiple-chip"
+                                                multiple
+                                                key={selectedMPEdit.group}
+                                                defaultValue={selectedMeasurementsEdit}
+                                                onChange={handleChangeEdit}
+                                                input={
+                                                    <OutlinedInput
+                                                        id="select-multiple-chip"
+                                                        label="Measurements *"/>}
+                                                renderValue={(selected) => (
+                                                    <Box
+                                                        sx={{
+                                                            display: 'flex',
+                                                            flexWrap: 'wrap',
+                                                            gap: 0.5
+                                                        }}>
+                                                        {selected.map((value) => (
+                                                            <Chip
+                                                                key={value}
+                                                                label={value}/>
+                                                        ))}
+                                                    </Box>
+                                                )}
+                                                MenuProps={MenuProps}
+                                                inputProps={{
+                                                    disabled: selectedMPEdit.group === '',
                                                 }}
                                             >
-                                                <TableCell
-                                                    colSpan={6}/>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </TableContainer>
-                            <TablePagination
-                                rowsPerPageOptions={[5, 10, 25]}
-                                component="div"
-                                count={rows.length}
-                                rowsPerPage={rowsPerPage}
-                                page={page}
-                                onPageChange={handleChangePage}
-                                onRowsPerPageChange={handleChangeRowsPerPage}
-                            />
-                        </Paper>
-                    </Box>
-                    <div
-                        style={{
-                            display: 'flex',
-                            justifyContent: groupSelected ? 'center' : 'flex-end',
-                            gap: '60px',
-                            paddingTop: '15px'
-                        }}>
-                        {groupSelected && (
-                            <>
-                                <div>
-                                    <button
-                                        type="button"
-                                        className="py-3 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-lg"
-                                        onClick={handleOpenNewProfile}
-                                    >
-                                        New
-                                        profile
-                                    </button>
-                                    <Modal
-                                        open={openNewProfile}
-                                        onClose={handleCloseNewProfile}
-                                        aria-labelledby="modal-title"
-                                        aria-describedby="modal-description"
-                                    >
-                                        <Box
-                                            sx={{
-                                                position: 'absolute' as 'absolute',
-                                                top: '50%',
-                                                left: '50%',
-                                                transform: 'translate(-50%, -50%)',
-                                                width: 800,
-                                                bgcolor: 'background.paper',
-                                                border: '2px solid #000',
-                                                boxShadow: 24,
-                                                p: 4,
-                                                borderRadius: 2,
-                                                '& .close-button': {
-                                                    position: 'absolute',
-                                                    top: 8,
-                                                    right: 8,
-                                                },
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                alignItems: 'center'
-                                            }}>
-                                            <IconButton
-                                                className="close-button"
-                                                aria-label="close"
-                                                onClick={handleCloseNewProfile}>
-                                                <Clear/>
-                                            </IconButton>
-                                            <div
-                                                className="top-section"
-                                                style={{
-                                                    width: '100%',
-                                                    display: 'flex',
-                                                    justifyContent: 'center',
-                                                    paddingBottom: '15px'
-                                                }}>
-                                                <Listbox>
-                                                    <Listbox.Label
-                                                        className="text-2xl font-medium leading-6 text-gray-900">
-                                                        Add
-                                                        profile
-                                                    </Listbox.Label>
-                                                </Listbox>
-                                            </div>
-                                            <div
-                                                style={{
-                                                    display: 'flex',
-                                                    width: '100%',
-                                                    justifyContent: 'space-between',
-                                                    gap: 2
-                                                }}>
-                                                <div
-                                                    className="left-side"
-                                                    style={{flex: 1}}>
-                                                    <FormControl
-                                                        sx={{
-                                                            mt: 2,
-                                                            mb: 2,
-                                                            ml: 2,
-                                                            width: 300
-                                                        }}>
-                                                        <InputLabel
-                                                            id="simple-select-label">Group
-                                                            *</InputLabel>
-                                                        <Select
-                                                            labelId="simple-select-label"
-                                                            id="simple-select"
-                                                            value={selectedGroupProfileNew}
-                                                            label="Group * "
-                                                            onChange={(e) => handleSelectedGroupProfileNew(e.target.value)}
-                                                        >
-                                                            {monitoringProfiles.map((m) => (
-                                                                <MenuItem
-                                                                    key={m.id}
-                                                                    value={m.group}>{m.group}</MenuItem>
-                                                            ))}
-                                                        </Select>
-                                                    </FormControl>
-                                                    {!missingFieldProfileNameNew ? (
-                                                        <>
-                                                            <TextField
-                                                                required
-                                                                id="outlined-required"
-                                                                label="Name"
-                                                                onChange={(e) => handleNameProfileNew(e.target.value)}
-                                                                sx={{
-                                                                    mt: 2,
-                                                                    mb: 2,
-                                                                    ml: 2,
-                                                                    width: 300
-                                                                }}
-                                                            />
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <TextField
-                                                                error
-                                                                id="outlined-error-text"
-                                                                label="Name *"
-                                                                sx={{
-                                                                    mt: 2,
-                                                                    ml: 2,
-                                                                    width: 300
-                                                                }}
-                                                            />
-                                                            <Box
-                                                                sx={{
-                                                                    color: 'red',
-                                                                    mt: 1,
-                                                                    ml: 2
-                                                                }}>
-                                                                Missing
-                                                                profile
-                                                                name.
-                                                            </Box>
-                                                        </>
-                                                    )}
-                                                    {!missingFieldProfileDescriptionNew ? (
-                                                        <>
-                                                            <TextField
-                                                                required
-                                                                id="outlined-required"
-                                                                label="Description"
-                                                                onChange={(e) => handleDescriptionProfileNew(e.target.value)}
-                                                                sx={{
-                                                                    mt: 2,
-                                                                    mb: 2,
-                                                                    ml: 2,
-                                                                    width: 300
-                                                                }}
-                                                            />
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <TextField
-                                                                error
-                                                                id="outlined-error-text"
-                                                                label="Description *"
-                                                                sx={{
-                                                                    mt: 2,
-                                                                    ml: 2,
-                                                                    width: 300
-                                                                }}
-                                                            />
-                                                            <Box
-                                                                sx={{
-                                                                    color: 'red',
-                                                                    mt: 1,
-                                                                    ml: 2
-                                                                }}>
-                                                                Missing
-                                                                profile
-                                                                description.
-                                                            </Box>
-                                                        </>
-                                                    )}
-                                                </div>
-                                                <div
-                                                    className="right-side"
-                                                    style={{flex: 1}}>
-                                                    <FormControl
-                                                        sx={{
-                                                            mt: 2,
-                                                            mb: 2,
-                                                            ml: 4,
-                                                            width: 300
-                                                        }}>
-                                                        <InputLabel
-                                                            id="simple-select-label">Type
-                                                            Of
-                                                            Profile
-                                                            *</InputLabel>
-                                                        <Select
-                                                            labelId="simple-select-label"
-                                                            id="simple-select"
-                                                            value={selectedTypeOfProfileNew}
-                                                            label="Type of Profile * "
-                                                            onChange={(e) => handleSelectedTypeOfProfileNew(e.target.value)}
-                                                        >
-                                                            {typeOfProfile.map((m) => (
-                                                                <MenuItem
-                                                                    key={m.id}
-                                                                    value={m.name}>{m.name}</MenuItem>
-                                                            ))}
-                                                        </Select>
-                                                    </FormControl>
-                                                    {!missingSelectedInclinometers ? (
-                                                        <>
-                                                            <FormControl
-                                                                sx={{
-                                                                    mt: 2,
-                                                                    mb: 2,
-                                                                    ml: 4,
-                                                                    width: 300
-                                                                }}>
-                                                                <InputLabel
-                                                                    id="multiple-chip-label">Inclinometers
-                                                                    *</InputLabel>
-                                                                <Select
-                                                                    labelId="multiple-chip-label"
-                                                                    id="multiple-chip"
-                                                                    multiple
-                                                                    key={selectedInclinometersNew.length !== 0 ? selectedInclinometersNew[selectedInclinometersNew.length] : "id"}
-                                                                    defaultValue={selectedInclinometersNew}
-                                                                    onChange={handleChangeSelectedIncNew}
-                                                                    input={
-                                                                        <OutlinedInput
-                                                                            id="select-multiple-chip"
-                                                                            label="Inclinometers *"/>}
-                                                                    renderValue={(selected) => (
-                                                                        <Box
-                                                                            sx={{
-                                                                                display: 'flex',
-                                                                                flexWrap: 'wrap',
-                                                                                gap: 0.5
-                                                                            }}>
-                                                                            {selected.map((value) => (
-                                                                                <Chip
-                                                                                    key={value}
-                                                                                    label={value}/>
-                                                                            ))}
-                                                                        </Box>
-                                                                    )}
-                                                                    MenuProps={MenuProps}
-                                                                    inputProps={{
-                                                                        disabled: selectedGroupProfileNew === '',
-                                                                    }}
-                                                                >
-                                                                    {availableInclinometersNew.map((m) => (
-                                                                        <MenuItem
-                                                                            key={m}
-                                                                            value={m}
-                                                                            style={getStyles(m, selectedInclinometersNew, theme)}
-                                                                        >
-                                                                            {m}
-                                                                        </MenuItem>
-                                                                    ))}
-                                                                </Select>
-                                                            </FormControl>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <FormControl
-                                                                error
-                                                                sx={{
-                                                                    mt: 2,
-                                                                    mb: 2,
-                                                                    ml: 4,
-                                                                    width: 300
-                                                                }}>
-                                                                <InputLabel
-                                                                    id="multiple-chip-label">Inclinometers
-                                                                    *</InputLabel>
-                                                                <Select
-                                                                    labelId="multiple-chip-label"
-                                                                    id="multiple-chip"
-                                                                    multiple
-                                                                    key={selectedInclinometersNew.length !== 0 ? selectedInclinometersNew[selectedInclinometersNew.length] : "id"}
-                                                                    defaultValue={selectedInclinometersNew}
-                                                                    onChange={handleChangeSelectedIncNew}
-                                                                    input={
-                                                                        <OutlinedInput
-                                                                            id="select-multiple-chip"
-                                                                            label="Measurements *"/>}
-                                                                    renderValue={(selected) => (
-                                                                        <Box
-                                                                            sx={{
-                                                                                display: 'flex',
-                                                                                flexWrap: 'wrap',
-                                                                                gap: 0.5
-                                                                            }}>
-                                                                            {selected.map((value) => (
-                                                                                <Chip
-                                                                                    key={value}
-                                                                                    label={value}/>
-                                                                            ))}
-                                                                        </Box>
-                                                                    )}
-                                                                    MenuProps={MenuProps}
-                                                                >
-                                                                    {availableInclinometersNew.map((m) => (
-                                                                        <MenuItem
-                                                                            key={m}
-                                                                            value={m}
-                                                                            style={getStyles(m, selectedInclinometersNew, theme)}
-                                                                        >
-                                                                            {m}
-                                                                        </MenuItem>
-                                                                    ))}
-                                                                </Select>
-                                                                <Box
-                                                                    sx={{
-                                                                        color: 'red',
-                                                                        mt: 1
-                                                                    }}>
-                                                                    Missing
-                                                                    inclinometer(s).
-                                                                </Box>
-                                                            </FormControl>
-                                                        </>
-                                                    )}
-                                                    <Button
-                                                        component="label"
-                                                        role={undefined}
-                                                        variant="contained"
-                                                        tabIndex={-1}
-                                                        startIcon={
-                                                            <CloudUpload/>}
-                                                        sx={{
-                                                            backgroundColor: '#10b981',
-                                                            '&:hover': {
-                                                                backgroundColor: '#047857',
-                                                            },
-                                                            mt: 3,
-                                                            mb: 2,
-                                                            ml: 10,
-                                                            width: 200
-                                                        }}
+                                                {testMeasurements.map((m) => (
+                                                    <MenuItem
+                                                        key={m}
+                                                        value={m}
+                                                        style={getStyles(m, selectedMeasurementsEdit, theme)}
                                                     >
-                                                        Upload
-                                                        image
-                                                        <VisuallyHiddenInput
-                                                            type="file"
-                                                            id={`fileInput-${fileInputRefs.length}`}
-                                                            onChange={(e) => handleFileChange(e, fileInputRefs.length)}
-                                                            ref={(e) => (fileInputRefs[fileInputRefs.length] = e as HTMLInputElement)}//fileInputRef}
-                                                        />
-                                                    </Button>
-                                                    {errorMessage && (
-                                                        <Box
-                                                            sx={{
-                                                                color: 'red',
-                                                                mt: 2,
-                                                                ml: 2
-                                                            }}>
-                                                            {errorMessage}
-                                                        </Box>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div
-                                                className="submit-button-profile"
-                                                style={{width: '60%'}}>
-                                                <button
-                                                    type="button"
-                                                    className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
-                                                    onClick={handleSubmitProfile}
-                                                >
-                                                    Submit
-                                                </button>
-                                            </div>
-                                        </Box>
-                                    </Modal>
-                                </div>
-                                <div>
+                                                        {m}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    </>
+                                ) : (
+                                    <>
+                                        <FormControl
+                                            error
+                                            sx={{
+                                                mt: 2,
+                                                mb: 2,
+                                                ml: 2,
+                                                width: 360
+                                            }}>
+                                            <InputLabel
+                                                id="multiple-chip-label">Measurements
+                                                *</InputLabel>
+                                            <Select
+                                                labelId="multiple-chip-label"
+                                                id="multiple-chip"
+                                                multiple
+                                                key={selectedMeasurementsEdit.length !== 0 ? selectedMeasurementsEdit[selectedMeasurementsEdit.length] : "id"}
+                                                defaultValue={selectedMeasurementsEdit}
+                                                onChange={handleChangeEdit}
+                                                input={
+                                                    <OutlinedInput
+                                                        id="select-multiple-chip"
+                                                        label="Measurements *"/>}
+                                                renderValue={(selected) => (
+                                                    <Box
+                                                        sx={{
+                                                            display: 'flex',
+                                                            flexWrap: 'wrap',
+                                                            gap: 0.5
+                                                        }}>
+                                                        {selected.map((value) => (
+                                                            <Chip
+                                                                key={value}
+                                                                label={value}/>
+                                                        ))}
+                                                    </Box>
+                                                )}
+                                                MenuProps={MenuProps}
+                                            >
+                                                {testMeasurements.map((m) => (
+                                                    <MenuItem
+                                                        key={m}
+                                                        value={m}
+                                                        style={getStyles(m, selectedMeasurementsEdit, theme)}
+                                                    >
+                                                        {m}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                            <Box
+                                                sx={{
+                                                    color: 'red',
+                                                    mt: 1
+                                                }}>
+                                                Missing
+                                                measurement(s).
+                                            </Box>
+                                        </FormControl>
+                                    </>
+                                )}
+                                <TextField
+                                    disabled
+                                    id="outlined-disabled"
+                                    label={selectedInclinometersEdit === 0 ? 'Inclinometers' : selectedInclinometersEdit.toString()}
+                                    sx={{
+                                        mt: 2,
+                                        mb: 2,
+                                        ml: 2,
+                                        width: selectedInclinometersEdit === 0 ? 130 : ((selectedInclinometersEdit < 100) ? 50 : 60)
+                                    }}
+                                />
+                                {errorMessage && (
+                                    <Box
+                                        sx={{
+                                            color: 'red',
+                                            mt: 2,
+                                            ml: 2
+                                        }}>
+                                        {errorMessage}
+                                    </Box>
+                                )}
+                                <div
+                                    className="submit-button">
                                     <button
                                         type="button"
-                                        className="py-3 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-lg"
-                                        onClick={handleEditProfilePopUp}
+                                        className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                        onClick={handleSubmitEdit}
                                     >
-                                        Edit
-                                        profile
+                                        Submit
+                                        changes
                                     </button>
                                 </div>
-                            </>
-                        )}
-                        <div
-                            style={{
-                                paddingLeft: groupSelected ? '25%' : '0%'
-                        }}>
-                            <button
-                                type="button"
-                                className="py-3 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-lg"
-                                onClick={handleSubmitGroups}
-                            >
-                                Define
-                                selected
-                                groups
-                            </button>
-                        </div>
+                            </Box>
+                        </Modal>
                     </div>
-                </div>
-                {groupSelected && (
-
                     <div
                         className="filter-container-monitProfile">
                         <Box
@@ -4737,105 +4331,73 @@ function MonitoringProfiles() {
                                     width: '100%',
                                     mb: 2
                                 }}>
-                                <EnhancedTableToolbarMP
-                                    numSelected={selectedMP.length}/>
+                                <EnhancedTableToolbar
+                                    numSelected={selected.length}
+                                    onDelete={handleDelete}
+                                />
                                 <TableContainer>
                                     <Table
                                         sx={{minWidth: 750}}
-                                        aria-labelledby="tableTitle2"
-                                        size={denseMP ? 'small' : 'medium'}
+                                        aria-labelledby="tableTitle"
+                                        size={dense ? 'small' : 'medium'}
                                     >
-                                        <EnhancedTableHeadMP
-                                            //numSelected={selectedMP.length}
-                                            order={orderMP}
-                                            orderBy={orderByMP}
-                                            //onSelectAllClick={handleSelectAllClickMP}
-                                            onRequestSort={handleRequestSortMP}
-                                            rowCount={rowsMP.length}
+                                        <EnhancedTableHead
+                                            numSelected={selected.length}
+                                            order={order}
+                                            orderBy={orderBy}
+                                            onSelectAllClick={handleSelectAllClick}
+                                            onRequestSort={handleRequestSort}
+                                            rowCount={rows.length}
                                         />
                                         <TableBody>
-                                            {visibleRowsMP.map((row, index) => {
-                                                const isItemSelectedMP = isSelected(row.id);
-                                                const labelIdMP = `enhanced-table-checkbox-${index}`;
+                                            {visibleRows.map((row, index) => {
+                                                const isItemSelected = isSelected(row.id);
+                                                if (isItemSelected && !checkedGroups.includes(row.id)) {
+                                                    let tempCheck = checkedGroups;
+                                                    tempCheck.push(row.id);
+                                                    setCheckedGroups(tempCheck);
+                                                } else if (!isItemSelected && checkedGroups.includes(row.id)) {
+                                                    let tempCheck = checkedGroups;
+                                                    tempCheck = tempCheck.filter(toRemove => toRemove !== row.id);
+                                                    setCheckedGroups(tempCheck);
+                                                }
+
+                                                const labelId = `enhanced-table-checkbox-${index}`;
 
                                                 return (
                                                     <TableRow
                                                         hover
-                                                        //onClick={(event) => handleClickMP(event, row.id)}
+                                                        onClick={(event) => handleClick(event, row.id)}
                                                         role="checkbox"
-                                                        //aria-checked={isItemSelectedMP}
+                                                        aria-checked={isItemSelected}
                                                         tabIndex={-1}
                                                         key={row.id}
-                                                        //selected={isItemSelectedMP}
+                                                        selected={isItemSelected}
                                                         sx={{cursor: 'pointer'}}
                                                     >
                                                         <TableCell
-                                                            onClick={() => handleClickProfile(row.id)}
-                                                            align="center">{row.id}</TableCell>
-                                                        <TableCell
-                                                            onClick={() => handleClickProfile(row.id)}
-                                                            align="center">{row.group}</TableCell>
-                                                        <TableCell
-                                                            onClick={() => handleClickProfile(row.id)}
-                                                            align="center">{row.name}</TableCell>
-                                                        <TableCell
-                                                            onClick={() => handleClickProfile(row.id)}
-                                                            align="center">{row.description}</TableCell>
-                                                        <TableCell
-                                                            onClick={() => handleClickProfile(row.id)}
-                                                            align="center">{row.typeOfProfile}</TableCell>
-                                                        <TableCell
-                                                            align="center">
-                                                            {row.hasImage && (
-                                                                <IconButton
-                                                                    className=""
-                                                                    aria-label="close"
-                                                                    onClick={() => handleOpenFilePopUp(row.imagedAttached, row.name, row.group)}>
-                                                                    <InsertDriveFile/>
-                                                                </IconButton>
-                                                            )}
-                                                        </TableCell>
-                                                        <TableCell
-                                                            align="center">
-                                                            <Button
-                                                                component="label"
-                                                                role={undefined}
-                                                                variant="contained"
-                                                                tabIndex={-1}
-                                                                startIcon={
-                                                                    <CloudUpload/>}
-                                                                sx={{
-                                                                    backgroundColor: '#10b981',
-                                                                    '&:hover': {
-                                                                        backgroundColor: '#047857',
-                                                                    },
+                                                            padding="checkbox">
+                                                            <Checkbox
+                                                                color="primary"
+                                                                checked={isItemSelected}
+                                                                inputProps={{
+                                                                    'aria-labelledby': labelId,
                                                                 }}
-                                                                key={row.id}
-                                                                /*onClick={(e) => {
-                                                                    //fileInputRef.current?.click();
-                                                                    //const fileInputRefAux = document.getElementById(`fileInput-${row.id}`);
-                                                                    //fileInputRef.value = null;
-                                                                    //fileInputRefAux?.click();
-                                                                    fileInputRefs[row.id].click();
-                                                                }}*/
-                                                            >
-                                                                Upload
-                                                                image
-                                                                <VisuallyHiddenInput
-                                                                    type="file"
-                                                                    id={`fileInput-${row.id}`}
-                                                                    onChange={(e) => handleFileChange(e, row.id)}
-                                                                    ref={(e) => (fileInputRefs[row.id] = e as HTMLInputElement)}//fileInputRef}
-                                                                    />
-                                                            </Button>
+                                                            />
                                                         </TableCell>
+                                                        <TableCell
+                                                            align="left">{row.group}</TableCell>
+                                                        <TableCell
+                                                            align="center">{row.measurements}</TableCell>
+                                                        <TableCell
+                                                            align="center">{row.inclinometers}</TableCell>
                                                     </TableRow>
                                                 );
                                             })}
-                                            {emptyRowsMP > 0 && (
+                                            {emptyRows > 0 && (
                                                 <TableRow
                                                     style={{
-                                                        height: (dense ? 33 : 53) * emptyRowsMP,
+                                                        height: (dense ? 33 : 53) * emptyRows,
                                                     }}
                                                 >
                                                     <TableCell
@@ -4848,64 +4410,600 @@ function MonitoringProfiles() {
                                 <TablePagination
                                     rowsPerPageOptions={[5, 10, 25]}
                                     component="div"
-                                    count={rowsMP.length}
-                                    rowsPerPage={rowsPerPageMP}
-                                    page={pageMP}
-                                    onPageChange={handleChangePageMP}
-                                    onRowsPerPageChange={handleChangeRowsPerPageMP}
+                                    count={rows.length}
+                                    rowsPerPage={rowsPerPage}
+                                    page={page}
+                                    onPageChange={handleChangePage}
+                                    onRowsPerPageChange={handleChangeRowsPerPage}
                                 />
                             </Paper>
                         </Box>
-                    </div>
-                )}
-                {filePopUp && (<Modal
-                    open={filePopUp}
-                    aria-labelledby="modal-title"
-                    aria-describedby="modal-description"
-                >
-                    <Box
-                        sx={{
-                            position: 'absolute' as 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            width: 800,
-                            bgcolor: 'background.paper',
-                            border: '2px solid #000',
-                            boxShadow: 24,
-                            p: 4,
-                            borderRadius: 2,
-                            '& .close-button': {
-                                position: 'absolute',
-                                top: 8,
-                                right: 8,
-                            },
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center'
-                        }}>
-                        <IconButton
-                            className="close-button"
-                            aria-label="close"
-                            onClick={handleCloseFilePopUp}>
-                            <Clear/>
-                        </IconButton>
                         <div
-                            className="pt-1.5 pl-4 pr-4 pb-3">
-                            <Typography
-                                variant="h5"
-                                gutterBottom>
-                                {selectedImageGroupPopUp}: {selectedImageNamePopUp}
-                            </Typography>
+                            style={{
+                                display: 'flex',
+                                justifyContent: groupSelected ? 'center' : 'flex-end',
+                                gap: '60px',
+                                paddingTop: '15px'
+                            }}>
+                            {groupSelected && (
+                                <>
+                                    <div>
+                                        <button
+                                            type="button"
+                                            className="py-3 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-lg"
+                                            onClick={handleOpenNewProfile}
+                                        >
+                                            New
+                                            profile
+                                        </button>
+                                        <Modal
+                                            open={openNewProfile}
+                                            onClose={handleCloseNewProfile}
+                                            aria-labelledby="modal-title"
+                                            aria-describedby="modal-description"
+                                        >
+                                            <Box
+                                                sx={{
+                                                    position: 'absolute' as 'absolute',
+                                                    top: '50%',
+                                                    left: '50%',
+                                                    transform: 'translate(-50%, -50%)',
+                                                    width: 800,
+                                                    bgcolor: 'background.paper',
+                                                    border: '2px solid #000',
+                                                    boxShadow: 24,
+                                                    p: 4,
+                                                    borderRadius: 2,
+                                                    '& .close-button': {
+                                                        position: 'absolute',
+                                                        top: 8,
+                                                        right: 8,
+                                                    },
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'center'
+                                                }}>
+                                                <IconButton
+                                                    className="close-button"
+                                                    aria-label="close"
+                                                    onClick={handleCloseNewProfile}>
+                                                    <Clear/>
+                                                </IconButton>
+                                                <div
+                                                    className="top-section"
+                                                    style={{
+                                                        width: '100%',
+                                                        display: 'flex',
+                                                        justifyContent: 'center',
+                                                        paddingBottom: '15px'
+                                                    }}>
+                                                    <Listbox>
+                                                        <Listbox.Label
+                                                            className="text-2xl font-medium leading-6 text-gray-900">
+                                                            Add
+                                                            profile
+                                                        </Listbox.Label>
+                                                    </Listbox>
+                                                </div>
+                                                <div
+                                                    style={{
+                                                        display: 'flex',
+                                                        width: '100%',
+                                                        justifyContent: 'space-between',
+                                                        gap: 2
+                                                    }}>
+                                                    <div
+                                                        className="left-side"
+                                                        style={{flex: 1}}>
+                                                        <FormControl
+                                                            sx={{
+                                                                mt: 2,
+                                                                mb: 2,
+                                                                ml: 2,
+                                                                width: 300
+                                                            }}>
+                                                            <InputLabel
+                                                                id="simple-select-label">Group
+                                                                *</InputLabel>
+                                                            <Select
+                                                                labelId="simple-select-label"
+                                                                id="simple-select"
+                                                                value={selectedGroupProfileNew}
+                                                                label="Group * "
+                                                                onChange={(e) => handleSelectedGroupProfileNew(e.target.value)}
+                                                            >
+                                                                {monitoringProfiles.map((m) => (
+                                                                    <MenuItem
+                                                                        key={m.id}
+                                                                        value={m.group}>{m.group}</MenuItem>
+                                                                ))}
+                                                            </Select>
+                                                        </FormControl>
+                                                        {!missingFieldProfileNameNew ? (
+                                                            <>
+                                                                <TextField
+                                                                    required
+                                                                    id="outlined-required"
+                                                                    label="Name"
+                                                                    onChange={(e) => handleNameProfileNew(e.target.value)}
+                                                                    sx={{
+                                                                        mt: 2,
+                                                                        mb: 2,
+                                                                        ml: 2,
+                                                                        width: 300
+                                                                    }}
+                                                                />
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <TextField
+                                                                    error
+                                                                    id="outlined-error-text"
+                                                                    label="Name *"
+                                                                    sx={{
+                                                                        mt: 2,
+                                                                        ml: 2,
+                                                                        width: 300
+                                                                    }}
+                                                                />
+                                                                <Box
+                                                                    sx={{
+                                                                        color: 'red',
+                                                                        mt: 1,
+                                                                        ml: 2
+                                                                    }}>
+                                                                    Missing
+                                                                    profile
+                                                                    name.
+                                                                </Box>
+                                                            </>
+                                                        )}
+                                                        {!missingFieldProfileDescriptionNew ? (
+                                                            <>
+                                                                <TextField
+                                                                    required
+                                                                    id="outlined-required"
+                                                                    label="Description"
+                                                                    onChange={(e) => handleDescriptionProfileNew(e.target.value)}
+                                                                    sx={{
+                                                                        mt: 2,
+                                                                        mb: 2,
+                                                                        ml: 2,
+                                                                        width: 300
+                                                                    }}
+                                                                />
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <TextField
+                                                                    error
+                                                                    id="outlined-error-text"
+                                                                    label="Description *"
+                                                                    sx={{
+                                                                        mt: 2,
+                                                                        ml: 2,
+                                                                        width: 300
+                                                                    }}
+                                                                />
+                                                                <Box
+                                                                    sx={{
+                                                                        color: 'red',
+                                                                        mt: 1,
+                                                                        ml: 2
+                                                                    }}>
+                                                                    Missing
+                                                                    profile
+                                                                    description.
+                                                                </Box>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                    <div
+                                                        className="right-side"
+                                                        style={{flex: 1}}>
+                                                        <FormControl
+                                                            sx={{
+                                                                mt: 2,
+                                                                mb: 2,
+                                                                ml: 4,
+                                                                width: 300
+                                                            }}>
+                                                            <InputLabel
+                                                                id="simple-select-label">Type
+                                                                Of
+                                                                Profile
+                                                                *</InputLabel>
+                                                            <Select
+                                                                labelId="simple-select-label"
+                                                                id="simple-select"
+                                                                value={selectedTypeOfProfileNew}
+                                                                label="Type of Profile * "
+                                                                onChange={(e) => handleSelectedTypeOfProfileNew(e.target.value)}
+                                                            >
+                                                                {typeOfProfile.map((m) => (
+                                                                    <MenuItem
+                                                                        key={m.id}
+                                                                        value={m.name}>{m.name}</MenuItem>
+                                                                ))}
+                                                            </Select>
+                                                        </FormControl>
+                                                        {!missingSelectedInclinometers ? (
+                                                            <>
+                                                                <FormControl
+                                                                    sx={{
+                                                                        mt: 2,
+                                                                        mb: 2,
+                                                                        ml: 4,
+                                                                        width: 300
+                                                                    }}>
+                                                                    <InputLabel
+                                                                        id="multiple-chip-label">Inclinometers
+                                                                        *</InputLabel>
+                                                                    <Select
+                                                                        labelId="multiple-chip-label"
+                                                                        id="multiple-chip"
+                                                                        multiple
+                                                                        key={selectedInclinometersNew.length !== 0 ? selectedInclinometersNew[selectedInclinometersNew.length] : "id"}
+                                                                        defaultValue={selectedInclinometersNew}
+                                                                        onChange={handleChangeSelectedIncNew}
+                                                                        input={
+                                                                            <OutlinedInput
+                                                                                id="select-multiple-chip"
+                                                                                label="Inclinometers *"/>}
+                                                                        renderValue={(selected) => (
+                                                                            <Box
+                                                                                sx={{
+                                                                                    display: 'flex',
+                                                                                    flexWrap: 'wrap',
+                                                                                    gap: 0.5
+                                                                                }}>
+                                                                                {selected.map((value) => (
+                                                                                    <Chip
+                                                                                        key={value}
+                                                                                        label={value}/>
+                                                                                ))}
+                                                                            </Box>
+                                                                        )}
+                                                                        MenuProps={MenuProps}
+                                                                        inputProps={{
+                                                                            disabled: selectedGroupProfileNew === '',
+                                                                        }}
+                                                                    >
+                                                                        {availableInclinometersNew.map((m) => (
+                                                                            <MenuItem
+                                                                                key={m}
+                                                                                value={m}
+                                                                                style={getStyles(m, selectedInclinometersNew, theme)}
+                                                                            >
+                                                                                {m}
+                                                                            </MenuItem>
+                                                                        ))}
+                                                                    </Select>
+                                                                </FormControl>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <FormControl
+                                                                    error
+                                                                    sx={{
+                                                                        mt: 2,
+                                                                        mb: 2,
+                                                                        ml: 4,
+                                                                        width: 300
+                                                                    }}>
+                                                                    <InputLabel
+                                                                        id="multiple-chip-label">Inclinometers
+                                                                        *</InputLabel>
+                                                                    <Select
+                                                                        labelId="multiple-chip-label"
+                                                                        id="multiple-chip"
+                                                                        multiple
+                                                                        key={selectedInclinometersNew.length !== 0 ? selectedInclinometersNew[selectedInclinometersNew.length] : "id"}
+                                                                        defaultValue={selectedInclinometersNew}
+                                                                        onChange={handleChangeSelectedIncNew}
+                                                                        input={
+                                                                            <OutlinedInput
+                                                                                id="select-multiple-chip"
+                                                                                label="Measurements *"/>}
+                                                                        renderValue={(selected) => (
+                                                                            <Box
+                                                                                sx={{
+                                                                                    display: 'flex',
+                                                                                    flexWrap: 'wrap',
+                                                                                    gap: 0.5
+                                                                                }}>
+                                                                                {selected.map((value) => (
+                                                                                    <Chip
+                                                                                        key={value}
+                                                                                        label={value}/>
+                                                                                ))}
+                                                                            </Box>
+                                                                        )}
+                                                                        MenuProps={MenuProps}
+                                                                    >
+                                                                        {availableInclinometersNew.map((m) => (
+                                                                            <MenuItem
+                                                                                key={m}
+                                                                                value={m}
+                                                                                style={getStyles(m, selectedInclinometersNew, theme)}
+                                                                            >
+                                                                                {m}
+                                                                            </MenuItem>
+                                                                        ))}
+                                                                    </Select>
+                                                                    <Box
+                                                                        sx={{
+                                                                            color: 'red',
+                                                                            mt: 1
+                                                                        }}>
+                                                                        Missing
+                                                                        inclinometer(s).
+                                                                    </Box>
+                                                                </FormControl>
+                                                            </>
+                                                        )}
+                                                        <Button
+                                                            component="label"
+                                                            role={undefined}
+                                                            variant="contained"
+                                                            tabIndex={-1}
+                                                            startIcon={
+                                                                <CloudUpload/>}
+                                                            sx={{
+                                                                backgroundColor: '#10b981',
+                                                                '&:hover': {
+                                                                    backgroundColor: '#047857',
+                                                                },
+                                                                mt: 3,
+                                                                mb: 2,
+                                                                ml: 10,
+                                                                width: 200
+                                                            }}
+                                                        >
+                                                            Upload
+                                                            image
+                                                            <VisuallyHiddenInput
+                                                                type="file"
+                                                                id={`fileInput-${fileInputRefs.length}`}
+                                                                onChange={(e) => handleFileChange(e, fileInputRefs.length)}
+                                                                ref={(e) => (fileInputRefs[fileInputRefs.length] = e as HTMLInputElement)}//fileInputRef}
+                                                            />
+                                                        </Button>
+                                                        {errorMessage && (
+                                                            <Box
+                                                                sx={{
+                                                                    color: 'red',
+                                                                    mt: 2,
+                                                                    ml: 2
+                                                                }}>
+                                                                {errorMessage}
+                                                            </Box>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    className="submit-button-profile"
+                                                    style={{width: '60%'}}>
+                                                    <button
+                                                        type="button"
+                                                        className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
+                                                        onClick={handleSubmitProfile}
+                                                    >
+                                                        Submit
+                                                    </button>
+                                                </div>
+                                            </Box>
+                                        </Modal>
+                                    </div>
+                                    <div>
+                                        <button
+                                            type="button"
+                                            className="py-3 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-lg"
+                                            onClick={handleEditProfilePopUp}
+                                        >
+                                            Edit
+                                            profile
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                            <div
+                                style={{
+                                    paddingLeft: groupSelected ? '25%' : '0%'
+                                }}>
+                                <button
+                                    type="button"
+                                    className="py-3 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-lg"
+                                    onClick={handleSubmitGroups}
+                                >
+                                    Define
+                                    selected
+                                    groups
+                                </button>
+                            </div>
                         </div>
-                        <img
-                            src={selectedImagePopUp}
-                            width="600"
-                            height="400"
-                        />
-                    </Box>
-                </Modal>)}
-            </>
+                    </div>
+                    {groupSelected && (
+
+                        <div
+                            className="filter-container-monitProfile">
+                            <Box
+                                sx={{width: '100%'}}>
+                                <Paper
+                                    sx={{
+                                        width: '100%',
+                                        mb: 2
+                                    }}>
+                                    <EnhancedTableToolbarMP
+                                        numSelected={selectedMP.length}/>
+                                    <TableContainer>
+                                        <Table
+                                            sx={{minWidth: 750}}
+                                            aria-labelledby="tableTitle2"
+                                            size={denseMP ? 'small' : 'medium'}
+                                        >
+                                            <EnhancedTableHeadMP
+                                                //numSelected={selectedMP.length}
+                                                order={orderMP}
+                                                orderBy={orderByMP}
+                                                //onSelectAllClick={handleSelectAllClickMP}
+                                                onRequestSort={handleRequestSortMP}
+                                                rowCount={rowsMP.length}
+                                            />
+                                            <TableBody>
+                                                {visibleRowsMP.map((row, index) => {
+                                                    const isItemSelectedMP = isSelected(row.id);
+                                                    const labelIdMP = `enhanced-table-checkbox-${index}`;
+
+                                                    return (
+                                                        <TableRow
+                                                            hover
+                                                            //onClick={(event) => handleClickMP(event, row.id)}
+                                                            role="checkbox"
+                                                            //aria-checked={isItemSelectedMP}
+                                                            tabIndex={-1}
+                                                            key={row.id}
+                                                            //selected={isItemSelectedMP}
+                                                            sx={{cursor: 'pointer'}}
+                                                        >
+                                                            <TableCell
+                                                                onClick={() => handleClickProfile(row.id)}
+                                                                align="center">{row.id}</TableCell>
+                                                            <TableCell
+                                                                onClick={() => handleClickProfile(row.id)}
+                                                                align="center">{row.group}</TableCell>
+                                                            <TableCell
+                                                                onClick={() => handleClickProfile(row.id)}
+                                                                align="center">{row.name}</TableCell>
+                                                            <TableCell
+                                                                onClick={() => handleClickProfile(row.id)}
+                                                                align="center">{row.description}</TableCell>
+                                                            <TableCell
+                                                                onClick={() => handleClickProfile(row.id)}
+                                                                align="center">{row.typeOfProfile}</TableCell>
+                                                            <TableCell
+                                                                align="center">
+                                                                {row.hasImage && (
+                                                                    <IconButton
+                                                                        className=""
+                                                                        aria-label="close"
+                                                                        onClick={() => handleOpenFilePopUp(row.imagedAttached, row.name, row.group)}>
+                                                                        <InsertDriveFile/>
+                                                                    </IconButton>
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell
+                                                                align="center">
+                                                                <Button
+                                                                    component="label"
+                                                                    role={undefined}
+                                                                    variant="contained"
+                                                                    tabIndex={-1}
+                                                                    startIcon={
+                                                                        <CloudUpload/>}
+                                                                    sx={{
+                                                                        backgroundColor: '#10b981',
+                                                                        '&:hover': {
+                                                                            backgroundColor: '#047857',
+                                                                        },
+                                                                    }}
+                                                                    key={row.id}
+                                                                    /*onClick={(e) => {
+                                                                        //fileInputRef.current?.click();
+                                                                        //const fileInputRefAux = document.getElementById(`fileInput-${row.id}`);
+                                                                        //fileInputRef.value = null;
+                                                                        //fileInputRefAux?.click();
+                                                                        fileInputRefs[row.id].click();
+                                                                    }}*/
+                                                                >
+                                                                    Upload
+                                                                    image
+                                                                    <VisuallyHiddenInput
+                                                                        type="file"
+                                                                        id={`fileInput-${row.id}`}
+                                                                        onChange={(e) => handleFileChange(e, row.id)}
+                                                                        ref={(e) => (fileInputRefs[row.id] = e as HTMLInputElement)}//fileInputRef}
+                                                                    />
+                                                                </Button>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })}
+                                                {emptyRowsMP > 0 && (
+                                                    <TableRow
+                                                        style={{
+                                                            height: (dense ? 33 : 53) * emptyRowsMP,
+                                                        }}
+                                                    >
+                                                        <TableCell
+                                                            colSpan={6}/>
+                                                    </TableRow>
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                    <TablePagination
+                                        rowsPerPageOptions={[5, 10, 25]}
+                                        component="div"
+                                        count={rowsMP.length}
+                                        rowsPerPage={rowsPerPageMP}
+                                        page={pageMP}
+                                        onPageChange={handleChangePageMP}
+                                        onRowsPerPageChange={handleChangeRowsPerPageMP}
+                                    />
+                                </Paper>
+                            </Box>
+                        </div>
+                    )}
+                    {filePopUp && (
+                        <Modal
+                            open={filePopUp}
+                            aria-labelledby="modal-title"
+                            aria-describedby="modal-description"
+                        >
+                            <Box
+                                sx={{
+                                    position: 'absolute' as 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: 800,
+                                    bgcolor: 'background.paper',
+                                    border: '2px solid #000',
+                                    boxShadow: 24,
+                                    p: 4,
+                                    borderRadius: 2,
+                                    '& .close-button': {
+                                        position: 'absolute',
+                                        top: 8,
+                                        right: 8,
+                                    },
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center'
+                                }}>
+                                <IconButton
+                                    className="close-button"
+                                    aria-label="close"
+                                    onClick={handleCloseFilePopUp}>
+                                    <Clear/>
+                                </IconButton>
+                                <div
+                                    className="pt-1.5 pl-4 pr-4 pb-3">
+                                    <Typography
+                                        variant="h5"
+                                        gutterBottom>
+                                        {selectedImageGroupPopUp}: {selectedImageNamePopUp}
+                                    </Typography>
+                                </div>
+                                <img
+                                    src={selectedImagePopUp}
+                                    width="600"
+                                    height="400"
+                                />
+                            </Box>
+                        </Modal>)}
+                </>
             ) : (
                 <>
                     <div>
@@ -4913,7 +5011,7 @@ function MonitoringProfiles() {
                             className="flex pb-5">
                             <div
                                 className="relative inline-block w-30 mr-2 ml-2 align-middle select-none">
-                            <button
+                                <button
                                     type="button"
                                     className="py-2 px-4 bg-emerald-500 hover:bg-emerald-700 focus:ring-green-400 focus:ring-offset-green-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg "
                                     onClick={handleBackButton}>
@@ -5351,11 +5449,12 @@ function MonitoringProfiles() {
                                                 className="selectCoordRow">
                                                 <div
                                                     className="selectCoordColumn1">
-                                                    <div className="incMapCoord">
+                                                    <div
+                                                        className="incMapCoord">
                                                         <Typography
-                                                        variant="subtitle1"
-                                                        gutterBottom>
-                                                        Inclinometer
+                                                            variant="subtitle1"
+                                                            gutterBottom>
+                                                            Inclinometer
                                                         </Typography>
                                                     </div>
                                                     <FormControl
